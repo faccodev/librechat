@@ -503,3 +503,8 @@ export const getAllEffectivePermissions = (resourceType: ResourceType) =>
 // SharePoint Graph API Token
 export const graphToken = (scopes: string) =>
   `${BASE_URL}/api/auth/graph-token?scopes=${encodeURIComponent(scopes)}`;
+
+// Admin User Workspace
+export const adminUserWorkspace = (userId: string) =>
+  `${BASE_URL}/api/admin/users/${encodeURIComponent(userId)}/workspace`;
+

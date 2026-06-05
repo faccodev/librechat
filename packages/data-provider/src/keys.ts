@@ -83,6 +83,8 @@ export enum QueryKeys {
   skillStates = 'skillStates',
   /* General user favorites */
   favorites = 'favorites',
+  /* Workspace key */
+  userWorkspace = 'userWorkspace',
 }
 
 // Dynamic query keys that require parameters
@@ -125,4 +127,6 @@ export enum MutationKeys {
   updateSkillNode = 'updateSkillNode',
   deleteSkillNode = 'deleteSkillNode',
   updateSkillNodeContent = 'updateSkillNodeContent',
+  /* Workspace mutations */
+  setUserWorkspace = 'setUserWorkspace',
 }

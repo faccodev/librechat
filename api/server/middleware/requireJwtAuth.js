@@ -154,6 +154,30 @@ const requireJwtAuth = (req, res, next) => {
         if (tenantErr) {
           return next(tenantErr);
         }
+
+        if (req.user?.workspaceSubdir) {
+          try {
+            const { activateWorkspaceMCP, resolveWorkspacePath, getWorkspaceConfig } = require('@librechat/api');
+            const { getMCPManager } = require('~/config');
+            const { getAppConfig } = require('~/server/services/Config');
+
+            const appConfig = getAppConfig.sync?.() ?? {};
+            const config = getWorkspaceConfig(appConfig);
+            const absolutePath = resolveWorkspacePath(req.user.workspaceSubdir, config);
+            if (absolutePath) {
+              activateWorkspaceMCP(req.user.id, absolutePath, getMCPManager(req.user.id))
+                .catch((err) =>
+                  logger.warn(
+                    `[Workspace MCP] Failed to activate workspace for user ${req.user.id}:`,
+                    err,
+                  ),
+                );
+            }
+          } catch (err) {
+            logger.warn('[Workspace MCP] Error resolving/activating workspace path:', err);
+          }
+        }
+
         refreshCloudFrontCookies(req, res, next);
       });
     })(req, res, next);

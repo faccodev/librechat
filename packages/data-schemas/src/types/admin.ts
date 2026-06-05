@@ -122,6 +122,7 @@ export type AdminUserListItem = {
   provider: string;
   createdAt?: string;
   updatedAt?: string;
+  workspaceSubdir?: string | null;
 };
 
 /** Minimal user info returned by user search endpoints. */

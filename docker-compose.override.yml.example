@@ -60,6 +60,13 @@
 #       source: ./your_cert.pem
 #       target: /app/your_cert.pem
 
+# # ENABLE LOCAL WORKSPACES
+#   api:
+#     volumes:
+#       # Substitua /home/workspaces pelo caminho real no seu VPS.
+#       # O subdiretório de cada usuário será criado automaticamente dentro dele.
+#       - /home/workspaces:/workspaces
+
 # # ADD MONGO-EXPRESS
 #   mongo-express:
 #     image: mongo-express

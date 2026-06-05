@@ -1,0 +1,27 @@
+import React from 'react';
+import { Folder } from 'lucide-react';
+import { TooltipAnchor } from '@librechat/client';
+import { useAuthContext, useLocalize } from '~/hooks';
+
+export default function WorkspaceIndicator() {
+  const { user } = useAuthContext();
+  const localize = useLocalize();
+
+  if (!user?.workspaceSubdir) {
+    return null;
+  }
+
+  const path = `/workspaces/${user.workspaceSubdir}`;
+
+  return (
+    <TooltipAnchor
+      description={localize('com_ui_workspace_indicator_tooltip', { path })}
+      render={
+        <div className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-text-secondary bg-surface-secondary/80 hover:bg-surface-secondary border border-border-light/50 rounded-lg font-normal select-none cursor-default h-9">
+          <Folder className="size-4 text-text-secondary/70" aria-hidden="true" />
+          <span className="max-w-[120px] truncate">{user.workspaceSubdir}</span>
+        </div>
+      }
+    />
+  );
+}

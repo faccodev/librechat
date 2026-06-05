@@ -1412,6 +1412,14 @@ export const summarizationConfigSchema = z.object({
 
 export type SummarizationConfig = z.infer<typeof summarizationConfigSchema>;
 
+export const workspacesSchema = z.object({
+  enabled: z.boolean().optional().default(false),
+  containerBasePath: z.string().optional().default('/workspaces'),
+  sizeLimitMB: z.number().optional().default(2048),
+});
+
+export type TWorkspacesConfig = z.infer<typeof workspacesSchema>;
+
 const customEndpointsSchema = z.array(endpointSchema.partial()).optional();
 
 export const configSchema = z.object({
@@ -1420,6 +1428,7 @@ export const configSchema = z.object({
   ocr: ocrSchema.optional(),
   webSearch: webSearchSchema.optional(),
   memory: memorySchema.optional(),
+  workspaces: workspacesSchema.optional(),
   summarization: summarizationConfigSchema.optional(),
   secureImageLinks: z.boolean().optional(),
   imageOutputType: z.nativeEnum(EImageOutputType).default(EImageOutputType.PNG),

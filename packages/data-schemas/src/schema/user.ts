@@ -162,6 +162,12 @@ const userSchema = new Schema<IUser>(
       type: String,
       index: true,
     },
+    workspaceSubdir: {
+      type: String,
+      default: null,
+      trim: true,
+      maxlength: 512,
+    },
   },
   { timestamps: true },
 );

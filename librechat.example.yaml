@@ -760,3 +760,17 @@ endpoints:
 #     # instructions: "You are a memory management assistant. Store and manage user information accurately."
 #     # model_parameters:
 #     #   temperature: 0.1
+
+# Workspace Configuration
+# Permite que cada usuário tenha acesso a um diretório local via MCP filesystem.
+# O admin define o workspace de cada usuário no painel de administração.
+# workspaces:
+#   # Habilita/desabilita a feature (default: false)
+#   enabled: false
+#   # Caminho base DENTRO do container onde os workspaces ficam.
+#   # Deve corresponder ao `target` do volume mount no docker-compose.
+#   # Exemplo: se o volume for "/home/workspaces:/workspaces", use '/workspaces'
+#   containerBasePath: '/workspaces'
+#   # Limite de tamanho por workspace em MB. 0 = sem limite. (não imposto automaticamente na Fase 1)
+#   sizeLimitMB: 2048
+

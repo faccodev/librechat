@@ -61,6 +61,7 @@ export interface IUser extends Document {
   tenantId?: string;
   federatedTokens?: OIDCTokens;
   openidTokens?: OIDCTokens;
+  workspaceSubdir?: string | null;
 }
 
 export interface OIDCTokens {
@@ -97,6 +98,7 @@ export interface UpdateUserRequest {
     memories?: boolean;
   };
   skillStates?: Record<string, boolean>;
+  workspaceSubdir?: string | null;
 }
 
 export interface UserDeleteResult {

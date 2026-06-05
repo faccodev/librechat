@@ -15,7 +15,7 @@ import { parsePagination } from './pagination';
 
 const MAX_SEARCH_LENGTH = 200;
 
-const USER_LIST_FIELDS = '_id name username email avatar role provider createdAt updatedAt';
+const USER_LIST_FIELDS = '_id name username email avatar role provider createdAt updatedAt workspaceSubdir';
 
 export interface AdminUsersDeps {
   findUsers: (
@@ -63,6 +63,7 @@ export function createAdminUsersHandlers(deps: AdminUsersDeps) {
         provider: u.provider ?? 'local',
         createdAt: u.createdAt?.toISOString(),
         updatedAt: u.updatedAt?.toISOString(),
+        workspaceSubdir: u.workspaceSubdir ?? null,
       }));
 
       return res.status(200).json({ users: mapped, total, limit, offset });

@@ -1313,3 +1313,23 @@ export interface ActiveJobsResponse {
 export const getActiveJobs = (): Promise<ActiveJobsResponse> => {
   return request.get(endpoints.activeJobs());
 };
+
+/* Workspace */
+export interface UserWorkspaceResponse {
+  userId: string;
+  workspaceSubdir: string | null;
+  resolvedPath: string | null;
+  enabled: boolean;
+}
+
+export function getUserWorkspace(userId: string): Promise<UserWorkspaceResponse> {
+  return request.get(endpoints.adminUserWorkspace(userId));
+}
+
+export function setUserWorkspace(
+  userId: string,
+  workspaceSubdir: string | null,
+): Promise<UserWorkspaceResponse> {
+  return request.put(endpoints.adminUserWorkspace(userId), { workspaceSubdir });
+}
+
