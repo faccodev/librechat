@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: librechat-api
+    ports:
+      - "${PORT:-3080}:3080"
+    depends_on:
+      - mongodb
+      - meilisearch
+    restart: always
+    environment:
+      - HOST=0.0.0.0
+      - PORT=3080
+      - MONGO_URI=mongodb://mongodb:27017/LibreChat
+      - MEILI_HOST=http://meilisearch:7700
+      # O Coolify permite preencher essas variáveis pelo painel de variáveis de ambiente
+      - MEILI_HTTP_ADDR=0.0.0.0:7700
+      - MEILI_NO_ANALYTICS=true
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:-super_secret_meili_master_key_change_me}
+      - JWT_SECRET=${JWT_SECRET:-super_secret_jwt_key_change_me_at_least_32_chars}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-super_secret_jwt_refresh_key_change_me}
+      # Caminhos para uploads
+      - UPLOADS_DIR=/app/uploads
+    volumes:
+      # Arquivo de configuração customizado do LibreChat
+      - ./librechat.yaml:/app/librechat.yaml
+      # Uploads persistentes
+      - librechat_uploads:/app/uploads
+      # --- FUNCIONALIDADE DE WORKSPACES ---
+      # Mapeia a pasta do host no VPS para dentro do container.
+      # Mude "/home/workspaces" se preferir usar outro caminho no host do VPS.
+      - /home/workspaces:/workspaces
+    networks:
+      - librechat-network
+
+  mongodb:
+    image: mongo:6.0
+    container_name: librechat-mongodb
+    restart: always
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - librechat-network
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.7
+    container_name: librechat-meilisearch
+    restart: always
+    environment:
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:-super_secret_meili_master_key_change_me}
+      - MEILI_NO_ANALYTICS=true
+    volumes:
+      - meili_data:/meili_data
+    networks:
+      - librechat-network
+
+volumes:
+  mongodb_data:
+  meili_data:
+  librechat_uploads:
+
+networks:
+  librechat-network:
+    name: librechat-network
