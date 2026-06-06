@@ -155,7 +155,7 @@ const requireJwtAuth = (req, res, next) => {
           return next(tenantErr);
         }
 
-        if (req.user?.workspaceSubdir) {
+        if (req.user) {
           try {
             const { activateWorkspaceMCP, resolveWorkspacePath, getWorkspaceConfig } = require('@librechat/api');
             const { getMCPManager } = require('~/config');

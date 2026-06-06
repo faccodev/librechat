@@ -106,9 +106,17 @@ describe('Workspace Service', () => {
       expect(resolveWorkspacePath('alice', disabledConfig)).toBeNull();
     });
 
-    it('should return null for empty subdir', () => {
-      expect(resolveWorkspacePath('', config)).toBeNull();
-      expect(resolveWorkspacePath(null, config)).toBeNull();
+    it('should return containerBasePath for empty subdir when enabled', () => {
+      const resolved = path.resolve('/workspaces');
+      expect(resolveWorkspacePath('', config)).toBe(resolved);
+      expect(resolveWorkspacePath(null, config)).toBe(resolved);
+      expect(resolveWorkspacePath(undefined, config)).toBe(resolved);
+    });
+
+    it('should return null for empty subdir when disabled', () => {
+      const disabledConfig = { ...config, enabled: false };
+      expect(resolveWorkspacePath('', disabledConfig)).toBeNull();
+      expect(resolveWorkspacePath(null, disabledConfig)).toBeNull();
     });
 
     it('should return null for invalid subdir', () => {

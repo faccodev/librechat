@@ -53,14 +53,19 @@ export function isPathSafe(absolutePath: string, basePath: string): boolean {
 
 /**
  * Resolve o path absoluto do workspace a partir do subdiretório definido pelo admin.
- * Retorna null se subdir for null/vazio ou se workspaces estiver desabilitado.
+ * Retorna null apenas se workspaces estiver desabilitado. Quando o admin não define
+ * um subdir, retorna o containerBasePath (root compartilhado) como workspace padrão.
  */
 export function resolveWorkspacePath(
   subdir: string | null | undefined,
   config: WorkspaceConfig,
 ): string | null {
-  if (!subdir || !config.enabled) {
+  if (!config.enabled) {
     return null;
+  }
+
+  if (!subdir) {
+    return path.resolve(config.containerBasePath);
   }
 
   const { valid } = validateWorkspaceSubdir(subdir);

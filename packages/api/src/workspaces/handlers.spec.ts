@@ -13,11 +13,14 @@ jest.mock('./service', () => ({
     }
     return { valid: true };
   }),
-  resolveWorkspacePath: jest.fn((subdir: string | null, config: WorkspaceConfig) => {
+  resolveWorkspacePath: jest.fn((subdir: string | null | undefined, config: WorkspaceConfig) => {
     if (subdir === 'unsafe') {
       return null;
     }
-    return subdir ? `${config.containerBasePath}/${subdir}` : null;
+    if (subdir) {
+      return `${config.containerBasePath}/${subdir}`;
+    }
+    return config.enabled ? config.containerBasePath : null;
   }),
   ensureWorkspaceDir: jest.fn().mockResolvedValue(undefined),
 }));
@@ -84,6 +87,26 @@ describe('Workspace Admin Handlers', () => {
         userId: 'user123',
         workspaceSubdir: 'alice',
         resolvedPath: '/workspaces/alice',
+        enabled: true,
+      });
+    });
+
+    it('should return root path for a user with no subdir when workspaces enabled', async () => {
+      mockReq = { params: { id: 'user123' } };
+      const mockUser = {
+        id: 'user123',
+        workspaceSubdir: null,
+      } as unknown as IUser;
+      mockDeps.findUsers.mockResolvedValue([mockUser]);
+
+      const handlers = createWorkspaceAdminHandlers(mockDeps);
+      await handlers.getWorkspace(mockReq as ServerRequest, mockRes as Response);
+
+      expect(statusMock).toHaveBeenCalledWith(200);
+      expect(jsonMock).toHaveBeenCalledWith({
+        userId: 'user123',
+        workspaceSubdir: null,
+        resolvedPath: '/workspaces',
         enabled: true,
       });
     });

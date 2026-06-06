@@ -41,8 +41,8 @@ router.get('/', async (req, res) => {
   try {
     const appConfig = req.config;
 
-    // Sync workspace files if workspaces are enabled and user has one
-    if (req.user?.workspaceSubdir) {
+    // Sync workspace files if workspaces are enabled (falls back to root when user has no subdir)
+    if (req.user) {
       try {
         const { getWorkspaceConfig, resolveWorkspacePath } = require('@librechat/api');
         const wsConfig = getWorkspaceConfig(appConfig);

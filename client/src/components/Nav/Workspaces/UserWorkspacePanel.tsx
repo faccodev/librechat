@@ -84,7 +84,7 @@ export default function UserWorkspacePanel({ userId }: UserWorkspacePanelProps) 
           </p>
         </div>
 
-        {subdir.trim() && (
+        {(subdir.trim() || (data?.enabled && data?.resolvedPath)) && (
           <div className="rounded-lg bg-surface-secondary p-3 text-xs space-y-1.5">
             <div>
               <span className="font-semibold text-text-secondary">
@@ -92,6 +92,12 @@ export default function UserWorkspacePanel({ userId }: UserWorkspacePanelProps) 
               </span>{' '}
               <code className="text-text-primary bg-surface-tertiary px-1 rounded">{resolvedPath}</code>
             </div>
+            {!subdir.trim() && data?.enabled && (
+              <div className="flex items-center gap-1 text-amber-600 dark:text-amber-500 font-medium">
+                <AlertTriangle className="size-4" aria-hidden="true" />
+                <span>{localize('com_ui_workspace_default_label')}</span>
+              </div>
+            )}
             {enabled ? (
               <div className="flex items-center gap-1 text-green-600 dark:text-green-500 font-medium">
                 <CheckCircle className="size-4" aria-hidden="true" />
@@ -106,7 +112,7 @@ export default function UserWorkspacePanel({ userId }: UserWorkspacePanelProps) 
           </div>
         )}
 
-        {!subdir.trim() && (
+        {!subdir.trim() && !data?.enabled && (
           <div className="text-xs text-text-secondary italic">
             {localize('com_ui_workspace_none')}
           </div>
