@@ -6,29 +6,30 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: librechat-api
-    # Forma longa de ports: mais robusta pro parser do Coolify do que "3080:3080".
-    # `target` = porta dentro do container, `published` = porta exposta no host.
-    # O Coolify lê `target` para detectar o que mostrar no painel de domínios.
+    # Porta 3080 exposta no host. Forma simples (shorthand) — algumas versões
+    # do Coolify ignoram a forma longa (target/published/mode).
     ports:
-      - target: 3080
-        published: 3080
-        protocol: tcp
-        mode: host
-    # Labels: combinação de coolify.* (v4) + traefik.* (fallback para versões
-    # mais antigas e para o parser automático do proxy reverso do Coolify).
+      - "3080:3080"
+    # Labels completas pro Coolify v4. Sem `coolify.application` e `coolify.service`
+    # o parser mostra a seção "Domains for api" mas não popula a porta-alvo no
+    # formulário de domínio — fica cinza/vazio e o usuário não consegue anexar FQDN.
     labels:
       - "coolify.managed=true"
+      - "coolify.application=librechat"
+      - "coolify.service=api"
       - "coolify.port=3080"
-      - "coolify.enable=true"
+      - "coolify.type=application"
+      - "coolify.healthcheck.path=/livez"
+      - "coolify.healthcheck.port=3080"
       - "traefik.enable=true"
     depends_on:
       - mongodb
       - meilisearch
     restart: always
-    # Healthcheck usando o endpoint /livez do api (definido em api/server/index.js).
-    # Usando `node` direto em vez de `wget` porque a imagem é `node:alpine` e
-    # o `wget` do busybox tem flags limitados que podem falhar em alguns casos.
-    # `node` está garantido no PATH e funciona em qualquer versão do alpine.
+    # Healthcheck via `node` (sempre presente no PATH da imagem `node:alpine`),
+    # apontando pra 127.0.0.1 — mais confiável que `wget` do busybox que tem
+    # flags limitados e pode falhar silenciosamente, deixando o serviço marcado
+    # como unhealthy e escondendo o painel de domínio em algumas versões.
     healthcheck:
       test:
         - "CMD-SHELL"
@@ -50,6 +51,14 @@ services:
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-super_secret_jwt_refresh_key_change_me}
       # Caminhos para uploads
       - UPLOADS_DIR=/app/uploads
+      # --- COOKIE SECURE OVERRIDE ---
+      # Enquanto o acesso for via HTTP (ex.: http://IP:3080), o browser recusa
+      # enviar cookies com flag Secure → F5 desloga o usuário. Forçando false
+      # aqui, shouldUseSecureCookie() em packages/api/src/oauth/csrf.ts retorna
+      # false e os cookies (refreshToken, token_provider) saem sem a flag.
+      # TROQUE PARA true (ou remova esta linha) assim que o domínio HTTPS do
+      # Coolify estiver ativo — cookies sem Secure sobre HTTPS são sniffáveis.
+      - SESSION_COOKIE_SECURE=false
     volumes:
       # Arquivo de configuração customizado do LibreChat
       - ./librechat.yaml:/app/librechat.yaml
