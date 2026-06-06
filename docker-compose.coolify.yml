@@ -5,23 +5,20 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: librechat-api
+    # Removido container_name fixo — Coolify gera nomes próprios pros
+    # containers e se bate com o declarado, atrapalha a detecção de domínio.
     # Porta 3080 exposta no host. Forma simples (shorthand) — algumas versões
     # do Coolify ignoram a forma longa (target/published/mode).
     ports:
       - "3080:3080"
-    # Labels completas pro Coolify v4. Sem `coolify.application` e `coolify.service`
-    # o parser mostra a seção "Domains for api" mas não popula a porta-alvo no
-    # formulário de domínio — fica cinza/vazio e o usuário não consegue anexar FQDN.
+    # Labels oficiais do Coolify (docs: .agents/skills/coolify/references/build-packs.md).
+    # Apenas `coolify.managed` e `coolify.type` são labels reais reconhecidos;
+    # o `coolify.applicationId` é aplicado automaticamente pelo Coolify.
+    # Os outros (coolify.application, .service, .port, .healthcheck.*) NÃO
+    # existem como labels oficiais e podem confundir o parser — removidos.
     labels:
       - "coolify.managed=true"
-      - "coolify.application=librechat"
-      - "coolify.service=api"
-      - "coolify.port=3080"
       - "coolify.type=application"
-      - "coolify.healthcheck.path=/livez"
-      - "coolify.healthcheck.port=3080"
-      - "traefik.enable=true"
     depends_on:
       - mongodb
       - meilisearch
@@ -68,35 +65,31 @@ services:
       # Mapeia a pasta do host no VPS para dentro do container.
       # Mude "/home/workspaces" se preferir usar outro caminho no host do VPS.
       - /home/workspaces:/workspaces
-    networks:
-      - librechat-network
+    # Removida a rede custom `librechat-network`. O Traefik do Coolify está
+    # numa rede própria (gerada por deployment) e se o serviço fica preso em
+    # uma rede que não é a do proxy, o roteamento de domínio falha
+    # silenciosamente. Sem `networks:` explícito, o Coolify anexa o serviço
+    # na rede dele automaticamente e a detecção de porta funciona.
 
   mongodb:
     image: mongo:6.0
-    container_name: librechat-mongodb
     restart: always
     volumes:
       - mongodb_data:/data/db
-    networks:
-      - librechat-network
+    # Sem rede explícita — fica na rede default do Coolify junto com o api.
+    # Continua inacessível da internet porque não tem `ports:`.
 
   meilisearch:
     image: getmeili/meilisearch:v1.7
-    container_name: librechat-meilisearch
     restart: always
     environment:
       - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:-super_secret_meili_master_key_change_me}
       - MEILI_NO_ANALYTICS=true
     volumes:
       - meili_data:/meili_data
-    networks:
-      - librechat-network
+    # Sem rede explícita — mesma rede default do Coolify do api.
 
 volumes:
   mongodb_data:
   meili_data:
   librechat_uploads:
-
-networks:
-  librechat-network:
-    name: librechat-network
