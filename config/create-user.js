@@ -5,6 +5,8 @@ require('module-alias')({ base: path.resolve(__dirname, '..', 'api') });
 const { registerUser } = require('~/server/services/AuthService');
 const { askQuestion, silentExit } = require('./helpers');
 const connect = require('./connect');
+const { validateWorkspaceSubdir, resolveWorkspacePath, ensureWorkspaceDir, getWorkspaceConfig } = require('@librechat/api');
+const { getAppConfig } = require('~/server/services/Config');
 
 (async () => {
   await connect();
@@ -14,7 +16,7 @@ const connect = require('./connect');
   console.purple('--------------------------');
 
   if (process.argv.length < 5) {
-    console.orange('Usage: npm run create-user -- <email> <name> <username> [--email-verified=false]');
+    console.orange('Usage: npm run create-user -- <email> <name> <username> [--email-verified=false] [--workspace-subdir=<subdir>]');
     console.orange('Note: if you do not pass in the arguments, you will be prompted for them.');
     console.orange(
       'If you really need to pass in the password, you can do so as the 4th argument (not recommended for security).',
@@ -24,7 +26,7 @@ const connect = require('./connect');
   }
 
   // Parse command line arguments
-  let email, password, name, username, emailVerified, provider;
+  let email, password, name, username, emailVerified, provider, workspaceSubdir;
   for (let i = 2; i < process.argv.length; i++) {
     if (process.argv[i].startsWith('--email-verified=')) {
       emailVerified = process.argv[i].split('=')[1].toLowerCase() !== 'false';
@@ -33,6 +35,11 @@ const connect = require('./connect');
 
     if (process.argv[i].startsWith('--provider=')) {
       provider = process.argv[i].split('=')[1];
+      continue;
+    }
+
+    if (process.argv[i].startsWith('--workspace-subdir=')) {
+      workspaceSubdir = process.argv[i].split('=')[1];
       continue;
     }
 
@@ -97,6 +104,35 @@ or the user will need to attempt logging in to have a verification link sent to 
     }
   }
 
+  // Workspace subdirectory input and validation
+  if (workspaceSubdir === undefined) {
+    const wsInput = await askQuestion('Workspace Subdirectory: (leave blank for none)');
+    workspaceSubdir = wsInput.trim() || null;
+  }
+
+  if (workspaceSubdir) {
+    const { valid, error } = validateWorkspaceSubdir(workspaceSubdir);
+    if (!valid) {
+      console.red('Error: ' + (error ?? 'Invalid workspace subdirectory'));
+      silentExit(1);
+    }
+
+    try {
+      const appConfig = getAppConfig.sync?.() ?? {};
+      const config = getWorkspaceConfig(appConfig);
+      const resolvedPath = resolveWorkspacePath(workspaceSubdir, config);
+      if (resolvedPath) {
+        await ensureWorkspaceDir(resolvedPath, config.containerBasePath);
+        console.green(`Created workspace directory at: ${resolvedPath}`);
+      } else {
+        console.orange('Warning: Workspaces are disabled or path could not be resolved securely.');
+      }
+    } catch (err) {
+      console.red('Error creating workspace directory: ' + err.message);
+      silentExit(1);
+    }
+  }
+
   const userExists = await User.findOne({ $or: [{ email }, { username }] });
   if (userExists) {
     console.red('Error: A user with that email or username already exists!');
@@ -104,7 +140,11 @@ or the user will need to attempt logging in to have a verification link sent to 
   }
 
   const user = { email, password, name, username, confirm_password: password };
-  const additionalData = { emailVerified, ...(provider !== undefined ? { provider } : {}) };
+  const additionalData = {
+    emailVerified,
+    workspaceSubdir,
+    ...(provider !== undefined ? { provider } : {})
+  };
   let result;
   try {
     result = await registerUser(user, additionalData);
@@ -122,6 +162,9 @@ or the user will need to attempt logging in to have a verification link sent to 
   if (userCreated) {
     console.green('User created successfully!');
     console.green(`Email verified: ${userCreated.emailVerified}`);
+    if (userCreated.workspaceSubdir) {
+      console.green(`Workspace assigned: ${userCreated.workspaceSubdir}`);
+    }
     silentExit(0);
   }
 })();
