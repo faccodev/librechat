@@ -556,7 +556,7 @@ async function loadToolDefinitionsWrapper({ req, res, agent, streamId = null, to
   const mcpPermissionContext = createMCPPermissionContext(req);
   const canUseMCP = hasMCPTools ? await mcpPermissionContext.canUseServers(req.user) : true;
 
-  const filteredTools = agent.tools?.filter((tool) => {
+  let filteredTools = agent.tools?.filter((tool) => {
     if (tool === Tools.file_search) {
       return checkCapability(AgentCapabilities.file_search);
     }
@@ -647,17 +647,44 @@ async function loadToolDefinitionsWrapper({ req, res, agent, streamId = null, to
 
   const getOrFetchMCPServerTools = async (userId, serverName) => {
     let serverConfig;
-    try {
-      serverConfig =
-        configServers?.[serverName] ??
-        (await getMCPServersRegistry().getServerConfig(serverName, userId, configServers));
-    } catch (err) {
-      logger.warn(
-        `[Tool Definitions] MCP registry unavailable while resolving '${serverName}': ${
-          err?.message ?? err
-        }. Skipping MCP tool exposure for this lookup.`,
-      );
-      return null;
+
+    /**
+     * Synthesize the workspace MCP server config on-the-fly for
+     * `ws_<userId>` server names. The workspace MCP is created
+     * imperatively by `activateWorkspaceMCP` in `requireJwtAuth.js`
+     * and is NOT registered in `librechat.yaml` `mcpServers` or in
+     * the user DB registry — so the normal lookups below would skip
+     * it. Building the config here mirrors the same shape used by
+     * `activateWorkspaceMCP` (`packages/api/src/workspaces/mcp.ts`).
+     */
+    if (serverName === `ws_${userId}` && req.user?.workspaceSubdir) {
+      const { getWorkspaceConfig, resolveWorkspacePath } = require('@librechat/api');
+      const loadCustomConfig = require('~/server/services/Config/loadCustomConfig');
+      const wsAppConfig = loadCustomConfig() ?? {};
+      const wsConfig = getWorkspaceConfig(wsAppConfig);
+      const wsPath = resolveWorkspacePath(req.user.workspaceSubdir, wsConfig);
+      if (wsPath) {
+        serverConfig = {
+          type: 'stdio',
+          command: 'npx',
+          args: ['-y', '@modelcontextprotocol/server-filesystem', wsPath],
+        };
+      }
+    }
+
+    if (!serverConfig) {
+      try {
+        serverConfig =
+          configServers?.[serverName] ??
+          (await getMCPServersRegistry().getServerConfig(serverName, userId, configServers));
+      } catch (err) {
+        logger.warn(
+          `[Tool Definitions] MCP registry unavailable while resolving '${serverName}': ${
+            err?.message ?? err
+          }. Skipping MCP tool exposure for this lookup.`,
+        );
+        return null;
+      }
     }
 
     if (!serverConfig) {
@@ -757,6 +784,51 @@ async function loadToolDefinitionsWrapper({ req, res, agent, streamId = null, to
 
     return definitions;
   };
+
+  /**
+   * Auto-inject workspace MCP tools for the authenticated user.
+   *
+   * Mirrors `activateWorkspaceMCP` in `requireJwtAuth.js`: a user with
+   * `workspaceSubdir` set always has the `ws_<userId>` MCP server in
+   * scope, regardless of the agent's persisted `tools` list. To opt a
+   * user out, set their `workspaceSubdir` to `null`; to opt a role out,
+   * revoke the `tools` capability.
+   *
+   * We resolve the real tool names via `getOrFetchMCPServerTools`
+   * (which knows how to synthesize the workspace MCP config — see
+   * the patch inside that function). The resulting keys are appended
+   * to `filteredTools` so the LLM sees the actual `read_file`,
+   * `write_file`, `list_directory`, etc. tools.
+   */
+  if (
+    req.user?.workspaceSubdir &&
+    req.user?.id &&
+    areToolsEnabled &&
+    canUseMCP
+  ) {
+    const wsServerName = `ws_${req.user.id}`;
+    const alreadyInjected = filteredTools?.some((t) =>
+      t.includes(`${Constants.mcp_delimiter}${wsServerName}`),
+    );
+    if (!alreadyInjected) {
+      try {
+        const serverTools = await getOrFetchMCPServerTools(req.user.id, wsServerName);
+        if (serverTools && typeof serverTools === 'object') {
+          const realToolNames = Object.keys(serverTools).filter(
+            (n) => !filteredTools?.includes(n),
+          );
+          filteredTools = [...(filteredTools ?? []), ...realToolNames];
+          logger.debug(
+            `[loadToolDefinitionsWrapper] Auto-injected ${realToolNames.length} workspace MCP tools for user ${req.user.id} (agent ${agent.id})`,
+          );
+        }
+      } catch (err) {
+        logger.debug(
+          `[loadToolDefinitionsWrapper] Workspace MCP auto-inject skipped for user ${req.user.id} (agent ${agent.id}): ${err?.message ?? err}`,
+        );
+      }
+    }
+  }
 
   let { toolDefinitions, toolRegistry, hasDeferredTools } = await loadToolDefinitions(
     {
@@ -1015,13 +1087,20 @@ async function loadAgentTools({
 
   /**
    * Auto-inject workspace MCP tools for the authenticated user.
+   *
    * Mirrors `activateWorkspaceMCP` in `requireJwtAuth.js`: a user with
    * `workspaceSubdir` set always has the `ws_<userId>` MCP server in
    * scope, regardless of the agent's persisted `tools` list. This makes
    * workspace access opt-out (via the `tools` capability), not opt-in
-   * (manual config per agent). Set the user-level `workspaceSubdir` to
-   * `null` to opt a user out, or revoke the `tools` capability to opt
-   * an entire role out.
+   * (manual config per agent). To opt a user out, set their
+   * `workspaceSubdir` to `null`; to opt a role out, revoke the `tools`
+   * capability.
+   *
+   * The JS `loadTools` path does NOT expand the `mcp_all__servername`
+   * placeholder (only the TS `loadEphemeralAgent` does), so we resolve
+   * the actual tool names here via `getMCPServerTools` before handing
+   * them off. If the cache is cold (first request after login) we fall
+   * back to the placeholder and let the downstream `loadTools` re-resolve.
    */
   if (req.user?.workspaceSubdir && req.user?.id && areToolsEnabled && canUseMCP) {
     const { getWorkspaceServerName, getWorkspaceConfig, resolveWorkspacePath } =
@@ -1032,15 +1111,35 @@ async function loadAgentTools({
     const wsPath = resolveWorkspacePath(req.user.workspaceSubdir, wsConfig);
     if (wsPath) {
       const wsServerName = getWorkspaceServerName(req.user.id);
-      const wsToolName = `${Constants.mcp_all}${Constants.mcp_delimiter}${wsServerName}`;
+      const wsPlaceholder = `${Constants.mcp_all}${Constants.mcp_delimiter}${wsServerName}`;
       if (!_agentTools) {
         _agentTools = [];
       }
-      if (!_agentTools.includes(wsToolName)) {
-        _agentTools = [..._agentTools, wsToolName];
-        logger.debug(
-          `[loadAgentTools] Auto-injected workspace MCP tool ${wsToolName} for user ${req.user.id} (agent ${agent.id})`,
-        );
+      const alreadyHasRealTools = _agentTools.some((t) =>
+        t.includes(`${Constants.mcp_delimiter}${wsServerName}`),
+      );
+      const hasPlaceholder = _agentTools.includes(wsPlaceholder);
+      if (alreadyHasRealTools) {
+        /* No-op: tools are already in the list (e.g. loaded previously). */
+      } else {
+        const serverTools = await getMCPServerTools(req.user.id, wsServerName);
+        if (serverTools && typeof serverTools === 'object') {
+          const realToolNames = Object.keys(serverTools).filter(
+            (n) => !_agentTools.includes(n),
+          );
+          const next = hasPlaceholder
+            ? _agentTools.filter((t) => t !== wsPlaceholder)
+            : _agentTools.slice();
+          _agentTools = [...next, ...realToolNames];
+          logger.debug(
+            `[loadAgentTools] Auto-injected ${realToolNames.length} workspace MCP tools for user ${req.user.id} (agent ${agent.id})`,
+          );
+        } else if (!hasPlaceholder) {
+          _agentTools = [..._agentTools, wsPlaceholder];
+          logger.debug(
+            `[loadAgentTools] Workspace MCP tools not yet cached for user ${req.user.id} (agent ${agent.id}); falling back to placeholder ${wsPlaceholder}`,
+          );
+        }
       }
     }
   }

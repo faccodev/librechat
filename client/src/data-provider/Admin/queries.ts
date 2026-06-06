@@ -79,3 +79,16 @@ export function useUpdateAdminUserRole(userId: string) {
   );
 }
 
+/** DELETE /api/admin/users/:id — delete user (admin only; blocks self-delete) */
+export function useDeleteAdminUser() {
+  const queryClient = useQueryClient();
+  return useMutation(
+    (userId: string) => dataService.deleteAdminUser(userId),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries([QueryKeys.adminUsers]);
+      },
+    },
+  );
+}
+

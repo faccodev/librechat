@@ -536,4 +536,8 @@ export const adminUserWorkspace = (userId: string) =>
 export const adminUserRole = (userId: string) =>
   `${BASE_URL}/api/admin/users/${encodeURIComponent(userId)}/role`;
 
+// Admin User Delete
+export const adminUserDelete = (userId: string) =>
+  `${BASE_URL}/api/admin/users/${encodeURIComponent(userId)}`;
+
 

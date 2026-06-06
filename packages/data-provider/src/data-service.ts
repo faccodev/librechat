@@ -1400,3 +1400,9 @@ export function updateAdminUserRole(
   return request.put(endpoints.adminUserRole(userId), { role });
 }
 
+export function deleteAdminUser(
+  userId: string,
+): Promise<{ message: string }> {
+  return request.delete(endpoints.adminUserDelete(userId));
+}
+
