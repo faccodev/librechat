@@ -12,7 +12,7 @@ export interface WorkspaceConfig {
 export function getWorkspaceConfig(appConfig: TCustomConfig): WorkspaceConfig {
   const ws = appConfig.workspaces as TWorkspacesConfig | undefined;
   return {
-    enabled: ws?.enabled ?? false,
+    enabled: ws?.enabled ?? true,
     containerBasePath: (ws?.containerBasePath ?? '/workspaces').replace(/\/$/, ''),
     sizeLimitMB: ws?.sizeLimitMB ?? 2048,
   };

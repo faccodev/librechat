@@ -6,7 +6,7 @@ const { registerUser } = require('~/server/services/AuthService');
 const { askQuestion, silentExit } = require('./helpers');
 const connect = require('./connect');
 const { validateWorkspaceSubdir, resolveWorkspacePath, ensureWorkspaceDir, getWorkspaceConfig } = require('@librechat/api');
-const { getAppConfig } = require('~/server/services/Config');
+const loadCustomConfig = require('~/server/services/Config/loadCustomConfig');
 
 (async () => {
   await connect();
@@ -118,7 +118,7 @@ or the user will need to attempt logging in to have a verification link sent to 
     }
 
     try {
-      const appConfig = getAppConfig.sync?.() ?? {};
+      const appConfig = loadCustomConfig() ?? {};
       const config = getWorkspaceConfig(appConfig);
       const resolvedPath = resolveWorkspacePath(workspaceSubdir, config);
       if (resolvedPath) {

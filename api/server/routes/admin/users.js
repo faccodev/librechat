@@ -9,7 +9,6 @@ const {
 const { SystemCapabilities } = require('@librechat/data-schemas');
 const { requireCapability } = require('~/server/middleware/roles/capabilities');
 const { requireJwtAuth } = require('~/server/middleware');
-const { getAppConfig } = require('~/server/services/Config');
 const db = require('~/models');
 const bcrypt = require('bcryptjs');
 
@@ -18,6 +17,21 @@ const router = express.Router();
 const requireAdminAccess = requireCapability(SystemCapabilities.ACCESS_ADMIN);
 const requireReadUsers = requireCapability(SystemCapabilities.READ_USERS);
 const requireManageUsers = requireCapability(SystemCapabilities.MANAGE_USERS);
+
+// Same pattern used in api/server/routes/admin/workspaces.js: getAppConfig is
+// async (returns a Promise) and `.sync` is never defined on it, so reading
+// the workspace config through it always produced an empty appConfig and
+// reported `enabled: false`. loadCustomConfig is sync (uses js-yaml) — safe
+// to call once at module load and cache.
+const loadCustomConfig = require('~/server/services/Config/loadCustomConfig');
+let cachedWorkspaceConfig;
+let cachedAppConfig = {};
+try {
+  cachedAppConfig = loadCustomConfig() ?? {};
+  cachedWorkspaceConfig = getWorkspaceConfig(cachedAppConfig);
+} catch (err) {
+  cachedWorkspaceConfig = { enabled: true, containerBasePath: '/workspaces', sizeLimitMB: 2048 };
+}
 
 const handlers = createAdminUsersHandlers({
   findUsers: db.findUsers,
@@ -63,9 +77,7 @@ router.post('/', requireManageUsers, async (req, res) => {
 
     // If workspace subdir is provided, validate and create
     if (workspaceSubdir) {
-      const appConfig = getAppConfig.sync?.() ?? {};
-      const config = getWorkspaceConfig(appConfig);
-      if (!config.enabled) {
+      if (!cachedWorkspaceConfig.enabled) {
         return res.status(400).json({ error: 'Workspaces are currently disabled in configuration' });
       }
 
@@ -74,17 +86,21 @@ router.post('/', requireManageUsers, async (req, res) => {
         return res.status(400).json({ error: error ?? 'Invalid workspace subdirectory' });
       }
 
-      const resolvedPath = resolveWorkspacePath(workspaceSubdir, config);
+      const resolvedPath = resolveWorkspacePath(workspaceSubdir, cachedWorkspaceConfig);
       if (!resolvedPath) {
         return res.status(400).json({ error: 'Failed to resolve workspace path securely' });
       }
 
-      await ensureWorkspaceDir(resolvedPath, config.containerBasePath);
+      await ensureWorkspaceDir(resolvedPath, cachedWorkspaceConfig.containerBasePath);
       newUserData.workspaceSubdir = workspaceSubdir;
     }
 
-    const appConfig = getAppConfig.sync?.() ?? {};
-    const newUser = await db.createUser(newUserData, appConfig.balance, true, true);
+    const newUser = await db.createUser(
+      newUserData,
+      cachedAppConfig.balance,
+      true,
+      true,
+    );
 
     const result = {
       id: newUser._id?.toString() ?? '',
