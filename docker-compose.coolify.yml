@@ -6,29 +6,37 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: librechat-api
+    # Forma longa de ports: mais robusta pro parser do Coolify do que "3080:3080".
+    # `target` = porta dentro do container, `published` = porta exposta no host.
+    # O Coolify lê `target` para detectar o que mostrar no painel de domínios.
     ports:
-      # Porta hardcoded (sem ${PORT}) — o parser estático do Coolify não resolve
-      # variáveis no bloco `ports:`, então a forma "${PORT:-3080}:3080" fazia
-      # a UI não mostrar a opção de anexar domínio. Hardcoded garante detecção.
-      - "3080:3080"
-    # Labels explícitas para o Coolify — algumas versões só exibem a seção
-    # "Service Domains" quando vê um label coolify.* ou um healthcheck.
+      - target: 3080
+        published: 3080
+        protocol: tcp
+        mode: host
+    # Labels: combinação de coolify.* (v4) + traefik.* (fallback para versões
+    # mais antigas e para o parser automático do proxy reverso do Coolify).
     labels:
       - "coolify.managed=true"
       - "coolify.port=3080"
+      - "coolify.enable=true"
+      - "traefik.enable=true"
     depends_on:
       - mongodb
       - meilisearch
     restart: always
     # Healthcheck usando o endpoint /livez do api (definido em api/server/index.js).
-    # Sem isso, o Coolify trata o serviço como "desconhecido" e esconde o painel
-    # de domínios em algumas versões.
+    # Usando `node` direto em vez de `wget` porque a imagem é `node:alpine` e
+    # o `wget` do busybox tem flags limitados que podem falhar em alguns casos.
+    # `node` está garantido no PATH e funciona em qualquer versão do alpine.
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3080/livez"]
+      test:
+        - "CMD-SHELL"
+        - "node -e \"require('http').get('http://127.0.0.1:3080/livez', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))\""
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 60s
     environment:
       - HOST=0.0.0.0
       - PORT=3080
