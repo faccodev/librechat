@@ -48,7 +48,8 @@ interface AdminUserRowProps {
 
 function AdminUserRow({ user, onClick, isSelected }: AdminUserRowProps) {
   const isAdmin = user.role === SystemRoles.ADMIN;
-  const initial = (user.name || user.email || '?').charAt(0).toUpperCase();
+  const displayName = user.name || user.username || user.email || 'Unknown';
+  const initial = displayName.charAt(0).toUpperCase();
 
   return (
     <button
@@ -65,7 +66,7 @@ function AdminUserRow({ user, onClick, isSelected }: AdminUserRowProps) {
         {user.avatar ? (
           <img
             src={user.avatar}
-            alt={user.name}
+            alt={displayName}
             className="h-9 w-9 rounded-full object-cover"
           />
         ) : (
@@ -82,27 +83,16 @@ function AdminUserRow({ user, onClick, isSelected }: AdminUserRowProps) {
 
       {/* User info */}
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <span className="truncate text-sm font-medium text-text-primary">{user.name}</span>
+        <div className="flex items-center gap-1.5">
+          <span className={`truncate text-sm font-medium ${isAdmin ? 'text-amber-600 dark:text-amber-400 font-semibold' : 'text-text-primary'}`}>
+            {displayName}
+          </span>
           {isAdmin && (
-            <span className="flex-shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-              ADMIN
-            </span>
+            <Shield className="size-3 text-amber-500 flex-shrink-0" title="Admin" />
           )}
         </div>
         <div className="truncate text-xs text-text-secondary">{user.email}</div>
       </div>
-
-      {/* Workspace badge */}
-      {user.workspaceSubdir && (
-        <div
-          className="flex flex-shrink-0 items-center gap-1 rounded-md bg-purple-100 px-1.5 py-0.5 text-[10px] font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
-          title={`Workspace: ${user.workspaceSubdir}`}
-        >
-          <Folder className="size-3" />
-          <span className="max-w-[60px] truncate">{user.workspaceSubdir}</span>
-        </div>
-      )}
     </button>
   );
 }
