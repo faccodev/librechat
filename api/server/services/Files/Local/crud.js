@@ -221,6 +221,20 @@ const deleteLocalFile = async (req, file) => {
 
   await deleteRagFile({ userId: req.user.id, file });
 
+  // If workspaces are enabled and user has one, delete from workspace
+  if (req.user?.workspaceSubdir) {
+    const { getWorkspaceConfig, resolveWorkspacePath } = require('@librechat/api');
+    const wsConfig = getWorkspaceConfig(appConfig);
+    const workspacePath = resolveWorkspacePath(req.user.workspaceSubdir, wsConfig);
+    if (workspacePath && cleanFilepath.startsWith(workspacePath)) {
+      const rel = path.relative(workspacePath, cleanFilepath);
+      if (!rel.startsWith('..') && !path.isAbsolute(rel) && !rel.includes(`..${path.sep}`)) {
+        await unlinkFile(cleanFilepath);
+        return;
+      }
+    }
+  }
+
   if (cleanFilepath.startsWith(`/uploads/${req.user.id}`)) {
     const userUploadDir = path.join(uploads, req.user.id);
     const basePath = cleanFilepath.split(`/uploads/${req.user.id}/`)[1];
@@ -276,17 +290,32 @@ async function uploadLocalFile({ req, file, file_id }) {
   const bytes = Buffer.byteLength(inputBuffer);
 
   const { uploads } = appConfig.paths;
-  const userPath = path.join(uploads, req.user.id);
+  let userPath = path.join(uploads, req.user.id);
+  let isWorkspace = false;
+
+  if (req.user?.workspaceSubdir) {
+    const { getWorkspaceConfig, resolveWorkspacePath } = require('@librechat/api');
+    const wsConfig = getWorkspaceConfig(appConfig);
+    const workspacePath = resolveWorkspacePath(req.user.workspaceSubdir, wsConfig);
+    if (workspacePath) {
+      userPath = workspacePath;
+      isWorkspace = true;
+    }
+  }
 
   if (!fs.existsSync(userPath)) {
     fs.mkdirSync(userPath, { recursive: true });
   }
 
-  const fileName = `${file_id}__${path.basename(inputFilePath)}`;
+  // Keep original filename if uploading to a workspace to make it clean for user & model
+  const fileName = isWorkspace ? file.originalname : `${file_id}__${path.basename(inputFilePath)}`;
   const newPath = path.join(userPath, fileName);
 
   await fs.promises.writeFile(newPath, inputBuffer);
-  const filepath = path.posix.join('/', 'uploads', req.user.id, path.basename(newPath));
+  
+  const filepath = isWorkspace 
+    ? newPath 
+    : path.posix.join('/', 'uploads', req.user.id, path.basename(newPath));
 
   let height, width;
   if (file.mimetype && file.mimetype.startsWith('image/')) {
