@@ -85,6 +85,8 @@ export enum QueryKeys {
   favorites = 'favorites',
   /* Workspace key */
   userWorkspace = 'userWorkspace',
+  /* Admin users list */
+  adminUsers = 'adminUsers',
 }
 
 // Dynamic query keys that require parameters

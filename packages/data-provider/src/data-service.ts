@@ -1333,3 +1333,70 @@ export function setUserWorkspace(
   return request.put(endpoints.adminUserWorkspace(userId), { workspaceSubdir });
 }
 
+/* Admin Users */
+export interface AdminUserListItem {
+  id: string;
+  name: string;
+  username?: string;
+  email: string;
+  avatar?: string;
+  role: string;
+  provider: string;
+  createdAt?: string;
+  updatedAt?: string;
+  workspaceSubdir?: string | null;
+}
+
+export interface AdminUsersListResponse {
+  users: AdminUserListItem[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface AdminUserSearchResult {
+  id: string;
+  name: string;
+  email: string;
+  username?: string;
+  avatarUrl?: string;
+}
+
+export interface AdminUsersSearchResponse {
+  users: AdminUserSearchResult[];
+  total: number;
+  capped: boolean;
+}
+
+export function listAdminUsers(params?: {
+  limit?: number;
+  offset?: number;
+}): Promise<AdminUsersListResponse> {
+  return request.get(endpoints.adminUsers(params));
+}
+
+export function searchAdminUsers(
+  q: string,
+  limit?: number,
+): Promise<AdminUsersSearchResponse> {
+  return request.get(endpoints.adminUsersSearch(q, limit));
+}
+
+export function createAdminUser(data: {
+  email: string;
+  password?: string;
+  name: string;
+  username?: string;
+  role?: string;
+  workspaceSubdir?: string | null;
+}): Promise<AdminUserListItem> {
+  return request.post(endpoints.adminUsers(), data);
+}
+
+export function updateAdminUserRole(
+  userId: string,
+  role: string,
+): Promise<{ id: string; name: string; email: string; role: string }> {
+  return request.put(endpoints.adminUserRole(userId), { role });
+}
+

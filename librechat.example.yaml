@@ -449,114 +449,903 @@ endpoints:
   #     #     deploymentName: claude-3-5-haiku@20241022  # Override for this model
 
   custom:
-    # Groq Example
-    - name: 'groq'
-      apiKey: '${GROQ_API_KEY}'
-      baseURL: 'https://api.groq.com/openai/v1/'
-      models:
-        default:
-          - 'llama3-70b-8192'
-          - 'llama3-8b-8192'
-          - 'llama2-70b-4096'
-          - 'mixtral-8x7b-32768'
-          - 'gemma-7b-it'
-        fetch: false
-      titleConvo: true
-      titleModel: 'mixtral-8x7b-32768'
-      modelDisplayLabel: 'groq'
+    # =========================================================================
+    # Pre-defined custom providers (catalog from opencode models.dev)
+    # All entries use apiKey: 'user_provided' so each user enters their own key
+    # via the SetKeyDialog (no env-var setup required).
+    # Models auto-discover via fetch: true (GET /models on the provider).
+    # Add/remove providers by editing this block; no restart of the api image
+    # is needed — just `docker compose restart api`.
+    # =========================================================================
 
-    # Mistral AI Example
-    - name: 'Mistral' # Unique name for the endpoint
-      # For `apiKey` and `baseURL`, you can use environment variables that you define.
-      # recommended environment variables:
-      apiKey: '${MISTRAL_API_KEY}'
-      baseURL: 'https://api.mistral.ai/v1'
-
-      # Models configuration
-      models:
-        # List of default models to use. At least one value is required.
-        default: ['mistral-tiny', 'mistral-small', 'mistral-medium']
-        # Fetch option: Set to true to fetch models from API.
-        fetch: true # Defaults to false.
-
-      # Optional configurations
-
-      # Title Conversation setting
-      titleConvo: true # Set to true to enable title conversation
-
-      # Title Method: Choose between "completion" or "functions".
-      # titleMethod: "completion"  # Defaults to "completion" if omitted.
-
-      # Title Model: Specify the model to use for titles.
-      titleModel: 'mistral-tiny' # Defaults to "gpt-3.5-turbo" if omitted.
-
-      # Summarize setting: Set to true to enable summarization.
-      # summarize: false
-
-      # Summary Model: Specify the model to use if summarization is enabled.
-      # summaryModel: "mistral-tiny"  # Defaults to "gpt-3.5-turbo" if omitted.
-
-      # The label displayed for the AI model in messages.
-      modelDisplayLabel: 'Mistral' # Default is "AI" when not set.
-
-      # Add additional parameters to the request. Default params will be overwritten.
-      # addParams:
-      # safe_prompt: true # This field is specific to Mistral AI: https://docs.mistral.ai/api/
-
-      # Drop Default params parameters from the request. See default params in guide linked below.
-      # NOTE: For Mistral, it is necessary to drop the following parameters or you will encounter a 422 Error:
-      dropParams: ['stop', 'user', 'frequency_penalty', 'presence_penalty']
-
-    # OpenRouter Example
-    - name: 'OpenRouter'
-      # For `apiKey` and `baseURL`, you can use environment variables that you define.
-      # recommended environment variables:
-      apiKey: '${OPENROUTER_KEY}'
+    # ----- Major gateways & aggregators -----
+    - name: 'openrouter'
+      apiKey: 'user_provided'
       baseURL: 'https://openrouter.ai/api/v1'
-      headers:
-        x-librechat-body-parentmessageid: '{{LIBRECHAT_BODY_PARENTMESSAGEID}}'
       models:
-        default: ['meta-llama/llama-3-70b-instruct']
+        default: ['placeholder']
         fetch: true
-      titleConvo: true
-      titleModel: 'meta-llama/llama-3-70b-instruct'
-      # Recommended: Drop the stop parameter from the request as Openrouter models use a variety of stop tokens.
       dropParams: ['stop']
       modelDisplayLabel: 'OpenRouter'
+      iconURL: 'https://openrouter.ai/favicon.ico'
 
-    # Helicone Example
-    - name: 'Helicone'
-      # For `apiKey` and `baseURL`, you can use environment variables that you define.
-      # recommended environment variables:
-      apiKey: '${HELICONE_KEY}'
-      baseURL: 'https://ai-gateway.helicone.ai'
-      headers:
-        x-librechat-body-parentmessageid: '{{LIBRECHAT_BODY_PARENTMESSAGEID}}'
+    - name: 'groq'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.groq.com/openai/v1/'
       models:
-        default:
-          ['gpt-4o-mini', 'claude-4.5-sonnet', 'llama-3.1-8b-instruct', 'gemini-2.5-flash-lite']
+        default: ['placeholder']
         fetch: true
-      titleConvo: true
-      titleModel: 'gpt-4o-mini'
+      modelDisplayLabel: 'Groq'
+      dropParams: ['stop', 'user', 'frequency_penalty', 'presence_penalty']
+
+    - name: 'mistral'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.mistral.ai/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Mistral'
+      dropParams: ['stop', 'user', 'frequency_penalty', 'presence_penalty']
+
+    - name: 'llmgateway'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.llmgateway.io/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'LLM Gateway'
+
+    - name: 'helicone'
+      apiKey: 'user_provided'
+      baseURL: 'https://ai-gateway.helicone.ai/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
       modelDisplayLabel: 'Helicone'
-      iconURL: https://marketing-assets-helicone.s3.us-west-2.amazonaws.com/helicone.png
 
-    # Portkey AI Example
-    - name: 'Portkey'
-      apiKey: 'dummy'
-      baseURL: 'https://api.portkey.ai/v1'
-      headers:
-        x-portkey-api-key: '${PORTKEY_API_KEY}'
-        x-portkey-virtual-key: '${PORTKEY_OPENAI_VIRTUAL_KEY}'
+    - name: 'requesty'
+      apiKey: 'user_provided'
+      baseURL: 'https://router.requesty.ai/v1'
       models:
-        default: ['gpt-4o-mini', 'gpt-4o', 'chatgpt-4o-latest']
+        default: ['placeholder']
         fetch: true
-      titleConvo: true
-      titleModel: 'current_model'
-      summarize: false
-      summaryModel: 'current_model'
-      modelDisplayLabel: 'Portkey'
-      iconURL: https://images.crunchbase.com/image/upload/c_pad,f_auto,q_auto:eco,dpr_1/rjqy7ghvjoiu4cd1xjbf
+      modelDisplayLabel: 'Requesty'
+
+    - name: 'kilo'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.kilo.ai/api/gateway'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Kilo'
+
+    - name: 'fastrouter'
+      apiKey: 'user_provided'
+      baseURL: 'https://go.fastrouter.ai/api/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'FastRouter'
+
+    - name: 'orcarouter'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.orcarouter.ai/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'OrcaRouter'
+
+    - name: 'zenmux'
+      apiKey: 'user_provided'
+      baseURL: 'https://zenmux.ai/api/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'ZenMux'
+
+    - name: 'merge-gateway'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.mergeq.ai/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Merge Gateway'
+
+    - name: 'vercel-gateway'
+      apiKey: 'user_provided'
+      baseURL: 'https://ai-gateway.vercel.sh/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Vercel AI Gateway'
+
+    - name: 'opencode'
+      apiKey: 'user_provided'
+      baseURL: 'https://opencode.ai/zen/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'OpenCode Zen'
+
+    # ----- OpenAI-compatible inference providers -----
+    - name: 'deepseek'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.deepseek.com/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'DeepSeek'
+
+    - name: 'xai'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.x.ai/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'xAI (Grok)'
+
+    - name: 'togetherai'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.together.xyz/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Together AI'
+
+    - name: 'fireworks-ai'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.fireworks.ai/inference/v1/'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Fireworks AI'
+
+    - name: 'deepinfra'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.deepinfra.com/v1/openai'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'DeepInfra'
+
+    - name: 'cerebras'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.cerebras.ai/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Cerebras'
+
+    - name: 'perplexity'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.perplexity.ai'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Perplexity'
+
+    - name: 'cohere'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.cohere.ai/compatibility/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Cohere'
+
+    - name: 'nvidia'
+      apiKey: 'user_provided'
+      baseURL: 'https://integrate.api.nvidia.com/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'NVIDIA NIM'
+
+    - name: 'novita-ai'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.novita.ai/openai'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'NovitaAI'
+
+    - name: 'wandb'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.inference.wandb.ai/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Weights & Biases'
+
+    - name: 'huggingface'
+      apiKey: 'user_provided'
+      baseURL: 'https://router.huggingface.co/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Hugging Face'
+
+    - name: 'chutes'
+      apiKey: 'user_provided'
+      baseURL: 'https://llm.chutes.ai/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Chutes'
+
+    - name: 'baseten'
+      apiKey: 'user_provided'
+      baseURL: 'https://inference.baseten.co/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Baseten'
+
+    - name: 'friendli'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.friendli.ai/serverless/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Friendli'
+
+    - name: 'inference'
+      apiKey: 'user_provided'
+      baseURL: 'https://inference.net/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Inference.net'
+
+    - name: 'nearai'
+      apiKey: 'user_provided'
+      baseURL: 'https://cloud-api.near.ai/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'NEAR AI Cloud'
+
+    - name: 'nebius'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.tokenfactory.nebius.com/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Nebius Token Factory'
+
+    - name: 'io-net'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.intelligence.io.solutions/api/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'IO.NET'
+
+    - name: 'synthetic'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.synthetic.new/openai/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Synthetic'
+
+    - name: 'morph'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.morphllm.com/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Morph'
+
+    - name: 'nano-gpt'
+      apiKey: 'user_provided'
+      baseURL: 'https://nano-gpt.com/api/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'NanoGPT'
+
+    - name: 'poe'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.poe.com/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Poe'
+
+    - name: 'poolside'
+      apiKey: 'user_provided'
+      baseURL: 'https://inference.poolside.ai/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Poolside'
+
+    - name: 'lilac'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.getlilac.com/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Lilac'
+
+    - name: 'abacus'
+      apiKey: 'user_provided'
+      baseURL: 'https://routellm.abacus.ai/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Abacus RouteLLM'
+
+    - name: 'auriko'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.auriko.ai/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Auriko'
+
+    - name: 'cortecs'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.cortecs.ai/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Cortecs'
+
+    - name: 'berget'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.berget.ai/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Berget.AI'
+
+    - name: 'evroc'
+      apiKey: 'user_provided'
+      baseURL: 'https://models.think.evroc.com/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'evroc'
+
+    - name: 'ovhcloud'
+      apiKey: 'user_provided'
+      baseURL: 'https://oai.endpoints.kepler.ai.cloud.ovh.net/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'OVHcloud AI Endpoints'
+
+    - name: 'scaleway'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.scaleway.ai/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Scaleway'
+
+    - name: 'stackit'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.openai-compat.model-serving.eu01.onstackit.cloud/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'STACKIT'
+
+    - name: 'vultr'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.vultrinference.com/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Vultr'
+
+    - name: 'digitalocean'
+      apiKey: 'user_provided'
+      baseURL: 'https://inference.do-ai.run/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'DigitalOcean Gradient'
+
+    - name: 'upstage'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.upstage.ai/v1/solar'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Upstage'
+
+    - name: '302ai'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.302.ai/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: '302.AI'
+
+    - name: 'inception'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.inceptionlabs.ai/v1/'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Inception'
+
+    - name: 'inceptron'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.inceptron.io/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Inceptron'
+
+    - name: 'claudinio'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.claudin.io/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Claudinio'
+
+    - name: 'anyapi'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.anyapi.ai/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'AnyAPI'
+
+    - name: 'clarifai'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.clarifai.com/v2/ext/openai/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Clarifai'
+
+    - name: 'gmicloud'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.gmi-serving.com/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'GMI Cloud'
+
+    - name: 'neuralwatt'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.neuralwatt.com/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Neuralwatt'
+
+    - name: 'nova'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.nova.amazon.com/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Nova'
+
+    - name: 'dinference'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.dinference.com/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'DInference'
+
+    - name: 'mixlayer'
+      apiKey: 'user_provided'
+      baseURL: 'https://models.mixlayer.ai/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Mixlayer'
+
+    - name: 'moark'
+      apiKey: 'user_provided'
+      baseURL: 'https://moark.com/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Moark'
+
+    - name: 'lucidquery'
+      apiKey: 'user_provided'
+      baseURL: 'https://lucidquery.com/api/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'LucidQuery AI'
+
+    - name: 'meganova'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.meganova.ai/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Meganova'
+
+    - name: 'frogbot'
+      apiKey: 'user_provided'
+      baseURL: 'https://app.frogbot.ai/api/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'FrogBot'
+
+    - name: 'hpc-ai'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.hpc-ai.com/inference/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'HPC-AI'
+
+    - name: 'ambient'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.ambient.xyz/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Ambient'
+
+    - name: 'wafer'
+      apiKey: 'user_provided'
+      baseURL: 'https://pass.wafer.ai/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Wafer'
+
+    - name: 'the-grid-ai'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.thegrid.ai/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'The Grid AI'
+
+    - name: 'routing-run'
+      apiKey: 'user_provided'
+      baseURL: 'https://ai.routing.sh/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'routing.run'
+
+    - name: 'regolo'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.regolo.ai/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Regolo AI'
+
+    - name: 'sarvam'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.sarvam.ai/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Sarvam AI'
+
+    - name: 'submodel'
+      apiKey: 'user_provided'
+      baseURL: 'https://llm.submodel.ai/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'submodel'
+
+    - name: 'vivgrid'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.vivgrid.com/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Vivgrid'
+
+    - name: 'xpersona'
+      apiKey: 'user_provided'
+      baseURL: 'https://www.xpersona.co/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Xpersona'
+
+    - name: 'cloudferro-sherlock'
+      apiKey: 'user_provided'
+      baseURL: 'https://api-sherlock.cloudferro.com/openai/v1/'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'CloudFerro Sherlock'
+
+    - name: 'crof'
+      apiKey: 'user_provided'
+      baseURL: 'https://crof.ai/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'CrofAI'
+
+    - name: 'firepass'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.fireworks.ai/inference/v1/'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Fireworks Firepass'
+
+    - name: 'jiekou'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.jiekou.ai/openai'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Jiekou.AI'
+
+    - name: 'stepfun'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.stepfun.com/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'StepFun'
+
+    # ----- Regional (China) -----
+    - name: 'alibaba'
+      apiKey: 'user_provided'
+      baseURL: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Alibaba (DashScope)'
+
+    - name: 'alibaba-cn'
+      apiKey: 'user_provided'
+      baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Alibaba CN'
+
+    - name: 'alibaba-coding-plan'
+      apiKey: 'user_provided'
+      baseURL: 'https://coding-intl.dashscope.aliyuncs.com/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Alibaba Coding Plan'
+
+    - name: 'moonshotai'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.moonshot.ai/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Moonshot AI (intl)'
+
+    - name: 'moonshotai-cn'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.moonshot.cn/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Moonshot AI (CN)'
+
+    - name: 'zhipuai'
+      apiKey: 'user_provided'
+      baseURL: 'https://open.bigmodel.cn/api/paas/v4'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Zhipu AI'
+
+    - name: 'zhipuai-coding-plan'
+      apiKey: 'user_provided'
+      baseURL: 'https://open.bigmodel.cn/api/coding/paas/v4'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Zhipu AI Coding Plan'
+
+    - name: 'zai'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.z.ai/api/paas/v4'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Z.AI'
+
+    - name: 'zai-coding-plan'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.z.ai/api/coding/paas/v4'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Z.AI Coding Plan'
+
+    - name: 'modelscope'
+      apiKey: 'user_provided'
+      baseURL: 'https://api-inference.modelscope.cn/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'ModelScope'
+
+    - name: 'iflow'
+      apiKey: 'user_provided'
+      baseURL: 'https://apis.iflow.cn/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'iFlow'
+
+    - name: 'siliconflow'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.siliconflow.com/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'SiliconFlow'
+
+    - name: 'siliconflow-cn'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.siliconflow.cn/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'SiliconFlow CN'
+
+    - name: 'qiniu'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.qnaigc.com/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Qiniu'
+
+    - name: 'qihang'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.qhaigc.net/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'QiHang'
+
+    - name: 'bailing'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.tbox.cn/api/llm/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Bailing'
+
+    - name: 'drun'
+      apiKey: 'user_provided'
+      baseURL: 'https://chat.d.run/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'D.Run'
+
+    - name: 'tencent-coding-plan'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.lkeap.cloud.tencent.com/coding/v3'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Tencent Coding Plan'
+
+    - name: 'xiaomi'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.xiaomimimo.com/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Xiaomi MiMo'
+
+    - name: 'xiaomi-token-plan-ams'
+      apiKey: 'user_provided'
+      baseURL: 'https://token-plan-ams.xiaomimimo.com/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Xiaomi Token Plan (AMS)'
+
+    - name: 'xiaomi-token-plan-sgp'
+      apiKey: 'user_provided'
+      baseURL: 'https://token-plan-sgp.xiaomimimo.com/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Xiaomi Token Plan (SGP)'
+
+    - name: 'xiaomi-token-plan-cn'
+      apiKey: 'user_provided'
+      baseURL: 'https://token-plan-cn.xiaomimimo.com/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Xiaomi Token Plan (CN)'
+
+    # ----- Local / self-hosted -----
+    - name: 'ollama'
+      apiKey: 'user_provided'
+      baseURL: 'http://host.docker.internal:11434/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Ollama (local)'
+      directEndpoint: true
+
+    - name: 'lmstudio'
+      apiKey: 'user_provided'
+      baseURL: 'http://host.docker.internal:1234/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'LM Studio (local)'
+      directEndpoint: true
+
+    - name: 'ollama-cloud'
+      apiKey: 'user_provided'
+      baseURL: 'https://ollama.com/v1'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Ollama Cloud'
+
+    # ----- Anthropic-format (use Anthropic Messages API) -----
+    # These providers expose Anthropic-compatible endpoints but use
+    # Anthropic wire format. customParams.defaultParamsEndpoint: 'anthropic'
+    # routes them through the Anthropic LLM config + transform layer.
+    - name: 'kimi-for-coding'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.kimi.com/coding/v1'
+      customParams:
+        defaultParamsEndpoint: 'anthropic'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'Kimi For Coding'
+      
+    - name: 'minimax'
+      apiKey: 'user_provided'
+      baseURL: 'https://api.minimax.io/v1'
+      customParams:
+        defaultParamsEndpoint: 'openAI'
+      models:
+        default: ['placeholder']
+        fetch: true
+      modelDisplayLabel: 'MiniMax' 
+
+    # =========================================================================
+    # Skipped providers — require multiple env vars (not just an API key).
+    # Uncomment + adapt if you want to use them (you'd need to set
+    # `apiKey: 'user_provided'` and have the user enter the other IDs/URLs
+    # via the SetKeyDialog, OR configure them via env vars on the host).
+    # =========================================================================
+    # - name: 'azure'                   # needs AZURE_RESOURCE_NAME + AZURE_API_KEY
+    # - name: 'azure-cognitive-services' # needs resource name + key
+    # - name: 'amazon-bedrock'          # needs AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY + AWS_REGION
+    # - name: 'google-vertex'           # needs GOOGLE_VERTEX_PROJECT + GOOGLE_VERTEX_LOCATION + GOOGLE_APPLICATION_CREDENTIALS
+    # - name: 'google-vertex-anthropic' # similar to vertex
+    # - name: 'cloudflare-ai-gateway'   # needs CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID + CLOUDFLARE_GATEWAY_ID
+    # - name: 'cloudflare-workers-ai'   # needs CLOUDFLARE_ACCOUNT_ID + CLOUDFLARE_API_KEY
+    # - name: 'databricks'              # needs DATABRICKS_HOST + DATABRICKS_TOKEN
+    # - name: 'gitlab'                  # uses OAuth flow
+    # - name: 'sap-ai-core'             # needs AICORE_SERVICE_KEY JSON
+    # - name: 'snowflake-cortex'        # needs SNOWFLAKE_ACCOUNT + SNOWFLAKE_CORTEX_PAT
+    # - name: 'github-copilot'          # OAuth flow (GITHUB_TOKEN works for some models)
+    # - name: 'github-models'           # requires GITHUB_TOKEN (PAT)
+    # - name: 'aihubmix'                # custom SDK
+    # - name: 'v0'                      # Vercel v0 custom SDK
+    # - name: 'venice'                  # custom SDK
 
   # AWS Bedrock Example
   # Note: Bedrock endpoint is configured via environment variables

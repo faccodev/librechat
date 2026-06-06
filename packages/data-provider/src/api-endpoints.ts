@@ -504,7 +504,36 @@ export const getAllEffectivePermissions = (resourceType: ResourceType) =>
 export const graphToken = (scopes: string) =>
   `${BASE_URL}/api/auth/graph-token?scopes=${encodeURIComponent(scopes)}`;
 
+// Admin Users
+export const adminUsers = (params?: { limit?: number; offset?: number }) => {
+  const base = `${BASE_URL}/api/admin/users`;
+  if (!params) {
+    return base;
+  }
+  const qs = new URLSearchParams();
+  if (params.limit != null) {
+    qs.set('limit', String(params.limit));
+  }
+  if (params.offset != null) {
+    qs.set('offset', String(params.offset));
+  }
+  const query = qs.toString();
+  return query ? `${base}?${query}` : base;
+};
+export const adminUsersSearch = (q: string, limit?: number) => {
+  const qs = new URLSearchParams({ q });
+  if (limit != null) {
+    qs.set('limit', String(limit));
+  }
+  return `${BASE_URL}/api/admin/users/search?${qs.toString()}`;
+};
+
 // Admin User Workspace
 export const adminUserWorkspace = (userId: string) =>
   `${BASE_URL}/api/admin/users/${encodeURIComponent(userId)}/workspace`;
+
+// Admin User Role Update
+export const adminUserRole = (userId: string) =>
+  `${BASE_URL}/api/admin/users/${encodeURIComponent(userId)}/role`;
+
 

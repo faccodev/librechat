@@ -1,8 +1,10 @@
 import { useState, memo, useRef } from 'react';
 import * as Menu from '@ariakit/react/menu';
-import { FileText, LogOut } from 'lucide-react';
+import { FileText, LogOut, ShieldEllipsis } from 'lucide-react';
 import { LinkIcon, GearIcon, DropdownMenuSeparator, Avatar } from '@librechat/client';
+import { SystemRoles } from 'librechat-data-provider';
 import { MyFilesModal } from '~/components/Chat/Input/Files/MyFilesModal';
+import AdminPanel from '~/components/Admin/AdminPanel';
 import { useGetStartupConfig, useGetUserBalance } from '~/data-provider';
 import { useAuthContext } from '~/hooks/AuthContext';
 import { useLocalize } from '~/hooks';
@@ -17,7 +19,9 @@ function AccountSettings({ collapsed = false }: { collapsed?: boolean }) {
   });
   const [showSettings, setShowSettings] = useState(false);
   const [showFiles, setShowFiles] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
   const accountSettingsButtonRef = useRef<HTMLButtonElement>(null);
+  const isAdmin = user?.role === SystemRoles.ADMIN;
 
   return (
     <Menu.MenuProvider>
@@ -82,6 +86,12 @@ function AccountSettings({ collapsed = false }: { collapsed?: boolean }) {
             {localize('com_nav_help_faq')}
           </Menu.MenuItem>
         )}
+        {isAdmin && (
+          <Menu.MenuItem onClick={() => setShowAdmin(true)} className="select-item text-sm text-purple-600 dark:text-purple-400">
+            <ShieldEllipsis className="icon-md" aria-hidden="true" />
+            Admin Panel
+          </Menu.MenuItem>
+        )}
         <Menu.MenuItem onClick={() => setShowSettings(true)} className="select-item text-sm">
           <GearIcon className="icon-md" aria-hidden="true" />
           {localize('com_nav_settings')}
@@ -100,6 +110,7 @@ function AccountSettings({ collapsed = false }: { collapsed?: boolean }) {
         />
       )}
       {showSettings && <Settings open={showSettings} onOpenChange={setShowSettings} />}
+      {showAdmin && <AdminPanel open={showAdmin} onOpenChange={setShowAdmin} />}
     </Menu.MenuProvider>
   );
 }
