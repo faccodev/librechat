@@ -514,10 +514,10 @@ export default function AdminPanel({ open, onOpenChange }: AdminPanelProps) {
                   setSelectedUser(null);
                   setIsCreating(true);
                 }}
-                title="Add New User"
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-border-light bg-surface-secondary text-text-secondary hover:bg-surface-tertiary hover:text-text-primary"
+                className="flex h-8 flex-shrink-0 items-center gap-1.5 rounded-lg bg-purple-600 px-2.5 text-xs font-medium text-white shadow-sm transition-colors hover:bg-purple-700 focus:outline-none focus:ring-1 focus:ring-purple-500/50"
               >
-                <UserPlus className="size-4" />
+                <UserPlus className="size-3.5" />
+                <span>New User</span>
               </button>
             </div>
 

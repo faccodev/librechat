@@ -159,9 +159,9 @@ const requireJwtAuth = (req, res, next) => {
           try {
             const { activateWorkspaceMCP, resolveWorkspacePath, getWorkspaceConfig } = require('@librechat/api');
             const { getMCPManager } = require('~/config');
-            const { getAppConfig } = require('~/server/services/Config');
+            const loadCustomConfig = require('~/server/services/Config/loadCustomConfig');
 
-            const appConfig = getAppConfig.sync?.() ?? {};
+            const appConfig = loadCustomConfig() ?? {};
             const config = getWorkspaceConfig(appConfig);
             const absolutePath = resolveWorkspacePath(req.user.workspaceSubdir, config);
             if (absolutePath) {
