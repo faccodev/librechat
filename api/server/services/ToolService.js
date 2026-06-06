@@ -995,7 +995,7 @@ async function loadAgentTools({
   const canUseMCP = hasMCPTools ? await mcpPermissionContext.canUseServers(req.user) : true;
 
   let includesWebSearch = false;
-  const _agentTools = agent.tools?.filter((tool) => {
+  let _agentTools = agent.tools?.filter((tool) => {
     if (tool === Tools.file_search) {
       return checkCapability(AgentCapabilities.file_search);
     } else if (tool === Tools.execute_code) {
@@ -1012,6 +1012,38 @@ async function loadAgentTools({
     }
     return true;
   });
+
+  /**
+   * Auto-inject workspace MCP tools for the authenticated user.
+   * Mirrors `activateWorkspaceMCP` in `requireJwtAuth.js`: a user with
+   * `workspaceSubdir` set always has the `ws_<userId>` MCP server in
+   * scope, regardless of the agent's persisted `tools` list. This makes
+   * workspace access opt-out (via the `tools` capability), not opt-in
+   * (manual config per agent). Set the user-level `workspaceSubdir` to
+   * `null` to opt a user out, or revoke the `tools` capability to opt
+   * an entire role out.
+   */
+  if (req.user?.workspaceSubdir && req.user?.id && areToolsEnabled && canUseMCP) {
+    const { getWorkspaceServerName, getWorkspaceConfig, resolveWorkspacePath } =
+      require('@librechat/api');
+    const loadCustomConfig = require('~/server/services/Config/loadCustomConfig');
+    const wsAppConfig = loadCustomConfig() ?? {};
+    const wsConfig = getWorkspaceConfig(wsAppConfig);
+    const wsPath = resolveWorkspacePath(req.user.workspaceSubdir, wsConfig);
+    if (wsPath) {
+      const wsServerName = getWorkspaceServerName(req.user.id);
+      const wsToolName = `${Constants.mcp_all}${Constants.mcp_delimiter}${wsServerName}`;
+      if (!_agentTools) {
+        _agentTools = [];
+      }
+      if (!_agentTools.includes(wsToolName)) {
+        _agentTools = [..._agentTools, wsToolName];
+        logger.debug(
+          `[loadAgentTools] Auto-injected workspace MCP tool ${wsToolName} for user ${req.user.id} (agent ${agent.id})`,
+        );
+      }
+    }
+  }
 
   if (!_agentTools || _agentTools.length === 0) {
     return {};
