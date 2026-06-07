@@ -156,26 +156,36 @@ const requireJwtAuth = (req, res, next) => {
         }
 
         if (req.user) {
-          try {
-            const { activateWorkspaceMCP, resolveWorkspacePath, getWorkspaceConfig } = require('@librechat/api');
-            const { getMCPManager } = require('~/config');
-            const loadCustomConfig = require('~/server/services/Config/loadCustomConfig');
-
-            const appConfig = loadCustomConfig() ?? {};
-            const config = getWorkspaceConfig(appConfig);
-            const absolutePath = resolveWorkspacePath(req.user.workspaceSubdir, config);
-            if (absolutePath) {
-              activateWorkspaceMCP(req.user.id, absolutePath, getMCPManager(req.user.id))
-                .catch((err) =>
-                  logger.warn(
-                    `[Workspace MCP] Failed to activate workspace for user ${req.user.id}:`,
-                    err,
-                  ),
-                );
-            }
-          } catch (err) {
-            logger.warn('[Workspace MCP] Error resolving/activating workspace path:', err);
-          }
+          // Local change: disabled the auto-mount of `ws_<userId>` MCP. The
+          // filesystem MCP is now declared in librechat.yaml as a regular
+          // `mcpServers` entry and receives the per-user path via the
+          // `{{LIBRECHAT_USER_WORKSPACESUBDIR}}` placeholder (resolved by
+          // `processMCPEnv` against `req.user.workspaceSubdir`). Reason:
+          // the per-user spawning approach was spawning one MCP per user,
+          // which is heavier and the connection lifecycle was unreliable in
+          // our environment. Keeping the helper available in case it's
+          // needed again later (e.g. for non-stdio transports).
+          //
+          // try {
+          //   const { activateWorkspaceMCP, resolveWorkspacePath, getWorkspaceConfig } = require('@librechat/api');
+          //   const { getMCPManager } = require('~/config');
+          //   const loadCustomConfig = require('~/server/services/Config/loadCustomConfig');
+          //
+          //   const appConfig = loadCustomConfig() ?? {};
+          //   const config = getWorkspaceConfig(appConfig);
+          //   const absolutePath = resolveWorkspacePath(req.user.workspaceSubdir, config);
+          //   if (absolutePath) {
+          //     activateWorkspaceMCP(req.user.id, absolutePath, getMCPManager(req.user.id))
+          //       .catch((err) =>
+          //         logger.warn(
+          //           `[Workspace MCP] Failed to activate workspace for user ${req.user.id}:`,
+          //           err,
+          //         ),
+          //       );
+          //   }
+          // } catch (err) {
+          //   logger.warn('[Workspace MCP] Error resolving/activating workspace path:', err);
+          // }
         }
 
         refreshCloudFrontCookies(req, res, next);

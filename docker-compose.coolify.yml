@@ -128,6 +128,20 @@ services:
       # sessões — sem login persistente.
       - playwright_profile:/ms-playwright
 
+  mcp-code-runner:
+    build:
+      context: ./packages/mcp-code-runner
+      dockerfile: Dockerfile
+    restart: always
+    init: true
+    volumes:
+      - /home/workspaces:/workspaces
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WORKSPACES_BASE=/workspaces
+      - HOST_WORKSPACES_BASE=/home/workspaces
+      - MAX_TIMEOUT=120
+
 volumes:
   mongodb_data:
   meili_data:

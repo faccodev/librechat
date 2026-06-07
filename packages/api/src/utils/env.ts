@@ -26,6 +26,14 @@ const ALLOWED_USER_FIELDS = [
   'emailVerified',
   'twoFactorEnabled',
   'termsAccepted',
+  // Local addition: allow `workspaceSubdir` as a user-field placeholder so
+  // MCP configs can resolve `{{LIBRECHAT_USER_WORKSPACESUBDIR}}` per user.
+  // This powers the `filesystem` MCP entry in librechat.yaml: each user
+  // gets a filesystem rooted at `/workspaces/<workspaceSubdir>/`. If the
+  // admin hasn't set a subdir for the user, the placeholder resolves to an
+  // empty string and the path falls back to `/workspaces/` (the configured
+  // `containerBasePath`), which is the desired "default workspace" behavior.
+  'workspaceSubdir',
 ] as const;
 
 type AllowedUserField = (typeof ALLOWED_USER_FIELDS)[number];

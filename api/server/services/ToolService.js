@@ -1088,20 +1088,16 @@ async function loadAgentTools({
   /**
    * Auto-inject workspace MCP tools for the authenticated user.
    *
-   * Mirrors `activateWorkspaceMCP` in `requireJwtAuth.js`: a user with
-   * `workspaceSubdir` set always has the `ws_<userId>` MCP server in
-   * scope, regardless of the agent's persisted `tools` list. This makes
-   * workspace access opt-out (via the `tools` capability), not opt-in
-   * (manual config per agent). To opt a user out, set their
-   * `workspaceSubdir` to `null`; to opt a role out, revoke the `tools`
-   * capability.
-   *
-   * The JS `loadTools` path does NOT expand the `mcp_all__servername`
-   * placeholder (only the TS `loadEphemeralAgent` does), so we resolve
-   * the actual tool names here via `getMCPServerTools` before handing
-   * them off. If the cache is cold (first request after login) we fall
-   * back to the placeholder and let the downstream `loadTools` re-resolve.
+   * Local change: disabled. The filesystem MCP is now a single, shared
+   * `mcpServers` entry in librechat.yaml (`filesystem`), and its `args`
+   * contain the `{{LIBRECHAT_USER_WORKSPACESUBDIR}}` placeholder which
+   * `processMCPEnv` resolves per user. The per-user `ws_<userId>` spawn
+   * was spawning one MCP instance per user which was unreliable in our
+   * environment; a single shared instance with a per-user spawn-arg is
+   * simpler and behaves correctly. To revert: uncomment the block below
+   * and remove the `filesystem` entry from librechat.yaml.
    */
+  /*
   if (req.user?.workspaceSubdir && req.user?.id && areToolsEnabled && canUseMCP) {
     const { getWorkspaceServerName, getWorkspaceConfig, resolveWorkspacePath } =
       require('@librechat/api');
@@ -1120,7 +1116,7 @@ async function loadAgentTools({
       );
       const hasPlaceholder = _agentTools.includes(wsPlaceholder);
       if (alreadyHasRealTools) {
-        /* No-op: tools are already in the list (e.g. loaded previously). */
+        // no-op
       } else {
         const serverTools = await getMCPServerTools(req.user.id, wsServerName);
         if (serverTools && typeof serverTools === 'object') {
@@ -1143,6 +1139,7 @@ async function loadAgentTools({
       }
     }
   }
+  */
 
   if (!_agentTools || _agentTools.length === 0) {
     return {};
