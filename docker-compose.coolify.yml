@@ -95,14 +95,18 @@ services:
   # explícita (fica na rede default junto com `api`, então o serviço
   # `mcp-playwright` resolve via DNS interno do Coolify).
   mcp-playwright:
-    image: mcr.microsoft.com/playwright/mcp:v0.0.49
+    # v0.0.75 (atual) — corrige bug de session loss entre POST/GET em
+    # streamable-http que afetava v0.0.49 ("404 Session not found" depois
+    # da primeira tool call). Layout mudou: cli.js em /app/cli.js
+    # (era /home/node/cli.js).
+    image: mcr.microsoft.com/playwright/mcp:v0.0.75
     restart: always
     # `init: true` pra recolher zombies do Chromium (Playwright tem fama de
     # deixar processos-órfãos quando navega entre páginas rápido).
     init: true
     command:
       - node
-      - cli.js
+      - /app/cli.js
       - --headless
       - --no-sandbox
       - --isolated
@@ -113,16 +117,22 @@ services:
       # Sobrescreve o fingerprint padrão do Chromium automatizado (UA
       # "HeadlessChrome" + viewport uniforme + navigator.webdriver=true).
       # `--device` injeta um profile real de Chrome desktop (UA, viewport,
-      # DPR), locale/timezone abaixo mantêm o fingerprint coerente com o
-      # contexto do usuário (pt-BR, São Paulo).
+      # DPR). `--init-script` (agora funcional em v0.0.75) cobre
+      # navigator.webdriver, plugins, languages, WebGL vendor/renderer.
       - "--device=Desktop Chrome HiDPI"
-      - --locale=pt-BR
-      - --timezone-id=America/Sao_Paulo
-      - --accept-downloads
+      - --user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36
+      - --viewport-size=1280x720
+      - --init-script=/app/stealth.js
+      - --allowed-hosts=*
       # Opcional: proxy residencial para stealth em nível de IP. Descomente
       # e troque pelo seu provedor (Bright Data, Oxylabs, Smartproxy, etc).
       # - --proxy-server=http://user:pass@host:port
     volumes:
+      # Stealth init script — sobrescreve navigator.webdriver, plugins,
+      # languages, WebGL vendor/renderer em cada página antes de qualquer
+      # script do site. Bind mount read-only. O arquivo precisa existir
+      # no host em ./docker/playwright-stealth.js.
+      - ./.docker/playwright-stealth.js:/app/stealth.js:ro
       # Persiste o profile do Chromium (cookies, localStorage) entre
       # reinícios. Comenta essa linha se quiser isolamento total entre
       # sessões — sem login persistente.
