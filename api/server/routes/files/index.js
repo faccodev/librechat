@@ -15,6 +15,7 @@ const files = require('./files');
 const images = require('./images');
 const avatar = require('./avatar');
 const speech = require('./speech');
+const workspace = require('./workspace');
 
 const initialize = async () => {
   const router = express.Router();
@@ -59,6 +60,7 @@ const initialize = async () => {
   );
 
   router.use('/', files);
+  router.use('/workspace', workspace);
   router.use('/images', images);
   router.use('/images/avatar', avatar);
   router.use('/images/agents', agentAvatarRouter);

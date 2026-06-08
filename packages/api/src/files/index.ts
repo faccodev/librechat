@@ -13,3 +13,4 @@ export * from './retention';
 export * from './sweep';
 export * from './validation';
 export * from './text';
+export * from './workspaceFiles';

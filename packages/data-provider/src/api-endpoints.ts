@@ -304,6 +304,16 @@ export const filePreview = (fileId: string) =>
 export const fileConfig = () => `${BASE_URL}/api/files/config`;
 export const agentFiles = (agentId: string) => `${BASE_URL}/api/files/agent/${agentId}`;
 
+/* File manager (workspace tree) */
+export const workspaceTree = (path = '') => {
+  const encoded = path.split('/').map(encodeURIComponent).join('/');
+  return encoded
+    ? `${BASE_URL}/api/files/workspace/tree?path=${encoded}`
+    : `${BASE_URL}/api/files/workspace/tree`;
+};
+export const workspaceSearch = (q: string) =>
+  `${BASE_URL}/api/files/workspace/search?q=${encodeURIComponent(q)}`;
+
 export const images = () => `${files()}/images`;
 
 export const avatar = () => `${images()}/avatar`;

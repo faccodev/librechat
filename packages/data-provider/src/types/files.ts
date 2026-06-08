@@ -190,6 +190,36 @@ export type TFilePreview = {
   previewError?: string;
 };
 
+/**
+ * One entry in a user's workspace tree. Returned by the file-manager
+ * endpoints (`GET /api/files/workspace/tree` and `/search`).
+ * `path` is the workspace-relative POSIX path (forward slashes, no
+ * leading slash) so it round-trips through `encodeURIComponent`.
+ */
+export type WorkspaceNode = {
+  name: string;
+  path: string;
+  type: 'file' | 'dir';
+  size?: number;
+  mime?: string;
+  modifiedAt: string;
+  childCount?: number;
+};
+
+export type WorkspaceListResult = {
+  path: string;
+  nodes: WorkspaceNode[];
+  truncated: boolean;
+  workspacePath: string;
+};
+
+export type WorkspaceSearchResult = {
+  query: string;
+  matches: WorkspaceNode[];
+  total: number;
+  truncated: boolean;
+};
+
 export type AvatarUploadResponse = {
   url: string;
 };

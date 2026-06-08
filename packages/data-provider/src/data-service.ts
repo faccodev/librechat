@@ -433,6 +433,14 @@ export const getFileConfig = (): Promise<f.FileConfig> => {
   return request.get(`${endpoints.files()}/config`);
 };
 
+export const getWorkspaceTree = (path = ''): Promise<f.WorkspaceListResult> => {
+  return request.get(endpoints.workspaceTree(path));
+};
+
+export const getWorkspaceSearch = (q: string): Promise<f.WorkspaceSearchResult> => {
+  return request.get(endpoints.workspaceSearch(q));
+};
+
 export const uploadImage = (
   data: FormData,
   signal?: AbortSignal | null,

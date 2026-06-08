@@ -23,6 +23,8 @@ export enum QueryKeys {
   agent = 'agent',
   files = 'files',
   fileConfig = 'fileConfig',
+  workspaceTree = 'workspaceTree',
+  workspaceSearch = 'workspaceSearch',
   tools = 'tools',
   toolAuth = 'toolAuth',
   toolCalls = 'toolCalls',
