@@ -20,21 +20,18 @@ services:
       - "coolify.managed=true"
       - "coolify.type=application"
     depends_on:
-      - mongodb
-      - meilisearch
+      mongodb:
+        condition: service_healthy
+      meilisearch:
+        condition: service_started
     restart: always
-    # Healthcheck via `node` (sempre presente no PATH da imagem `node:alpine`),
-    # apontando pra 127.0.0.1 — mais confiável que `wget` do busybox que tem
-    # flags limitados e pode falhar silenciosamente, deixando o serviço marcado
-    # como unhealthy e escondendo o painel de domínio em algumas versões.
+    # Healthcheck simples e confiável com wget nativo do Alpine
     healthcheck:
-      test:
-        - "CMD-SHELL"
-        - "node -e \"require('http').get('http://127.0.0.1:3080/livez', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))\""
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3080/livez || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 60s
+      retries: 5
+      start_period: 90s
     environment:
       - HOST=0.0.0.0
       - PORT=3080
@@ -76,6 +73,12 @@ services:
     restart: always
     volumes:
       - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --eval 'db.runCommand({ ping: 1 })' --quiet || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     # Sem rede explícita — fica na rede default do Coolify junto com o api.
     # Continua inacessível da internet porque não tem `ports:`.
 
@@ -166,8 +169,42 @@ services:
     environment:
       - NOTION_TOKEN=${NOTION_TOKEN}
 
+  # faster-whisper server — self-hosted STT (CTranslate2 + Whisper
+  # weights). Exposes POST /asr with multipart `audio_file` plus the
+  # same params as the upstream CLI (language, task, vad_filter,
+  # output). LibreChat hits it via
+  # `speech.stt.fasterWhisper.url: 'http://mcp-faster-whisper:8800/asr'`
+  # in librechat.yaml.
+  #
+  # `syuoni/faster-whisper-asr` é a imagem CPU-friendly: ~80 MB de
+  # base + o modelo tiny (default na tag). Pra produção com
+  # português-BR, o `tiny` é OK pra fala clara; pra acurácia
+  # maior, sobe pra `base` ou `small` e aceita o custo de
+  # memória (veja a tabela no comment de docker-compose.override.yml).
+  mcp-faster-whisper:
+    image: syuoni/faster-whisper-asr:latest
+    restart: always
+    init: true
+    # Sem `container_name` (Coolify gerencia), sem rede explícita
+    # (mesma rede default do `api`, então `mcp-faster-whisper`
+    # resolve via DNS interno).
+    environment:
+      # Modelo leve (default da imagem). Troque por `base` ou
+      # `small` se quiser mais acurácia — vai exigir mais RAM.
+      - ASR_MODEL=tiny
+      # Idioma. `pt` cobre pt-BR; deixar vazio força autodetect.
+      - ASR_LANGUAGE=pt
+      # Força saída JSON (a integração STTService do LibreChat
+      # espera `response.data.text`).
+      - ASR_OUTPUT=json
+    volumes:
+      # Persiste o cache do modelo (download do HuggingFace).
+      # Sem isso, cada restart baixa de novo (~75MB pro tiny).
+      - faster_whisper_cache:/root/.cache/huggingface
+
 volumes:
   mongodb_data:
   meili_data:
   librechat_uploads:
+  faster_whisper_cache:
   playwright_profile:

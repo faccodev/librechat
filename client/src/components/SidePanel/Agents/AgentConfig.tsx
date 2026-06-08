@@ -36,6 +36,7 @@ import Artifacts from './Artifacts';
 import AgentTool from './AgentTool';
 import CodeForm from './Code/Form';
 import MCPTools from './MCPTools';
+import ModelPoolEditor from './ModelPoolEditor';
 
 const labelClass = 'mb-2 text-token-text-primary block text-sm font-medium';
 const inputClass = cn(
@@ -321,6 +322,11 @@ export default function AgentConfig() {
             </div>
           </button>
         </div>
+        {/* Round-robin model pool — opt-in list of (provider, model)
+            pairs. When non-empty, the runtime picks one per request
+            via an atomic counter; the singular fields above remain
+            the fallback when the pool is empty. */}
+        <ModelPoolEditor />
         {(artifactsEnabled ||
           contextEnabled) && (
           <div className="mb-4 flex w-full flex-col items-start gap-3">

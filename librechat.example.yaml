@@ -230,6 +230,24 @@ registration:
 #       url: ''
 #       apiKey: '${STT_API_KEY}'
 #       model: ''
+#     # Self-hosted faster-whisper (CTranslate2 + Whisper weights).
+#     # Requires the `mcp-faster-whisper` service in
+#     # docker-compose.override.yml / docker-compose.coolify.yml.
+#     # The transcribed audio never leaves the Docker network, so
+#     # this is the right choice for privacy-sensitive deployments.
+#     # Audio is sent as `audio_file` (multipart) and the server
+#     # returns JSON `{ text, language, segments }`.
+#     # Optional: `language` (ISO-639-1, e.g. 'pt' covers pt-BR;
+#     # default = auto-detect), `task` ('transcribe' | 'translate',
+#     # default 'transcribe'), `vad_filter` (default true),
+#     # `word_timestamps` (default false), `apiKey` (only if the
+#     # server is behind a reverse proxy that requires auth).
+#     fasterWhisper:
+#       url: 'http://mcp-faster-whisper:8800/asr'
+#       language: 'pt'
+#       task: 'transcribe'
+#       vad_filter: true
+#       word_timestamps: false
 
 # rateLimits:
 #   fileUploads:

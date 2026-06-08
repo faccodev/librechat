@@ -42,6 +42,14 @@ export type AgentForm = {
   skills?: string[];
   skills_enabled?: boolean;
   provider?: AgentProvider | OptionWithIcon;
+  /**
+   * Optional round-robin pool of (provider, model) tuples. When
+   * present, the runtime picks one tuple per request (atomic
+   * counter, per-request advance — not per-turn) so load is
+   * distributed across providers. The singular `provider`+`model`
+   * fields are the legacy fallback when the pool is empty.
+   */
+  models?: Array<{ provider: string; model: string }>;
   /** @deprecated Use edges instead */
   agent_ids?: string[];
   edges?: GraphEdge[];

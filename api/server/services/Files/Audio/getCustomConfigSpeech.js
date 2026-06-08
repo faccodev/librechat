@@ -29,10 +29,23 @@ async function getCustomConfigSpeech(req, res) {
       });
     }
 
-    const sttExternal = !!appConfig.speech?.stt;
-    const ttsExternal = !!appConfig.speech?.tts;
+    const sttSchema = appConfig.speech?.stt;
+    const ttsSchema = appConfig.speech?.tts;
+    const sttExternal = !!sttSchema;
+    /**
+     * Surfaces a self-hosted faster-whisper server to the client so the
+     * STT engine dropdown can offer a "Faster Whisper (servidor)" option
+     * in addition to the browser-native path. Operators opt in by
+     * configuring `speech.stt.fasterWhisper` in librechat.yaml; the
+     * presence of the block (not its URL) is what flips this flag, so
+     * a misconfigured URL still surfaces the option and the runtime
+     * error tells the operator to fix it.
+     */
+    const sttFasterWhisper = !!sttSchema && Object.prototype.hasOwnProperty.call(sttSchema, 'fasterWhisper');
+    const ttsExternal = !!ttsSchema;
     let settings = {
       sttExternal,
+      sttFasterWhisper,
       ttsExternal,
     };
 

@@ -34,6 +34,7 @@ function Speech() {
   const isSmallScreen = useMediaQuery('(max-width: 767px)');
 
   const [sttExternal, setSttExternal] = useState(false);
+  const [sttFasterWhisper, setSttFasterWhisper] = useState(false);
   const [ttsExternal, setTtsExternal] = useState(false);
   const [advancedMode, setAdvancedMode] = useRecoilState(store.advancedMode);
   const [autoTranscribeAudio, setAutoTranscribeAudio] = useRecoilState(store.autoTranscribeAudio);
@@ -58,6 +59,7 @@ function Speech() {
     (key: string, newValue: string | number) => {
       const settings = {
         sttExternal: { value: sttExternal, setFunc: setSttExternal },
+        sttFasterWhisper: { value: sttFasterWhisper, setFunc: setSttFasterWhisper },
         ttsExternal: { value: ttsExternal, setFunc: setTtsExternal },
         conversationMode: { value: conversationMode, setFunc: setConversationMode },
         advancedMode: { value: advancedMode, setFunc: setAdvancedMode },
@@ -84,6 +86,7 @@ function Speech() {
     },
     [
       sttExternal,
+      sttFasterWhisper,
       ttsExternal,
       conversationMode,
       advancedMode,
@@ -127,9 +130,18 @@ function Speech() {
       Object.entries(data).forEach(([key, value]) => {
         // Only apply config values as defaults if no user preference exists in localStorage
         const existingValue = localStorage.getItem(key);
-        if (existingValue === null && key !== 'sttExternal' && key !== 'ttsExternal') {
+        if (
+          existingValue === null &&
+          key !== 'sttExternal' &&
+          key !== 'ttsExternal' &&
+          key !== 'sttFasterWhisper'
+        ) {
           updateSetting(key, value);
-        } else if (key === 'sttExternal' || key === 'ttsExternal') {
+        } else if (
+          key === 'sttExternal' ||
+          key === 'ttsExternal' ||
+          key === 'sttFasterWhisper'
+        ) {
           updateSetting(key, value);
         }
       });
@@ -189,7 +201,7 @@ function Speech() {
       <Tabs.Content value={'simple'} tabIndex={-1}>
         <div className="flex flex-col gap-3 text-sm text-text-primary">
           <SpeechToTextSwitch />
-          <EngineSTTDropdown external={sttExternal} />
+          <EngineSTTDropdown external={sttExternal} fasterWhisper={sttFasterWhisper} />
           <LanguageSTTDropdown />
           <div className="h-px bg-border-medium" role="none" />
           <TextToSpeechSwitch />
@@ -204,7 +216,7 @@ function Speech() {
           <div className="mt-2 h-px bg-border-medium" role="none" />
           <SpeechToTextSwitch />
 
-          <EngineSTTDropdown external={sttExternal} />
+          <EngineSTTDropdown external={sttExternal} fasterWhisper={sttFasterWhisper} />
 
           <LanguageSTTDropdown />
           <div className="pb-2">

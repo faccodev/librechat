@@ -741,7 +741,7 @@ export type TGetRandomPromptsRequest = {
   skip: number;
 };
 
-export type TCustomConfigSpeechResponse = { [key: string]: string };
+export type TCustomConfigSpeechResponse = { [key: string]: unknown };
 
 export type TUserTermsResponse = {
   termsAccepted: boolean;

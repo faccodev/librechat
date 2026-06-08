@@ -6,7 +6,8 @@ import { useChatFormContext } from '~/Providers';
 import { globalAudioId } from '~/common';
 import { cn } from '~/utils';
 
-const isExternalSTT = (speechToTextEndpoint: string) => speechToTextEndpoint === 'external';
+const isExternalSTT = (speechToTextEndpoint: string) =>
+  speechToTextEndpoint === 'external' || speechToTextEndpoint === 'fasterWhisper';
 export default memo(function AudioRecorder({
   disabled,
   ask,
