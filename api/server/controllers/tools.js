@@ -135,6 +135,78 @@ const callTool = async (req, res) => {
       );
       return res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
     }
+    if (toolId === Tools.execute_code) {
+      const { getMCPManager, getFlowStateManager, getMCPServersRegistry } = require('~/config');
+      const registry = getMCPServersRegistry();
+      const hasCodeRunner = await registry.getServerConfig('code-runner', req.user.id);
+      if (hasCodeRunner) {
+        logger.debug(`[${toolId}/call] Redirecting execute_code to MCP code-runner for user ${req.user.id}`);
+        const mcpManager = getMCPManager();
+        const flowManager = getFlowStateManager(req.app.locals.flowsCache);
+
+        const mapLanguage = (lang) => {
+          const normalized = (lang || '').toLowerCase().trim();
+          if (normalized === 'py' || normalized === 'python' || normalized === 'python3') {
+            return 'python';
+          }
+          if (normalized === 'js' || normalized === 'javascript' || normalized === 'ts' || normalized === 'typescript' || normalized === 'node' || normalized === 'nodejs') {
+            return 'node';
+          }
+          return 'sh';
+        };
+
+        const language = mapLanguage(args.lang);
+        const workspaceSubdir = req.user.workspaceSubdir || '';
+
+        try {
+          const [textResult] = await mcpManager.callTool({
+            user: req.user,
+            serverName: 'code-runner',
+            toolName: 'run_code',
+            provider: message.provider || 'openai',
+            toolArguments: {
+              language,
+              code: args.code,
+              workspaceSubdir,
+            },
+            flowManager,
+          });
+
+          let parsed;
+          try {
+            parsed = JSON.parse(textResult);
+          } catch (e) {
+            parsed = { stdout: textResult, stderr: '', exitCode: 0 };
+          }
+
+          const output = (parsed.stdout || '') + (parsed.stderr || '');
+
+          const toolCallId = `${req.user.id}_${nanoid()}`;
+          const toolCallData = {
+            toolId,
+            messageId,
+            partIndex,
+            blockIndex,
+            conversationId,
+            result: output,
+            user: req.user.id,
+            ...(await getRetentionExpiry(req)),
+          };
+
+          createToolCall(toolCallData).catch((error) => {
+            logger.error(`Error creating redirected tool call: ${error.message}`);
+          });
+
+          return res.status(200).json({
+            result: output,
+          });
+        } catch (mcpError) {
+          logger.error(`[${toolId}/call] Error invoking code-runner MCP:`, mcpError);
+          return res.status(500).json({ message: 'Error executing code via MCP' });
+        }
+      }
+    }
+
     const { loadedTools } = await loadTools({
       user: req.user.id,
       tools: [toolId],

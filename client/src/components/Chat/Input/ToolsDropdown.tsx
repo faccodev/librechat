@@ -135,7 +135,7 @@ const ToolsDropdown = ({ disabled }: ToolsDropdownProps) => {
 
   const dropdownItems: MenuItemProps[] = [];
 
-  if (fileSearchEnabled && canUseFileSearch) {
+  if (false && fileSearchEnabled && canUseFileSearch) {
     dropdownItems.push({
       onClick: handleFileSearchToggle,
       hideOnClick: false,
@@ -167,7 +167,7 @@ const ToolsDropdown = ({ disabled }: ToolsDropdownProps) => {
     });
   }
 
-  if (canUseWebSearch && webSearchEnabled) {
+  if (false && canUseWebSearch && webSearchEnabled) {
     dropdownItems.push({
       onClick: handleWebSearchToggle,
       hideOnClick: false,
@@ -253,7 +253,7 @@ const ToolsDropdown = ({ disabled }: ToolsDropdownProps) => {
     });
   }
 
-  if (canRunCode && codeEnabled) {
+  if (false && canRunCode && codeEnabled) {
     dropdownItems.push({
       onClick: handleCodeInterpreterToggle,
       hideOnClick: false,

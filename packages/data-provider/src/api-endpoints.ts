@@ -322,7 +322,7 @@ export const workspaceSearch = (q: string) =>
   `${BASE_URL}/api/files/workspace/search?q=${encodeURIComponent(q)}`;
 export const workspaceRaw = ({ path, download }: { path: string; download?: boolean }) => {
   const encoded = path.split('/').map(encodeURIComponent).join('/');
-  const params = download ? '?download=true' : '';
+  const params = download ? '&download=true' : '';
   return `${BASE_URL}/api/files/workspace/raw?path=${encoded}${params}`;
 };
 

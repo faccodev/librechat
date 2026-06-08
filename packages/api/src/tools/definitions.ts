@@ -39,6 +39,8 @@ export interface LoadToolDefinitionsParams {
   programmaticToolsEnabled?: boolean;
   /** Whether code execution is enabled and requested by this agent */
   codeExecutionEnabled?: boolean;
+  /** Whether all auto-injected tools should be marked as deferred */
+  autoTools?: boolean;
 }
 
 export interface ActionToolDefinition {
@@ -83,6 +85,7 @@ export async function loadToolDefinitions(
     deferredToolsEnabled = false,
     programmaticToolsEnabled = false,
     codeExecutionEnabled = false,
+    autoTools = false,
   } = params;
   const { getOrFetchMCPServerTools, isBuiltInTool, getActionToolDefinitions } = deps;
 
@@ -164,6 +167,12 @@ export async function loadToolDefinitions(
               : undefined,
             serverName,
           });
+          if (autoTools) {
+            if (!toolOptions[actualToolName]) {
+              toolOptions[actualToolName] = {};
+            }
+            toolOptions[actualToolName].defer_loading = true;
+          }
         }
       }
       continue;
@@ -207,6 +216,7 @@ export async function loadToolDefinitions(
     codeExecutionEnabled,
     definitionsOnly: true,
     agentToolOptions: toolOptions,
+    autoTools,
   });
 
   const { toolDefinitions, hasDeferredTools } = classificationResult;

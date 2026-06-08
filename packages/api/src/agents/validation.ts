@@ -113,6 +113,7 @@ export const agentBaseSchema = z.object({
   subagents: agentSubagentsSchema,
   support_contact: agentSupportContactSchema,
   category: z.string().optional(),
+  autoTools: z.boolean().optional(),
 });
 
 /** Create schema extends base with required fields for creation */

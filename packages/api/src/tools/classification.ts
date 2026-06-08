@@ -193,6 +193,8 @@ export interface BuildToolClassificationParams {
   definitionsOnly?: boolean;
   /** Optional host-supplied Code API auth headers for remote programmatic execution. */
   authHeaders?: () => Promise<Record<string, string>> | Record<string, string>;
+  /** Whether all auto-injected tools should be marked as deferred */
+  autoTools?: boolean;
 }
 
 /** Result from building tool classification */
@@ -260,6 +262,7 @@ export async function buildToolClassification(
     programmaticToolsEnabled = false,
     codeExecutionEnabled = false,
     authHeaders,
+    autoTools = false,
   } = params;
   const additionalTools: GenericTool[] = [];
 
@@ -275,6 +278,12 @@ export async function buildToolClassification(
 
   const mcpToolDefs = mcpTools.map(extractMCPToolDefinition);
   const toolRegistry: LCToolRegistry = buildToolRegistry(mcpToolDefs, agentToolOptions);
+
+  if (autoTools && deferredToolsEnabled) {
+    for (const toolDef of toolRegistry.values()) {
+      toolDef.defer_loading = true;
+    }
+  }
 
   /** Clean up temporary mcpJsonSchema property from tools now that registry is populated */
   cleanupMCPToolSchemas(mcpTools);

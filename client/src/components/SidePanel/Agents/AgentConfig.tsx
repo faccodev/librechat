@@ -71,6 +71,7 @@ export default function AgentConfig() {
   const model = useWatch({ control, name: 'model' });
   const agent = useWatch({ control, name: 'agent' });
   const tools = useWatch({ control, name: 'tools' });
+  const autoTools = useWatch({ control, name: 'autoTools' });
   const skills = useWatch({ control, name: 'skills' });
   const skillsActive = useWatch({ control, name: 'skills_enabled' });
   const agent_id = useWatch({ control, name: 'id' });
@@ -320,34 +321,55 @@ export default function AgentConfig() {
             </div>
           </button>
         </div>
-        {(codeEnabled ||
-          fileSearchEnabled ||
-          artifactsEnabled ||
-          contextEnabled ||
-          webSearchEnabled) && (
+        {(artifactsEnabled ||
+          contextEnabled) && (
           <div className="mb-4 flex w-full flex-col items-start gap-3">
             <label className="text-token-text-primary block text-sm font-medium">
               {localize('com_assistants_capabilities')}
             </label>
-            {/* Code Execution */}
-            {codeEnabled && <CodeForm agent_id={agent_id} files={code_files} />}
-            {/* Web Search */}
-            {webSearchEnabled && <SearchForm />}
             {/* File Context */}
             {contextEnabled && <FileContext agent_id={agent_id} files={context_files} />}
             {/* Artifacts */}
             {artifactsEnabled && <Artifacts />}
-            {/* File Search */}
-            {fileSearchEnabled && <FileSearch agent_id={agent_id} files={knowledge_files} />}
           </div>
         )}
         {/* MCP Section */}
         {availableMCPServers != null && availableMCPServers.length > 0 && (
-          <MCPTools
-            agentId={agent_id}
-            mcpServerNames={mcpServerNames}
-            setShowMCPToolDialog={setShowMCPToolDialog}
-          />
+          <div className="mb-4">
+            <div className="mb-2 flex items-center justify-between">
+              <label
+                htmlFor="autoTools"
+                className="text-token-text-primary block text-sm font-medium"
+              >
+                AutoTools (Expor todos os MCPs)
+              </label>
+              <Controller
+                name="autoTools"
+                control={control}
+                render={({ field }) => (
+                  <Switch
+                    id="autoTools"
+                    checked={field.value === true}
+                    onCheckedChange={(value: boolean) => field.onChange(Boolean(value))}
+                    data-testid="autoTools"
+                    aria-label="Toggle AutoTools"
+                  />
+                )}
+              />
+            </div>
+            <p className="mb-2 text-xs text-text-secondary">
+              {autoTools === true
+                ? 'Todos os servidores MCP ativos estão disponíveis para o agente com carregamento dinâmico (deferred loading).'
+                : 'Selecione manualmente quais ferramentas MCP o agente pode utilizar.'}
+            </p>
+            {autoTools !== true && (
+              <MCPTools
+                agentId={agent_id}
+                mcpServerNames={mcpServerNames}
+                setShowMCPToolDialog={setShowMCPToolDialog}
+              />
+            )}
+          </div>
         )}
 
         {showSkills && (

@@ -125,6 +125,11 @@ const agentSchema = new Schema<IAgent>(
       type: Schema.Types.Mixed,
       default: undefined,
     },
+    /** Automatically make all configured MCP servers available under-the-hood (using deferred tool loading) */
+    autoTools: {
+      type: Boolean,
+      default: false,
+    },
     tenantId: {
       type: String,
       index: true,

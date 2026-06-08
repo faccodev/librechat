@@ -50,5 +50,7 @@ export interface IAgent extends Omit<Document, 'model'> {
   tool_options?: AgentToolOptions;
   /** Subagent spawning configuration — isolated-context child agents. */
   subagents?: AgentSubagentsConfig;
+  /** Automatically make all configured MCP servers available under-the-hood (using deferred tool loading) */
+  autoTools?: boolean;
   tenantId?: string;
 }
