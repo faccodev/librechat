@@ -133,10 +133,15 @@ const OboOptionsSchema = z.object({
 });
 
 const BaseOptionsSchema = z.object({
-  /** Display name for the MCP server - only letters, numbers, and spaces allowed */
+  /**
+   * Display name for the MCP server. Letters (any script), digits, and
+   * spaces. Hyphens, apostrophes, and similar punctuation are intentionally
+   * not allowed so that titles remain safe to interpolate into narrow UI
+   * surfaces (dropdowns, tooltips, OAuth redirect banners).
+   */
   title: z
     .string()
-    .regex(/^[a-zA-Z0-9 ]+$/, 'Title can only contain letters, numbers, and spaces')
+    .regex(/^[\p{L}\p{N} ]+$/u, 'Title can only contain letters, numbers, and spaces')
     .optional(),
   /** Description of the MCP server */
   description: z.string().optional(),
@@ -147,6 +152,12 @@ const BaseOptionsSchema = z.object({
    *   requiring manual authentication (e.g., GitHub PAT tokens) that need to be configured through the UI after startup
    */
   startup: z.boolean().optional(),
+  /**
+   * Path to the icon shown next to the MCP server in the UI. Accepts
+   * either a full URL (e.g. `https://cdn.example.com/foo.svg`) or a
+   * path that the browser can resolve from the current origin (most
+   * commonly `/assets/mcp/<name>.svg`, served from the client bundle).
+   */
   iconPath: z.string().optional(),
   timeout: z.number().int().nonnegative().optional(),
   /** Timeout (ms) for the long-lived SSE GET stream body before undici aborts it. Default: 300_000 (5 min). */

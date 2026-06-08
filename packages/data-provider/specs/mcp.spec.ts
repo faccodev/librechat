@@ -543,6 +543,75 @@ describe('MCP schemas', () => {
   });
 });
 
+describe('MCPOptionsSchema — title and iconPath', () => {
+  it('accepts plain ASCII titles', () => {
+    const result = MCPOptionsSchema.safeParse({
+      type: 'streamable-http',
+      url: 'https://example.com/mcp',
+      title: 'Google Drive',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts Unicode letters in the title (accented, CJK, etc.)', () => {
+    const cases = [
+      'Arquivos',
+      'Código', // é
+      'Integração', // ã
+      'Название', // cyrillic
+      '工具', // CJK
+      '日本語', // CJK with surrogate pair
+      'Mixed Código 123',
+    ];
+    for (const title of cases) {
+      const result = MCPOptionsSchema.safeParse({
+        type: 'streamable-http',
+        url: 'https://example.com/mcp',
+        title,
+      });
+      expect(result.success).toBe(true);
+    }
+  });
+
+  it('rejects titles with punctuation (hyphens, periods, etc.)', () => {
+    const cases = ['Google-Drive', 'Meta ADS!', 'título.com', '<script>'];
+    for (const title of cases) {
+      const result = MCPOptionsSchema.safeParse({
+        type: 'streamable-http',
+        url: 'https://example.com/mcp',
+        title,
+      });
+      expect(result.success).toBe(false);
+    }
+  });
+
+  it('accepts title=undefined (title is optional)', () => {
+    const result = MCPOptionsSchema.safeParse({
+      type: 'streamable-http',
+      url: 'https://example.com/mcp',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts a relative iconPath', () => {
+    const result = MCPOptionsSchema.safeParse({
+      type: 'streamable-http',
+      url: 'https://example.com/mcp',
+      iconPath: '/assets/mcp/filesystem.svg',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts an absolute iconPath URL', () => {
+    const result = MCPOptionsSchema.safeParse({
+      type: 'streamable-http',
+      url: 'https://example.com/mcp',
+      iconPath: 'https://cdn.example.com/icons/foo.png',
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
 describe('MCP_USER_INPUT_FIELDS', () => {
   it('includes the expected user-input fields and excludes server-managed ones', () => {
     // Sanity check on the schema-derived field set. This is the comparison
