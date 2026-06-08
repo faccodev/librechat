@@ -189,8 +189,8 @@ const PoolRow: React.FC<PoolRowProps> = ({
   );
 
   return (
-    <li className="flex items-center gap-2 rounded-md border border-border-light bg-surface-secondary p-2">
-      <div className="grid flex-1 grid-cols-1 gap-2 sm:grid-cols-2">
+    <li className="flex items-start gap-2 rounded-md border border-border-light bg-surface-secondary p-2">
+      <div className="flex flex-1 flex-col gap-2">
         <Controller
           control={control}
           name={providerPath}
@@ -232,7 +232,7 @@ const PoolRow: React.FC<PoolRowProps> = ({
         type="button"
         onClick={onRemove}
         aria-label={localize('com_ui_delete')}
-        className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-red-500 transition-colors hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/30"
+        className="mt-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-red-500 transition-colors hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/30"
       >
         <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
       </button>

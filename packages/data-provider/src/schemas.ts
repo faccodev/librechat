@@ -291,6 +291,12 @@ export const defaultAgentFormValues = {
   description: '',
   instructions: '',
   model: '',
+  /** Optional round-robin pool of (provider, model) tuples. Empty
+   *  array (or undefined) means "no pool" — the singular provider/model
+   *  fields above are used as-is. Operators populate this through
+   *  the agent editor (SidePanel/Agents/ModelPoolEditor) or by
+   *  hand-editing the agent document. */
+  models: [] as Array<{ provider: string; model: string }>,
   model_parameters: {},
   tools: [],
   tool_options: {},
