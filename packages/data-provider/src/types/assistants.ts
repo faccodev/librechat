@@ -272,6 +272,15 @@ export type Agent = {
   metadata?: Record<string, unknown>;
   provider: AgentProvider;
   model: string | null;
+  /**
+   * Optional round-robin pool of (provider, model) tuples. When present,
+   * the runtime picks one tuple per request (atomic counter, per-request
+   * advance — not per-turn) so load is distributed across providers.
+   * 5xx/429/401/network errors from one tuple cause the runtime to swap
+   * to the next. The singular `provider`+`model` fields remain the
+   * fallback when the pool is empty.
+   */
+  models?: Array<{ provider: string; model: string }>;
   model_parameters: AgentModelParameters;
   conversation_starters?: string[];
   tool_resources?: AgentToolResources;

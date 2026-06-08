@@ -36,6 +36,7 @@ import { getProviderConfig } from '~/endpoints/config/providers';
 import { resolveHeaders, createSafeUser } from '~/utils/env';
 import { getOpenAIConfig } from '~/endpoints/openai/config';
 import { applyTestRunHook } from '~/agents/testHook';
+import { selectNextEntry } from '~/agents/pool';
 import { isUserProvided } from '~/utils/common';
 
 /** Expected shape of JSON tool search results */
@@ -831,22 +832,56 @@ export async function createRun({
 
   const buildAgentInput = (agent: RunAgent, opts: { isSubagent?: boolean } = {}): AgentInputs => {
     const isSubagent = opts.isSubagent === true;
+
+    /**
+     * Round-robin pool selection — see `pool.ts` for the full semantics.
+     *
+     * If the agent has a non-empty `models` pool, pick one tuple per
+     * call (the counter advances inside `selectNextEntry`) and override
+     * `agent.provider`/`agent.model` for this request only. The agent
+     * document the caller passed in is NOT mutated — we shadow it with
+     * a shallow clone that carries the chosen (provider, model) so the
+     * rest of this function (and any downstream consumer) sees the
+     * effective values for this request.
+     *
+     * Per-request semantics: a single chat completion (which may span
+     * many turns inside the graph runtime) uses ONE pool entry. The
+     * counter advances again on the next request, not on the next turn
+     * within the same request — so a multi-turn conversation does NOT
+     * flip-flop between providers, but a fresh request from a different
+     * request will land on a different entry.
+     */
+    const pool = (agent as { models?: Array<{ provider: string; model: string }> })
+      .models;
+    const effective =
+      pool && pool.length > 0
+        ? selectNextEntry(agent.id, pool, {
+            provider: agent.provider as string,
+            model: agent.model as string,
+          })
+        : { provider: agent.provider as string, model: agent.model as string };
+    const scopedAgent: RunAgent =
+      effective.provider !== agent.provider || effective.model !== agent.model
+        ? { ...agent, provider: effective.provider, model: effective.model }
+        : agent;
+
     const provider =
       (providerEndpointMap[
-        agent.provider as keyof typeof providerEndpointMap
-      ] as unknown as Providers) ?? agent.provider;
-    const selfModel = agent.model_parameters?.model ?? (agent.model as string | undefined);
+        scopedAgent.provider as keyof typeof providerEndpointMap
+      ] as unknown as Providers) ?? scopedAgent.provider;
+    const selfModel =
+      scopedAgent.model_parameters?.model ?? (scopedAgent.model as string | undefined);
 
     const summarization = shapeSummarizationConfig(
-      agent.summarization ?? summarizationConfig,
+      scopedAgent.summarization ?? summarizationConfig,
       provider as string,
       selfModel,
       appConfig,
-      agent.endpoint ?? undefined,
+      scopedAgent.endpoint ?? undefined,
       { user, requestBody },
     );
 
-    const modelParameters = normalizeAgentModelParameters(agent.model_parameters);
+    const modelParameters = normalizeAgentModelParameters(scopedAgent.model_parameters);
     const hasExplicitStreamUsage = Object.prototype.hasOwnProperty.call(
       modelParameters ?? {},
       'streamUsage',
@@ -953,8 +988,8 @@ export async function createRun({
 
     const effectiveMaxContextTokens = computeEffectiveMaxContextTokens(
       summarization.reserveRatio,
-      agent.baseContextTokens,
-      agent.maxContextTokens,
+      scopedAgent.baseContextTokens,
+      scopedAgent.maxContextTokens,
     );
 
     const reasoningKey = getReasoningKey(provider, llmConfig, agent.endpoint, agent.reasoningKey);

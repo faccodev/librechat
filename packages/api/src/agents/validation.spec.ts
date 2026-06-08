@@ -1,5 +1,9 @@
 import { MAX_SUBAGENTS } from 'librechat-data-provider';
-import { agentCreateSchema, agentUpdateSchema, agentSubagentsSchema } from './validation';
+import {
+  agentCreateSchema,
+  agentUpdateSchema,
+  agentSubagentsSchema,
+} from './validation';
 
 describe('agentSubagentsSchema', () => {
   it('accepts enabled:true with a list within the cap', () => {
@@ -79,5 +83,97 @@ describe('agentUpdateSchema with subagents', () => {
       subagents: { enabled: true, agent_ids: oversized },
     });
     expect(result.success).toBe(false);
+  });
+});
+
+describe('agent schemas with model pool (round-robin)', () => {
+  it('accepts a create payload with a models pool of 2+ entries', () => {
+    const result = agentCreateSchema.safeParse({
+      name: 'Pooled Agent',
+      provider: 'openAI',
+      model: 'gpt-4o',
+      models: [
+        { provider: 'openAI', model: 'gpt-4o' },
+        { provider: 'anthropic', model: 'claude-3-5-sonnet' },
+      ],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts an empty pool (legacy single-pair behavior)', () => {
+    const result = agentCreateSchema.safeParse({
+      name: 'Legacy Agent',
+      provider: 'openAI',
+      model: 'gpt-4o',
+      models: [],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts a payload without the models field at all', () => {
+    const result = agentCreateSchema.safeParse({
+      name: 'No-Field Agent',
+      provider: 'openAI',
+      model: 'gpt-4o',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects an entry with empty provider or model', () => {
+    const result = agentCreateSchema.safeParse({
+      name: 'Bad Pool',
+      provider: 'openAI',
+      model: 'gpt-4o',
+      models: [{ provider: '', model: 'gpt-4o' }],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a pool larger than the 32-entry cap', () => {
+    const oversized = Array.from({ length: 33 }, (_, i) => ({
+      provider: 'openAI',
+      model: `gpt-4o-${i}`,
+    }));
+    const result = agentCreateSchema.safeParse({
+      name: 'Huge Pool',
+      provider: 'openAI',
+      model: 'gpt-4o',
+      models: oversized,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('accepts a pool at the 32-entry boundary', () => {
+    const boundary = Array.from({ length: 32 }, (_, i) => ({
+      provider: 'openAI',
+      model: `gpt-4o-${i}`,
+    }));
+    const result = agentCreateSchema.safeParse({
+      name: 'Boundary Pool',
+      provider: 'openAI',
+      model: 'gpt-4o',
+      models: boundary,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects non-string fields in pool entries', () => {
+    const result = agentCreateSchema.safeParse({
+      name: 'Type-Bad Pool',
+      provider: 'openAI',
+      model: 'gpt-4o',
+      models: [{ provider: 123, model: 'gpt-4o' }],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('update schema accepts the same models shape', () => {
+    const result = agentUpdateSchema.safeParse({
+      models: [
+        { provider: 'openAI', model: 'gpt-4o' },
+        { provider: 'anthropic', model: 'claude-3-5-sonnet' },
+      ],
+    });
+    expect(result.success).toBe(true);
   });
 });

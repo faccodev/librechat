@@ -22,6 +22,16 @@ export interface IAgent extends Omit<Document, 'model'> {
   };
   provider: string;
   model: string;
+  /**
+   * Optional pool of (provider, model) pairs for round-robin load
+   * distribution + automatic failover. When present, each request
+   * picks the next entry via an in-memory atomic counter (advances
+   * per request, not per turn) and a 5xx/429/401/network error from
+   * one entry causes the next to be tried. The legacy singular
+   * `provider` + `model` fields are kept as the fallback when this
+   * is empty/absent, so existing agents keep working unchanged.
+   */
+  models?: Array<{ provider: string; model: string }>;
   model_parameters?: Record<string, unknown>;
   artifacts?: string;
   access_level?: number;

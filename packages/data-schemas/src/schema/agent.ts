@@ -28,6 +28,17 @@ const agentSchema = new Schema<IAgent>(
       type: String,
       required: true,
     },
+    /**
+     * Round-robin pool — see the matching IAgent field for the
+     * semantics. The shape is loose on purpose: validation lives
+     * on the API package (where the runtime that consumes it is)
+     * so we don't tie the schema to a future revision of the
+     * (provider, model) tuple shape.
+     */
+    models: {
+      type: [Object],
+      default: undefined,
+    },
     model_parameters: {
       type: Object,
     },

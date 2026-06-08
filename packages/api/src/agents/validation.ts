@@ -90,6 +90,15 @@ export const agentSubagentsSchema = z
   })
   .optional();
 
+/** Per-entry tuple in the round-robin model pool. `provider` and `model`
+ *  are each non-empty strings; the pair is de-duplicated by string identity
+ *  of `provider:model` at the runner layer (not here) so a malformed payload
+ *  surfaces a 400 rather than silently dropping entries. */
+export const agentModelPoolEntrySchema = z.object({
+  provider: z.string().min(1),
+  model: z.string().min(1),
+});
+
 /** Base agent schema with all common fields */
 export const agentBaseSchema = z.object({
   name: z.string().nullable().optional(),
@@ -114,6 +123,17 @@ export const agentBaseSchema = z.object({
   support_contact: agentSupportContactSchema,
   category: z.string().optional(),
   autoTools: z.boolean().optional(),
+  /**
+   * Round-robin pool. When present, the runner picks one tuple per request
+   * via an atomic counter (advances per request, not per turn) and retries
+   * with the next tuple on 5xx/429/401/network errors. The singular
+   * `provider`+`model` fields are the legacy fallback (also used as the
+   * default if the pool is empty), so this is purely additive.
+   *
+   * Capped at 32 entries to keep validation memory bounded and to make
+   * the worst-case retry sequence (32 hops) tractable for operators.
+   */
+  models: z.array(agentModelPoolEntrySchema).max(32).optional(),
 });
 
 /** Create schema extends base with required fields for creation */
