@@ -182,25 +182,20 @@ services:
   # maior, sobe pra `base` ou `small` e aceita o custo de
   # memória (veja a tabela no comment de docker-compose.override.yml).
   mcp-faster-whisper:
-    image: syuoni/faster-whisper-asr:latest
+    image: onerahmet/openai-whisper-asr-webservice:latest
     restart: always
     init: true
     # Sem `container_name` (Coolify gerencia), sem rede explícita
     # (mesma rede default do `api`, então `mcp-faster-whisper`
     # resolve via DNS interno).
     environment:
-      # Modelo leve (default da imagem). Troque por `base` ou
-      # `small` se quiser mais acurácia — vai exigir mais RAM.
+      - ASR_ENGINE=faster_whisper
       - ASR_MODEL=tiny
-      # Idioma. `pt` cobre pt-BR; deixar vazio força autodetect.
-      - ASR_LANGUAGE=pt
-      # Força saída JSON (a integração STTService do LibreChat
-      # espera `response.data.text`).
-      - ASR_OUTPUT=json
+      - ASR_QUANTIZATION=int8
     volumes:
       # Persiste o cache do modelo (download do HuggingFace).
       # Sem isso, cada restart baixa de novo (~75MB pro tiny).
-      - faster_whisper_cache:/root/.cache/huggingface
+      - faster_whisper_cache:/data/whisper
 
 volumes:
   mongodb_data:

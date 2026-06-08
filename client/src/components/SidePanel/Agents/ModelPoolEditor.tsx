@@ -3,9 +3,10 @@ import { useFieldArray, useWatch, useFormContext, Controller } from 'react-hook-
 import { Plus, Trash2, Info } from 'lucide-react';
 import { ControlCombobox } from '@librechat/client';
 import { EModelEndpoint, type OptionWithIcon } from 'librechat-data-provider';
+import { useGetModelsQuery } from 'librechat-data-provider/react-query';
 import { useGetEndpointsQuery } from '~/data-provider';
-import { useAgentPanelContext } from '~/Providers';
 import { useLocalize } from '~/hooks';
+import { icons } from '~/hooks/Endpoint/Icons';
 import type { AgentForm } from '~/common';
 
 type PoolEntry = { provider: string; model: string };
@@ -13,7 +14,7 @@ type PoolEntry = { provider: string; model: string };
 /**
  * Round-robin model pool editor.
  *
- * Sits directly below the singular "Model" picker in the agent
+ * Sits diretamente below the singular "Model" picker in the agent
  * editor. Lets the operator add/remove (provider, model) pairs;
  * each pair is a candidate the runtime picks from on every
  * request via an atomic counter (see
@@ -38,7 +39,17 @@ const ModelPoolEditor: React.FC = () => {
   });
 
   const { data: endpointsConfig } = useGetEndpointsQuery();
-  const { agentsConfig } = useAgentPanelContext();
+  /**
+   * Live model catalog. `useGetModelsQuery` returns the full
+   * `Record<provider, string[]>` so the model dropdown updates
+   * the moment the user switches the provider on a row — same
+   * pattern AgentPanel.tsx uses for the singular picker. We
+   * intentionally do NOT scope this query to a single provider
+   * (it doesn't accept a param), but the catalog is fetched
+   * once on app load and cached, so the per-row filtering is
+   * free.
+   */
+  const { data: modelsConfig } = useGetModelsQuery();
 
   // Singular provider/model — used as the seed for new pool entries
   // and as the list of available models for the provider dropdown.
@@ -49,13 +60,23 @@ const ModelPoolEditor: React.FC = () => {
     if (!endpointsConfig) return [];
     return Object.entries(endpointsConfig)
       .filter(([key, value]) => key !== EModelEndpoint.agents && value?.type)
-      .map(([key, value]) => ({
-        value: key,
-        label: (value as { title?: string; name?: string }).title
-          || (value as { name?: string }).name
-          || key,
-        icon: (value as { iconURL?: string }).iconURL,
-      }));
+      .map(([key, value]) => {
+        const endpoint = value as { title?: string; name?: string; iconURL?: string };
+        // Pull the icon from the static map first (covers the
+        // first-party endpoints with their branded SVGs — openai,
+        // anthropic, google, etc). Fall back to the endpoint's
+        // remote `iconURL` (for custom providers that ship their
+        // own asset). If both are absent, the dropdown shows no
+        // icon but still works.
+        const IconComp =
+          (icons as Record<string, React.ComponentType<{ className?: string }>>)[key]
+          ?? (icons as Record<string, React.ComponentType<{ className?: string }>>).unknown;
+        return {
+          value: key,
+          label: endpoint.title || endpoint.name || key,
+          icon: IconComp ? <IconComp className="h-4 w-4" /> : endpoint.iconURL,
+        };
+      });
   }, [endpointsConfig]);
 
   const singularProviderValue = useMemo(() => {
@@ -63,24 +84,30 @@ const ModelPoolEditor: React.FC = () => {
     return (singularProvider as { value?: string } | undefined)?.value ?? '';
   }, [singularProvider]);
 
+  /**
+   * Build the model option list for a given provider. We
+   * prefer the agents-capability-filtered list (`modelsConfig`)
+   * because that's what the AgentPanel uses and what actually
+   * ships through the runtime ACL. If absent, fall back to
+   * the endpoint-level list. The function recomputes when
+   * either source changes, so swapping a row's provider
+   * refreshes the model dropdown immediately.
+   */
   const modelsForProvider = useCallback(
     (provider: string): OptionWithIcon[] => {
       if (!provider) return [];
-      // Prefer the agent's effective model list (filtered by ACL),
-      // fall back to the endpoint-level list when no config exists.
-      const agentModelList = (agentsConfig as Record<string, string[]> | undefined)?.[provider];
-      let names: string[] = [];
-      if (agentModelList && agentModelList.length > 0) {
-        names = agentModelList;
-      } else {
-        const endpointList = (endpointsConfig as Record<string, { models?: string[] }> | undefined)?.[
-          provider
-        ]?.models;
-        names = Array.isArray(endpointList) ? endpointList : [];
-      }
-      return names.map((m) => ({ value: m, label: m }));
+      const names = (modelsConfig?.[provider] ?? []) as string[];
+      if (names.length > 0) return names.map((m) => ({ value: m, label: m }));
+      // Final fallback: endpoint-level list. The agents config
+      // shape can vary, so this stays loose.
+      const endpointList = (endpointsConfig as Record<string, { models?: string[] }> | undefined)?.[
+        provider
+      ]?.models;
+      return Array.isArray(endpointList)
+        ? endpointList.map((m) => ({ value: m, label: m }))
+        : [];
     },
-    [agentsConfig, endpointsConfig],
+    [modelsConfig, endpointsConfig],
   );
 
   const handleAdd = useCallback(() => {

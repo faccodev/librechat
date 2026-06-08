@@ -92,10 +92,11 @@ const useSpeechToTextBrowser = (
       return;
     }
 
+    const recognition = (SpeechRecognition as any).default || SpeechRecognition;
     if (isListening === true) {
-      SpeechRecognition.stopListening();
+      recognition.stopListening();
     } else {
-      SpeechRecognition.startListening({
+      recognition.startListening({
         language: languageSTT,
         continuous: autoTranscribeAudio,
       });
