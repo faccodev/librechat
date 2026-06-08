@@ -127,6 +127,29 @@ describe('formatAgentMessages', () => {
     expect(result[0].tool_calls[0].args).toStrictEqual({ input: 'non-json-string' });
   });
 
+  it('should handle tool calls with empty/blank args', () => {
+    const payload = [
+      {
+        role: 'assistant',
+        content: [
+          { type: ContentTypes.TEXT, [ContentTypes.TEXT]: 'Taking screenshot...', tool_call_ids: ['123'] },
+          {
+            type: ContentTypes.TOOL_CALL,
+            tool_call: {
+              id: '123',
+              name: 'browser_take_screenshot',
+              args: '',
+              output: 'Screenshot result',
+            },
+          },
+        ],
+      },
+    ];
+    const result = formatAgentMessages(payload);
+    expect(result).toHaveLength(2);
+    expect(result[0].tool_calls[0].args).toStrictEqual({});
+  });
+
   it('should handle complex tool calls with multiple steps', () => {
     const payload = [
       {

@@ -27,6 +27,15 @@ export type WorkspaceListResult = {
   workspacePath: string;
 };
 
+export type WorkspaceFileResult = {
+  path: string;
+  absolutePath: string;
+  size: number;
+  mime?: string;
+  modifiedAt: string;
+  workspacePath: string;
+};
+
 export type WorkspaceSearchResult = {
   query: string;
   matches: WorkspaceNode[];
@@ -275,3 +284,88 @@ export async function searchWorkspaceTree({
 
 /** Re-exported for route-layer convenience so callers don't import from `../workspaces/config`. */
 export type { WorkspaceConfig };
+
+/**
+ * Resolves a workspace-relative path to an absolute file (not directory)
+ * and returns its metadata. The same `isPathSafe` invariant used by the
+ * tree endpoint applies. Throws with a `status` field on rejection so
+ * route handlers can map to a 4xx response.
+ */
+export async function getWorkspaceFile({
+  appConfig,
+  user,
+  relPath,
+}: {
+  appConfig: TCustomConfig;
+  user: { workspaceSubdir?: string | null } | null | undefined;
+  relPath: string;
+}): Promise<WorkspaceFileResult> {
+  const wsConfig = getWorkspaceConfig(appConfig);
+  const workspacePath = resolveWorkspacePath(user?.workspaceSubdir, wsConfig);
+  if (!workspacePath) {
+    const err = new Error('Workspaces are not available for this user');
+    (err as Error & { status?: number }).status = 404;
+    throw err;
+  }
+  const rel = toRelativePosix(relPath);
+  if (!rel) {
+    const err = new Error('File path is required');
+    (err as Error & { status?: number }).status = 400;
+    throw err;
+  }
+  if (rel === '..' || rel.startsWith('../') || rel.includes('/../')) {
+    const err = new Error('Path traversal is not allowed');
+    (err as Error & { status?: number }).status = 400;
+    throw err;
+  }
+  const abs = path.resolve(workspacePath, rel);
+  if (!isPathSafe(abs, wsConfig.containerBasePath)) {
+    const err = new Error('Path escapes workspace');
+    (err as Error & { status?: number }).status = 400;
+    throw err;
+  }
+  let stat: fs.Stats;
+  try {
+    stat = await fs.promises.stat(abs);
+  } catch (error) {
+    const err = new Error('File not found');
+    (err as Error & { status?: number }).status = 404;
+    (err as Error & { cause?: unknown }).cause = error;
+    throw err;
+  }
+  if (!stat.isFile()) {
+    const err = new Error('Path is not a file');
+    (err as Error & { status?: number }).status = 400;
+    throw err;
+  }
+  return {
+    path: rel,
+    absolutePath: abs,
+    size: stat.size,
+    mime: lookupMime(abs),
+    modifiedAt: (stat.mtime || new Date()).toISOString(),
+    workspacePath,
+  };
+}
+
+/**
+ * Streams a file from the workspace to the response. Returns the metadata
+ * (mime + filename) so the caller can set headers. The caller is
+ * responsible for `Content-Disposition` and `Content-Type`.
+ */
+export async function streamWorkspaceFile({
+  file,
+  res,
+}: {
+  file: WorkspaceFileResult;
+  res: NodeJS.WritableStream;
+}): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const read = fs.createReadStream(file.absolutePath);
+    read.on('error', reject);
+    read.on('end', resolve);
+    read.pipe(res, { end: false });
+    res.on('error', reject);
+    res.on('finish', resolve);
+  });
+}

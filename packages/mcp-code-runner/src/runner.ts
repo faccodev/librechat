@@ -6,6 +6,8 @@ import crypto from "crypto";
 const CONTAINER_WORKSPACES_BASE = process.env.WORKSPACES_BASE || "/workspaces";
 const HOST_WORKSPACES_BASE = process.env.HOST_WORKSPACES_BASE || "/workspaces";
 const MAX_TIMEOUT = parseInt(process.env.MAX_TIMEOUT || "120", 10);
+const RUNNER_MEMORY = process.env.RUNNER_MEMORY || "256m";
+const RUNNER_CPUS = process.env.RUNNER_CPUS || "0.5";
 
 export function validateWorkspaceSubdir(subdir: string): boolean {
   if (!subdir) return true;
@@ -85,11 +87,11 @@ export async function runCode(
   // Build the docker command
   // --rm: Remove container after run
   // --network=none: Disable internet access
-  // --memory=256m: Limit memory
-  // --cpus=0.5: Limit CPU
+  // --memory: Limit memory
+  // --cpus: Limit CPU
   // -v: Mount host workspace path to container's /workspace
   // -w: Set working directory to /workspace
-  const dockerCmd = `docker run --rm --network=none --memory=256m --cpus=0.5 -v "${hostPath}":/workspace -w /workspace ${image} ${cmd}`;
+  const dockerCmd = `docker run --rm --network=none --memory=${RUNNER_MEMORY} --cpus=${RUNNER_CPUS} -v "${hostPath}":/workspace -w /workspace ${image} ${cmd}`;
 
   const startTime = Date.now();
 
@@ -161,7 +163,7 @@ export async function runFile(
     cmd = `python "${safeFile}"`;
   }
 
-  const dockerCmd = `docker run --rm --network=none --memory=256m --cpus=0.5 -v "${hostPath}":/workspace -w /workspace ${image} ${cmd}`;
+  const dockerCmd = `docker run --rm --network=none --memory=${RUNNER_MEMORY} --cpus=${RUNNER_CPUS} -v "${hostPath}":/workspace -w /workspace ${image} ${cmd}`;
 
   const startTime = Date.now();
 

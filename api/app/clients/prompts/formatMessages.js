@@ -207,8 +207,10 @@ const formatAgentMessages = (payload) => {
         try {
           args = JSON.parse(_args);
         } catch (_e) {
-          if (typeof _args === 'string') {
+          if (typeof _args === 'string' && _args.trim() !== '') {
             args = { input: _args };
+          } else {
+            args = {};
           }
         }
 

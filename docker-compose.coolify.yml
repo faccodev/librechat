@@ -104,30 +104,26 @@ services:
     # `init: true` pra recolher zombies do Chromium (Playwright tem fama de
     # deixar processos-órfãos quando navega entre páginas rápido).
     init: true
+    entrypoint:
+      - /app/playwright-entrypoint.sh
     command:
-      - node
-      - /app/cli.js
       - --headless
       - --no-sandbox
       - --isolated
-      - --browser=chromium
-      - --host=0.0.0.0
-      - --port=8931
-      # ---- Perfil stealth ----
-      # Sobrescreve o fingerprint padrão do Chromium automatizado (UA
-      # "HeadlessChrome" + viewport uniforme + navigator.webdriver=true).
-      # `--device` injeta um profile real de Chrome desktop (UA, viewport,
-      # DPR). `--init-script` (agora funcional em v0.0.75) cobre
-      # navigator.webdriver, plugins, languages, WebGL vendor/renderer.
+      - --browser
+      - chromium
+      - --host
+      - "0.0.0.0"
+      - --port
+      - "8931"
       - "--device=Desktop Chrome HiDPI"
       - --user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36
       - --viewport-size=1280x720
       - --init-script=/app/stealth.js
       - --allowed-hosts=*
-      # Opcional: proxy residencial para stealth em nível de IP. Descomente
-      # e troque pelo seu provedor (Bright Data, Oxylabs, Smartproxy, etc).
-      # - --proxy-server=http://user:pass@host:port
     volumes:
+      # Entrypoint script — garante chrome-for-testing instalado antes do server iniciar.
+      - ./.docker/playwright-entrypoint.sh:/app/playwright-entrypoint.sh:ro
       # Stealth init script — sobrescreve navigator.webdriver, plugins,
       # languages, WebGL vendor/renderer em cada página antes de qualquer
       # script do site. Bind mount read-only. O arquivo precisa existir
@@ -151,6 +147,24 @@ services:
       - WORKSPACES_BASE=/workspaces
       - HOST_WORKSPACES_BASE=/home/workspaces
       - MAX_TIMEOUT=120
+      - RUNNER_MEMORY=${RUNNER_MEMORY:-512m}
+      - RUNNER_CPUS=${RUNNER_CPUS:-1.0}
+
+  # Notion MCP — persistent container instead of npx stdio
+  mcp-notion:
+    image: node:20-alpine
+    restart: always
+    command:
+      - npx
+      - -y
+      - "@notionhq/notion-mcp-server"
+      - --transport
+      - http
+      - --port
+      - "3001"
+      - --disable-auth
+    environment:
+      - NOTION_TOKEN=${NOTION_TOKEN}
 
 volumes:
   mongodb_data:
