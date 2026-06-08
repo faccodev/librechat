@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Button,
   Dialog,
@@ -7,7 +7,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  FilterInput,
+  Input,
 } from '@librechat/client';
 import { useLocalize } from '~/hooks';
 
@@ -31,10 +31,23 @@ const NewNameDialog = ({
 }: NewNameDialogProps) => {
   const localize = useLocalize();
   const [name, setName] = useState(initialValue);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    if (open) setName(initialValue);
-  }, [open, initialValue]);
+    if (open) {
+      setName(initialValue);
+      // focus + select on open for fast keyboard entry / rename
+      requestAnimationFrame(() => {
+        inputRef.current?.focus();
+        if (initialValue) {
+          // strip extension in rename mode so the user only edits the stem
+          const dot = initialValue.lastIndexOf('.');
+          const end = mode === 'rename' && dot > 0 ? dot : initialValue.length;
+          inputRef.current?.setSelectionRange(0, end);
+        }
+      });
+    }
+  }, [open, initialValue, mode]);
 
   const titleKey =
     mode === 'folder'
@@ -73,17 +86,32 @@ const NewNameDialog = ({
             <DialogTitle>{localize(titleKey)}</DialogTitle>
             <DialogDescription>{localize(descriptionKey)}</DialogDescription>
           </DialogHeader>
-          <div className="px-6 py-2">
-            <FilterInput
-              inputId={inputId}
-              label={localize(placeholderKey)}
+          <div className="px-6 py-3">
+            <label
+              htmlFor={inputId}
+              className="mb-1.5 block text-sm font-medium text-text-primary"
+            >
+              {localize('com_fm_dialog_name_label')}
+            </label>
+            <Input
+              id={inputId}
+              ref={inputRef}
               value={name}
               onChange={(e) => setName(e.target.value)}
+              placeholder={localize(placeholderKey)}
               disabled={isSubmitting}
               maxLength={255}
+              autoComplete="off"
+              spellCheck={false}
+              className="bg-surface-primary"
             />
+            {trimmed.startsWith('.') ? (
+              <p className="mt-1.5 text-xs text-red-600">
+                {localize('com_fm_dialog_name_hidden_error')}
+              </p>
+            ) : null}
           </div>
-          <DialogFooter>
+          <DialogFooter className="justify-end gap-2">
             <Button
               type="button"
               variant="outline"

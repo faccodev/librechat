@@ -82,7 +82,7 @@ const PreviewModal = ({ node, open, onOpenChange, onEdit, onDelete }: PreviewMod
             <div className="min-h-[200px] flex-1 overflow-auto bg-gray-50 p-4 dark:bg-gray-950">
               <PreviewBody node={node} kind={kind} query={query} />
             </div>
-            <DialogFooter className="border-t border-border-light p-3">
+            <DialogFooter className="justify-end gap-2 border-t border-border-light p-3">
               <Button
                 variant="outline"
                 size="sm"

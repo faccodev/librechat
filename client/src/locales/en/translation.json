@@ -462,6 +462,8 @@
   "com_fm_dialog_new_folder_placeholder": "folder-name",
   "com_fm_dialog_rename_title": "Rename",
   "com_fm_dialog_rename_placeholder": "new-name.ext",
+  "com_fm_dialog_name_label": "Name",
+  "com_fm_dialog_name_hidden_error": "Names cannot start with a dot.",
   "com_fm_dialog_delete_title_one": "Delete entry?",
   "com_fm_dialog_delete_title_many": "Delete {{count}} entries?",
   "com_fm_dialog_delete_description": "This action cannot be undone.",

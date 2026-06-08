@@ -132,7 +132,7 @@ const EditorModal = ({ node, open, onOpenChange }: EditorModalProps) => {
             {localize('com_fm_editor_chars', { count: draft.length })}
             {dirty ? ` · ${localize('com_fm_editor_unsaved')}` : ''}
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-end gap-2">
             <Button
               variant="outline"
               size="sm"
