@@ -27,7 +27,7 @@ services:
     restart: always
     # Healthcheck simples e confiável com wget nativo do Alpine
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3080/livez || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3080/livez || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -74,7 +74,7 @@ services:
     volumes:
       - mongodb_data:/data/db
     healthcheck:
-      test: ["CMD-SHELL", "mongosh --eval 'db.runCommand({ ping: 1 })' --quiet || exit 1"]
+      test: ["CMD-SHELL", "mongosh --host 127.0.0.1 --port 27017 --eval 'db.adminCommand({ ping: 1 })' --quiet || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
