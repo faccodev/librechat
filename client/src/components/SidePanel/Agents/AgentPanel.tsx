@@ -79,6 +79,7 @@ export function composeAgentUpdatePayload(data: AgentForm, agent_id?: string | n
     skills,
     skills_enabled,
     autoTools,
+    models,
     avatar_action: avatarActionState,
   } = data;
 
@@ -109,6 +110,15 @@ export function composeAgentUpdatePayload(data: AgentForm, agent_id?: string | n
       skills,
       skills_enabled,
       autoTools,
+      /**
+       * Round-robin model pool. Empty array is meaningful — it
+       * means "no pool" (the runtime falls back to the singular
+       * provider/model). Don't strip empty arrays; do strip the
+       * field when the user never set it (undefined), so existing
+       * agents saved before this field existed don't accidentally
+       * land with `models: undefined` vs `models: []` round-trips.
+       */
+      ...(models !== undefined ? { models } : {}),
       ...(shouldResetAvatar ? { avatar: null } : {}),
     },
     provider,

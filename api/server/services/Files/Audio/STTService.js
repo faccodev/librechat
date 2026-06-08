@@ -306,7 +306,7 @@ class STTService {
    *   unsupported format.
    */
   fasterWhisperProvider(sttSchema, audioBuffer, audioFile, language) {
-    const url = sttSchema?.url || 'http://mcp-faster-whisper:9000/asr';
+    const baseUrl = sttSchema?.url || 'http://mcp-faster-whisper:9000/asr';
     const apiKey = sttSchema.apiKey ? extractEnvVariable(sttSchema.apiKey) : '';
 
     if (audioBuffer.byteLength > 25 * 1024 * 1024) {
@@ -331,23 +331,22 @@ class STTService {
       contentType: audioFile.mimetype,
     });
 
-    // Schema-level defaults, overridable per-request from the
-    // user-selected language in the client dropdown. The `language`
-    // form field on faster-whisper-server is the ISO-639-1 code
-    // (e.g. `pt`, `en`); the browser sends `pt-BR` or `pt`, both
-    // of which are accepted because the validator strips the
-    // region suffix before forwarding.
+    const params = new URLSearchParams();
+    params.append('encode', 'true');
+
     const validLanguage = getValidatedLanguageCode(language);
     const schemaLanguage = getValidatedLanguageCode(sttSchema.language);
     const resolvedLanguage = validLanguage || schemaLanguage;
     if (resolvedLanguage) {
-      formData.append('language', resolvedLanguage);
+      params.append('language', resolvedLanguage);
     }
 
-    formData.append('task', sttSchema.task || 'transcribe');
-    formData.append('vad_filter', String(sttSchema.vad_filter !== false));
-    formData.append('word_timestamps', String(sttSchema.word_timestamps === true));
-    formData.append('output', 'json');
+    params.append('task', sttSchema.task || 'transcribe');
+    params.append('vad_filter', String(sttSchema.vad_filter !== false));
+    params.append('word_timestamps', String(sttSchema.word_timestamps === true));
+    params.append('output', 'json');
+
+    const url = `${baseUrl}?${params.toString()}`;
 
     const headers = {
       ...(apiKey && { Authorization: `Bearer ${apiKey}` }),

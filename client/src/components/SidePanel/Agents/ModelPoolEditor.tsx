@@ -62,19 +62,29 @@ const ModelPoolEditor: React.FC = () => {
       .filter(([key, value]) => key !== EModelEndpoint.agents && value?.type)
       .map(([key, value]) => {
         const endpoint = value as { title?: string; name?: string; iconURL?: string };
-        // Pull the icon from the static map first (covers the
-        // first-party endpoints with their branded SVGs — openai,
-        // anthropic, google, etc). Fall back to the endpoint's
-        // remote `iconURL` (for custom providers that ship their
-        // own asset). If both are absent, the dropdown shows no
-        // icon but still works.
+        // Icon resolution order:
+        // 1. Static branded-SVG map (openai / anthropic / google /
+        //    etc) — covers the first-party endpoints with the
+        //    correct SVG component, no network fetch.
+        // 2. Endpoint's remote `iconURL` (custom providers that
+        //    ship their own asset) — render as <img>.
+        // 3. None — the dropdown shows a neutral placeholder.
         const IconComp =
           (icons as Record<string, React.ComponentType<{ className?: string }>>)[key]
           ?? (icons as Record<string, React.ComponentType<{ className?: string }>>).unknown;
+        let iconNode: React.ReactNode = null;
+        if (IconComp) {
+          iconNode = <IconComp className="h-4 w-4" />;
+        } else if (endpoint.iconURL) {
+          iconNode = (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={endpoint.iconURL} alt="" className="h-4 w-4 rounded-sm object-contain" />
+          );
+        }
         return {
           value: key,
           label: endpoint.title || endpoint.name || key,
-          icon: IconComp ? <IconComp className="h-4 w-4" /> : endpoint.iconURL,
+          icon: iconNode,
         };
       });
   }, [endpointsConfig]);

@@ -335,6 +335,7 @@ export type AgentCreateParams = {
   | 'skills_enabled'
   | 'subagents'
   | 'autoTools'
+  | 'models'
 >;
 
 export type AgentUpdateParams = {
@@ -363,6 +364,7 @@ export type AgentUpdateParams = {
   | 'skills_enabled'
   | 'subagents'
   | 'autoTools'
+  | 'models'
 >;
 
 export type AgentListParams = {

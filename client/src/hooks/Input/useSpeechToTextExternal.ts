@@ -20,6 +20,7 @@ const useSpeechToTextExternal = (
   const audioChunksRef = useRef<Blob[]>([]);
   const [permission, setPermission] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
   const [isRequestBeingMade, setIsRequestBeingMade] = useState(false);
   const [audioMimeType, setAudioMimeType] = useState<string>(() => getBestSupportedMimeType());
 
@@ -97,19 +98,47 @@ const useSpeechToTextExternal = (
   };
 
   const getMicrophonePermission = async () => {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      const msg = 'Microphone access is not supported in this browser or requires a secure context (HTTPS/localhost).';
+      console.error(`[STT] ${msg}`);
+      showToast({
+        message: msg,
+        status: 'error',
+      });
+      setPermission(false);
+      return;
+    }
     try {
+      console.log('[STT] Requesting microphone permission...');
       const streamData = await navigator.mediaDevices.getUserMedia({
         audio: true,
         video: false,
       });
+      console.log('[STT] Microphone permission granted successfully.');
       setPermission(true);
       audioStream.current = streamData ?? null;
-    } catch {
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error('[STT] Failed to get microphone permission:', err);
+      showToast({
+        message: `Microphone permission denied: ${errMsg}`,
+        status: 'error',
+      });
       setPermission(false);
     }
   };
 
+  const isCancelledRef = useRef(false);
+
   const handleStop = () => {
+    if (isCancelledRef.current) {
+      console.log('[STT] Discarding audio because recording was cancelled.');
+      audioChunksRef.current = [];
+      isCancelledRef.current = false;
+      cleanup();
+      return;
+    }
+
     if (audioChunksRef.current.length > 0) {
       const audioBlob = new Blob(audioChunksRef.current, { type: audioMimeType });
       const fileExtension = getFileExtension(audioMimeType);
@@ -163,50 +192,66 @@ const useSpeechToTextExternal = (
   };
 
   const startRecording = async () => {
+    console.log('[STT] startRecording called, isRequestBeingMade:', isRequestBeingMade);
     if (isRequestBeingMade) {
       showToast({ message: 'A request is already being made. Please wait.', status: 'warning' });
       return;
     }
 
-    if (!audioStream.current) {
-      await getMicrophonePermission();
-    }
+    setIsStarting(true);
+    try {
+      if (!audioStream.current) {
+        await getMicrophonePermission();
+      }
 
-    if (audioStream.current) {
-      try {
+      console.log('[STT] audioStream:', audioStream.current);
+      if (audioStream.current) {
         audioChunksRef.current = [];
         const bestMimeType = getBestSupportedMimeType();
         setAudioMimeType(bestMimeType);
 
+        console.log('[STT] Creating MediaRecorder with MIME type:', bestMimeType);
         mediaRecorderRef.current = new MediaRecorder(audioStream.current, {
-          mimeType: audioMimeType,
+          mimeType: bestMimeType,
         });
         mediaRecorderRef.current.addEventListener('dataavailable', (event: BlobEvent) => {
           audioChunksRef.current.push(event.data);
         });
         mediaRecorderRef.current.addEventListener('stop', handleStop);
         mediaRecorderRef.current.start(100);
+        
         if (!audioContextRef.current && autoTranscribeAudio && speechToText) {
+          console.log('[STT] Starting silence monitor...');
           monitorSilence(audioStream.current, stopRecording);
         }
         setIsListening(true);
-      } catch (error) {
-        showToast({ message: `Error starting recording: ${error}`, status: 'error' });
+        console.log('[STT] Recording started successfully.');
+      } else {
+        console.warn('[STT] Recording failed to start: No audio stream available.');
       }
-    } else {
-      showToast({ message: 'Microphone permission not granted', status: 'error' });
+    } catch (error) {
+      console.error('[STT] Error starting MediaRecorder:', error);
+      showToast({ message: `Error starting recording: ${error}`, status: 'error' });
+    } finally {
+      setIsStarting(false);
     }
   };
 
   const stopRecording = () => {
+    console.log('[STT] stopRecording called.');
     if (!mediaRecorderRef.current) {
+      console.warn('[STT] MediaRecorder ref is null, nothing to stop.');
       return;
     }
 
     if (mediaRecorderRef.current.state === 'recording') {
+      console.log('[STT] Stopping MediaRecorder...');
       mediaRecorderRef.current.stop();
 
-      audioStream.current?.getTracks().forEach((track) => track.stop());
+      audioStream.current?.getTracks().forEach((track) => {
+        console.log('[STT] Stopping audio track:', track.label);
+        track.stop();
+      });
       audioStream.current = null;
 
       if (animationFrameIdRef.current !== null) {
@@ -216,8 +261,15 @@ const useSpeechToTextExternal = (
 
       setIsListening(false);
     } else {
+      console.warn('[STT] MediaRecorder state is not recording:', mediaRecorderRef.current.state);
       showToast({ message: 'MediaRecorder is not recording', status: 'error' });
     }
+  };
+
+  const cancelRecording = () => {
+    console.log('[STT] cancelRecording called.');
+    isCancelledRef.current = true;
+    stopRecording();
   };
 
   const externalStartRecording = () => {
@@ -275,7 +327,8 @@ const useSpeechToTextExternal = (
     isListening,
     externalStopRecording,
     externalStartRecording,
-    isLoading: isProcessing,
+    cancelRecording,
+    isLoading: isProcessing || isStarting,
   };
 };
 

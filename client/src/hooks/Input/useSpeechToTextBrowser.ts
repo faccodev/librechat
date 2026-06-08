@@ -74,7 +74,9 @@ const useSpeechToTextBrowser = (
   }, [setText, onTranscriptionComplete, resetTranscript, finalTranscript, autoSendText]);
 
   const toggleListening = () => {
+    console.log('[STT Browser] toggleListening called. isListening:', isListening);
     if (!browserSupportsSpeechRecognition) {
+      console.warn('[STT Browser] Browser does not support SpeechRecognition');
       showToast({
         message: sttExternal
           ? localize('com_ui_speech_not_supported_use_external')
@@ -85,6 +87,7 @@ const useSpeechToTextBrowser = (
     }
 
     if (!isMicrophoneAvailable) {
+      console.warn('[STT Browser] Microphone is not available');
       showToast({
         message: localize('com_ui_microphone_unavailable'),
         status: 'error',
@@ -94,8 +97,10 @@ const useSpeechToTextBrowser = (
 
     const recognition = (SpeechRecognition as any).default || SpeechRecognition;
     if (isListening === true) {
+      console.log('[STT Browser] Stopping listening...');
       recognition.stopListening();
     } else {
+      console.log('[STT Browser] Starting listening with language:', languageSTT, 'continuous:', autoTranscribeAudio);
       recognition.startListening({
         language: languageSTT,
         continuous: autoTranscribeAudio,
@@ -114,11 +119,20 @@ const useSpeechToTextBrowser = (
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  const cancelRecording = () => {
+    console.log('[STT Browser] cancelRecording called.');
+    const recognition = (SpeechRecognition as any).default || SpeechRecognition;
+    recognition.stopListening();
+    resetTranscript();
+    setText('');
+  };
+
   return {
     isListening,
     isLoading: false,
     startRecording: toggleListening,
     stopRecording: toggleListening,
+    cancelRecording,
   };
 };
 

@@ -130,6 +130,21 @@ function AgentSelect({
           return;
         }
 
+        if (
+          name === 'models' &&
+          Array.isArray(value) &&
+          value.every(
+            (entry) =>
+              typeof entry === 'object' &&
+              entry !== null &&
+              typeof entry.provider === 'string' &&
+              typeof entry.model === 'string',
+          )
+        ) {
+          formValues[name] = value as Array<{ provider: string; model: string }>;
+          return;
+        }
+
         if (name === 'subagents' && typeof value === 'object' && value !== null) {
           formValues[name] = value;
           return;

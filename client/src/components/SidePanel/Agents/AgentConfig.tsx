@@ -75,6 +75,14 @@ export default function AgentConfig() {
   const autoTools = useWatch({ control, name: 'autoTools' });
   const skills = useWatch({ control, name: 'skills' });
   const skillsActive = useWatch({ control, name: 'skills_enabled' });
+  /**
+   * Round-robin pool length. The singular Model picker below
+   * hides itself when the pool is non-empty, since at that
+   * point the singular fields are unused (the runtime picks
+   * one from the pool on every request).
+   */
+  const modelsPool = useWatch({ control, name: 'models' });
+  const hasPool = Array.isArray(modelsPool) && modelsPool.length > 0;
   const agent_id = useWatch({ control, name: 'id' });
 
   let skillsHintKey:
@@ -297,31 +305,36 @@ export default function AgentConfig() {
         </div>
         {/* Instructions */}
         <Instructions />
-        {/* Model and Provider */}
-        <div className="mb-4">
-          <label className={labelClass} htmlFor="provider">
-            {localize('com_ui_model')} <span className="text-red-500">*</span>
-          </label>
-          <button
-            type="button"
-            onClick={() => setActivePanel(Panel.model)}
-            className="btn btn-neutral border-token-border-light relative h-9 w-full rounded-lg font-medium"
-          >
-            <div className="flex w-full items-center gap-2">
-              {Icon && (
-                <div className="shadow-stroke relative flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-white text-black dark:bg-white">
-                  <Icon
-                    className="h-2/3 w-2/3"
-                    endpoint={providerValue as string}
-                    endpointType={endpointType}
-                    iconURL={endpointIconURL}
-                  />
-                </div>
-              )}
-              <span>{model != null && model ? model : localize('com_ui_select_model')}</span>
-            </div>
-          </button>
-        </div>
+        {/* Model and Provider — hidden when a round-robin pool is
+            active, since the runtime then picks from the pool and
+            the singular fields are unused. Operators who want to
+            switch back to the singular picker just clear the pool. */}
+        {hasPool ? null : (
+          <div className="mb-4">
+            <label className={labelClass} htmlFor="provider">
+              {localize('com_ui_model')} <span className="text-red-500">*</span>
+            </label>
+            <button
+              type="button"
+              onClick={() => setActivePanel(Panel.model)}
+              className="btn btn-neutral border-token-border-light relative h-9 w-full rounded-lg font-medium"
+            >
+              <div className="flex w-full items-center gap-2">
+                {Icon && (
+                  <div className="shadow-stroke relative flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-white text-black dark:bg-white">
+                    <Icon
+                      className="h-2/3 w-2/3"
+                      endpoint={providerValue as string}
+                      endpointType={endpointType}
+                      iconURL={endpointIconURL}
+                    />
+                  </div>
+                )}
+                <span>{model != null && model ? model : localize('com_ui_select_model')}</span>
+              </div>
+            </button>
+          </div>
+        )}
         {/* Round-robin model pool — opt-in list of (provider, model)
             pairs. When non-empty, the runtime picks one per request
             via an atomic counter; the singular fields above remain
