@@ -114,7 +114,7 @@ const PreviewModal = ({ node, open, onOpenChange, onEdit, onDelete }: PreviewMod
     }
   }, [node, showToast, localize]);
 
-  const canEdit = !!node && (kind === 'text' || kind === 'markdown');
+  const canEdit = !!node && !['image', 'video', 'audio', 'pdf'].includes(kind);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

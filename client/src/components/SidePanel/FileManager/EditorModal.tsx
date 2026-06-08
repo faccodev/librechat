@@ -14,7 +14,7 @@ import {
   ThemeContext,
   isDark,
 } from '@librechat/client';
-import { previewKindFromNode, useWorkspacePreview } from '~/data-provider';
+import { useWorkspacePreview } from '~/data-provider';
 import { useWriteWorkspaceContent } from '~/data-provider/Files/workspaceMutations';
 import { useLocalize } from '~/hooks';
 import { cn } from '~/utils';
@@ -47,7 +47,7 @@ const EditorModal = ({ node, open, onOpenChange }: EditorModalProps) => {
   const { theme } = useContext(ThemeContext);
   const isDarkMode = isDark(theme);
 
-  const preview = useWorkspacePreview(node?.path ?? null, previewKindFromNode(node));
+  const preview = useWorkspacePreview(node?.path ?? null, 'text');
   const mutation = useWriteWorkspaceContent({
     onSuccess: (updated) => {
       showToast({ message: localize('com_fm_editor_saved'), status: 'success' });
