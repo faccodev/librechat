@@ -8,6 +8,8 @@ const useSpeechToText = (
 ): {
   isLoading?: boolean;
   isListening?: boolean;
+  isSpeaking?: boolean;
+  isProcessing?: boolean;
   stopRecording: () => void | (() => Promise<void>);
   startRecording: () => void | (() => Promise<void>);
   cancelRecording: () => void;
@@ -38,13 +40,17 @@ const useSpeechToText = (
   const {
     isListening: speechIsListeningExternal,
     isLoading: speechIsLoadingExternal,
+    isProcessing: speechIsProcessingExternal,
     externalStartRecording: startSpeechRecordingExternal,
     externalStopRecording: stopSpeechRecordingExternal,
     cancelRecording: cancelSpeechRecordingExternal,
+    isSpeaking: speechIsSpeakingExternal,
   } = useSpeechToTextExternal(setText, onTranscriptionComplete);
 
   const isListening = externalSpeechToText ? speechIsListeningExternal : speechIsListeningBrowser;
   const isLoading = externalSpeechToText ? speechIsLoadingExternal : speechIsLoadingBrowser;
+  const isSpeaking = externalSpeechToText ? speechIsSpeakingExternal : true;
+  const isProcessing = externalSpeechToText ? speechIsProcessingExternal : false;
 
   const startRecording = externalSpeechToText
     ? startSpeechRecordingExternal
@@ -59,6 +65,8 @@ const useSpeechToText = (
   return {
     isLoading,
     isListening,
+    isSpeaking,
+    isProcessing,
     stopRecording,
     startRecording,
     cancelRecording,

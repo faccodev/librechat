@@ -860,10 +860,77 @@ export async function createRun({
             model: agent.model as string,
           })
         : { provider: agent.provider as string, model: agent.model as string };
-    const scopedAgent: RunAgent =
-      effective.provider !== agent.provider || effective.model !== agent.model
-        ? { ...agent, provider: effective.provider, model: effective.model }
-        : agent;
+
+    let resolvedProvider = effective.provider;
+    let resolvedModelParameters = agent.model_parameters;
+
+    if (effective.provider !== agent.provider || effective.model !== agent.model) {
+      try {
+        const { overrideProvider, customEndpointConfig } = getProviderConfig({
+          provider: effective.provider,
+          appConfig,
+        });
+        resolvedProvider = overrideProvider;
+
+        if (customEndpointConfig) {
+          const rawApiKey = customEndpointConfig.apiKey ?? '';
+          const rawBaseURL = customEndpointConfig.baseURL ?? '';
+          if (isUserProvided(rawApiKey) || isUserProvided(rawBaseURL)) {
+            throw new Error('User-provided credentials not supported in pool resolution');
+          }
+          const apiKey = extractEnvVariable(rawApiKey);
+          const baseURL = extractEnvVariable(rawBaseURL);
+
+          if (
+            apiKey &&
+            baseURL &&
+            !hasUnresolvedPlaceholder(apiKey) &&
+            !hasUnresolvedPlaceholder(baseURL)
+          ) {
+            const resolvedHeaders =
+              customEndpointConfig.headers != null
+                ? resolveHeaders({
+                    headers: customEndpointConfig.headers as Record<string, string>,
+                    user: createSafeUser(user),
+                    body: requestBody,
+                  })
+                : undefined;
+
+            const { llmConfig: openAIConfig, configOptions } = getOpenAIConfig(
+              apiKey,
+              {
+                reverseProxyUrl: baseURL,
+                proxy: process.env.PROXY ?? null,
+                headers: resolvedHeaders,
+                addParams: customEndpointConfig.addParams,
+                dropParams: customEndpointConfig.dropParams,
+                customParams: customEndpointConfig.customParams,
+                directEndpoint: customEndpointConfig.directEndpoint,
+              },
+              effective.provider,
+            );
+
+            resolvedModelParameters = {
+              ...agent.model_parameters,
+              ...openAIConfig,
+              configuration: configOptions,
+            } as AgentModelParameters;
+          }
+        }
+      } catch (err) {
+        logger.warn(
+          `[createRun] failed to resolve pool provider "${effective.provider}"; falling back to raw values`,
+          err,
+        );
+      }
+    }
+
+    const scopedAgent: RunAgent = {
+      ...agent,
+      provider: resolvedProvider,
+      model: effective.model,
+      model_parameters: resolvedModelParameters,
+    };
 
     const provider =
       (providerEndpointMap[

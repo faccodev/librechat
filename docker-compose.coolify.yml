@@ -190,7 +190,7 @@ services:
     # resolve via DNS interno).
     environment:
       - ASR_ENGINE=faster_whisper
-      - ASR_MODEL=tiny
+      - ASR_MODEL=small
       - ASR_QUANTIZATION=int8
     volumes:
       # Persiste o cache do modelo (download do HuggingFace).

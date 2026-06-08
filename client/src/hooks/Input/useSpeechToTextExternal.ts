@@ -21,8 +21,10 @@ const useSpeechToTextExternal = (
   const [permission, setPermission] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const [isRequestBeingMade, setIsRequestBeingMade] = useState(false);
   const [audioMimeType, setAudioMimeType] = useState<string>(() => getBestSupportedMimeType());
+  const volumeIntervalRef = useRef<number | null>(null);
 
   const [minDecibels] = useRecoilState(store.decibelValue);
   const [autoSendText] = useRecoilState(store.autoSendText);
@@ -220,6 +222,41 @@ const useSpeechToTextExternal = (
         mediaRecorderRef.current.addEventListener('stop', handleStop);
         mediaRecorderRef.current.start(100);
         
+        // Setup volume/speaking detector
+        try {
+          const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+          if (AudioContextClass) {
+            const audioContext = new AudioContextClass();
+            audioContextRef.current = audioContext;
+            const source = audioContext.createMediaStreamSource(audioStream.current);
+            const analyser = audioContext.createAnalyser();
+            analyser.fftSize = 256;
+            source.connect(analyser);
+            
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            
+            const checkVolume = () => {
+              if (!mediaRecorderRef.current || mediaRecorderRef.current.state !== 'recording') {
+                return;
+              }
+              analyser.getByteFrequencyData(dataArray);
+              let sum = 0;
+              for (let i = 0; i < bufferLength; i++) {
+                sum += dataArray[i];
+              }
+              const average = sum / bufferLength;
+              setIsSpeaking(average > 10); // low threshold to detect voice activity
+              
+              volumeIntervalRef.current = requestAnimationFrame(checkVolume);
+            };
+            
+            checkVolume();
+          }
+        } catch (err) {
+          console.error('[STT] Error setting up volume detector:', err);
+        }
+        
         if (!audioContextRef.current && autoTranscribeAudio && speechToText) {
           console.log('[STT] Starting silence monitor...');
           monitorSilence(audioStream.current, stopRecording);
@@ -239,6 +276,19 @@ const useSpeechToTextExternal = (
 
   const stopRecording = () => {
     console.log('[STT] stopRecording called.');
+    
+    if (volumeIntervalRef.current !== null) {
+      cancelAnimationFrame(volumeIntervalRef.current);
+      volumeIntervalRef.current = null;
+    }
+    
+    if (audioContextRef.current) {
+      audioContextRef.current.close().catch(() => {});
+      audioContextRef.current = null;
+    }
+    
+    setIsSpeaking(false);
+    
     if (!mediaRecorderRef.current) {
       console.warn('[STT] MediaRecorder ref is null, nothing to stop.');
       return;
@@ -325,6 +375,8 @@ const useSpeechToTextExternal = (
 
   return {
     isListening,
+    isSpeaking,
+    isProcessing,
     externalStopRecording,
     externalStartRecording,
     cancelRecording,

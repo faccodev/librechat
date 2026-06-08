@@ -80,7 +80,15 @@ export default memo(function AudioRecorder({
     [setValue, speechToTextEndpoint],
   );
 
-  const { isListening, isLoading, startRecording, stopRecording, cancelRecording } = useSpeechToText(
+  const {
+    isListening,
+    isLoading,
+    isSpeaking,
+    isProcessing,
+    startRecording,
+    stopRecording,
+    cancelRecording,
+  } = useSpeechToText(
     setText,
     onTranscriptionComplete,
   );
@@ -132,7 +140,7 @@ export default memo(function AudioRecorder({
     return <ListeningIcon className="stroke-text-secondary" />;
   };
 
-  if (isListening === true) {
+  if (isListening === true || isProcessing === true) {
     return (
       <div className="absolute inset-0 z-40 flex items-center justify-between bg-surface-chat px-4 py-2 sm:px-6 rounded-t-3xl sm:rounded-3xl border border-border-light shadow-md transition-all duration-200">
         <style>{`
@@ -153,53 +161,69 @@ export default memo(function AudioRecorder({
           }
         `}</style>
 
-        {/* Left: Timer and pulsing indicator */}
-        <div className="flex items-center gap-2">
-          <div className="size-2.5 rounded-full bg-violet-600 dark:bg-violet-400 pulse-indicator" />
-          <span className="text-sm font-medium text-text-primary tabular-nums">
-            {formatTime(seconds)}
-          </span>
-        </div>
+        {isProcessing === true ? (
+          <div className="flex w-full items-center justify-center gap-3 py-2 text-violet-600 dark:text-violet-400">
+            <Spinner className="size-5" />
+            <span className="text-sm font-semibold text-text-primary">
+              {localize('com_ui_transcribing') || 'Transcribing...'}
+            </span>
+          </div>
+        ) : (
+          <>
+            {/* Left: Timer and pulsing indicator */}
+            <div className="flex items-center gap-2">
+              <div className="size-2.5 rounded-full bg-violet-600 dark:bg-violet-400 pulse-indicator" />
+              <span className="text-sm font-medium text-text-primary tabular-nums">
+                {formatTime(seconds)}
+              </span>
+            </div>
 
-        {/* Center: Animated Waveform */}
-        <div className="flex flex-1 items-center justify-center gap-1.5 px-4 overflow-hidden max-w-[200px] sm:max-w-md">
-          {barHeights.map((height, i) => (
-            <div
-              key={i}
-              className="w-1 rounded-full bg-violet-600 dark:bg-violet-400 waveform-bar"
-              style={{
-                height: `${height}px`,
-                animationDelay: `${i * 0.045}s`,
-                animationDuration: '0.9s',
-              }}
-            />
-          ))}
-        </div>
+            {/* Center: Animated Waveform */}
+            <div className="flex flex-1 items-center justify-center gap-1.5 px-4 overflow-hidden max-w-[200px] sm:max-w-md">
+              {barHeights.map((height, i) => (
+                <div
+                  key={i}
+                  className={cn(
+                    'w-1 rounded-full bg-violet-600 dark:bg-violet-400 transition-all duration-300',
+                    isSpeaking === true && 'waveform-bar',
+                  )}
+                  style={{
+                    height: `${height}px`,
+                    animationDelay: `${i * 0.045}s`,
+                    animationDuration: '0.9s',
+                    transform: isSpeaking === true ? undefined : 'scaleY(0.25)',
+                    transformOrigin: 'center',
+                  }}
+                />
+              ))}
+            </div>
 
-        {/* Right: Controls */}
-        <div className="flex items-center gap-3">
-          {/* Cancel button */}
-          <button
-            type="button"
-            onClick={handleCancelRecording}
-            aria-label={localize('com_ui_cancel')}
-            className="flex size-9 items-center justify-center rounded-full text-text-secondary hover:text-red-500 hover:bg-surface-hover transition-colors"
-            title={localize('com_ui_cancel')}
-          >
-            <Trash2 className="size-5" />
-          </button>
-          
-          {/* Stop and Send/Transcribe button */}
-          <button
-            type="button"
-            onClick={handleStopRecording}
-            aria-label={localize('com_ui_stop')}
-            className="flex size-9 items-center justify-center rounded-full bg-violet-600 text-white hover:bg-violet-700 transition-all hover:scale-105 shadow-sm active:scale-95"
-            title={localize('com_ui_stop')}
-          >
-            <Check className="size-5 stroke-[2.5]" />
-          </button>
-        </div>
+            {/* Right: Controls */}
+            <div className="flex items-center gap-3">
+              {/* Cancel button */}
+              <button
+                type="button"
+                onClick={handleCancelRecording}
+                aria-label={localize('com_ui_cancel')}
+                className="flex size-9 items-center justify-center rounded-full text-text-secondary hover:text-red-500 hover:bg-surface-hover transition-colors"
+                title={localize('com_ui_cancel')}
+              >
+                <Trash2 className="size-5" />
+              </button>
+              
+              {/* Stop and Send/Transcribe button */}
+              <button
+                type="button"
+                onClick={handleStopRecording}
+                aria-label={localize('com_ui_stop')}
+                className="flex size-9 items-center justify-center rounded-full bg-violet-600 text-white hover:bg-violet-700 transition-all hover:scale-105 shadow-sm active:scale-95"
+                title={localize('com_ui_stop')}
+              >
+                <Check className="size-5 stroke-[2.5]" />
+              </button>
+            </div>
+          </>
+        )}
       </div>
     );
   }
