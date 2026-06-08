@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useContext } from 'react';
+import { Maximize2, Minimize2, X } from 'lucide-react';
+import MonacoEditor from '@monaco-editor/react';
 import {
   Button,
   Dialog,
@@ -9,11 +11,15 @@ import {
   DialogTitle,
   Spinner,
   useToastContext,
+  ThemeContext,
+  isDark,
 } from '@librechat/client';
 import { previewKindFromNode, useWorkspacePreview } from '~/data-provider';
 import { useWriteWorkspaceContent } from '~/data-provider/Files/workspaceMutations';
 import { useLocalize } from '~/hooks';
+import { cn } from '~/utils';
 import { formatBytes, formatRelative } from './utils/format';
+import { getLanguageFromFilename } from './PreviewModal';
 import type { WorkspaceNode } from 'librechat-data-provider';
 
 type EditorModalProps = {
@@ -36,6 +42,10 @@ const EditorModal = ({ node, open, onOpenChange }: EditorModalProps) => {
   const [draft, setDraft] = useState('');
   const [savedDraft, setSavedDraft] = useState('');
   const [loadedPath, setLoadedPath] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const { theme } = useContext(ThemeContext);
+  const isDarkMode = isDark(theme);
 
   const preview = useWorkspacePreview(node?.path ?? null, previewKindFromNode(node));
   const mutation = useWriteWorkspaceContent({
@@ -62,10 +72,12 @@ const EditorModal = ({ node, open, onOpenChange }: EditorModalProps) => {
       setDraft('');
       setSavedDraft('');
       setLoadedPath(null);
+      setIsFullscreen(false);
     } else if (!open) {
       setDraft('');
       setSavedDraft('');
       setLoadedPath(null);
+      setIsFullscreen(false);
     }
   }, [open, node?.path]);
 
@@ -99,9 +111,14 @@ const EditorModal = ({ node, open, onOpenChange }: EditorModalProps) => {
       }}
     >
       <DialogContent
-        className="flex max-h-[90vh] w-full max-w-4xl flex-col gap-0 overflow-hidden p-0 sm:rounded-lg"
+        showCloseButton={false}
+        className={cn(
+          isFullscreen
+            ? 'fixed inset-0 z-[999] flex h-screen w-screen max-w-none max-h-none flex-col gap-0 overflow-hidden p-0 rounded-none sm:rounded-none left-0 top-0 -translate-x-0 -translate-y-0 transform-none border-0'
+            : 'flex max-h-[90vh] w-full max-w-4xl flex-col gap-0 overflow-hidden p-0 sm:rounded-lg'
+        )}
       >
-        <DialogHeader className="border-b border-border-light p-4">
+        <DialogHeader className="relative border-b border-border-light p-4 pr-24">
           <DialogTitle className="truncate text-base" title={node.name}>
             {node.name}
           </DialogTitle>
@@ -111,20 +128,51 @@ const EditorModal = ({ node, open, onOpenChange }: EditorModalProps) => {
               modified: formatRelative(node.modifiedAt),
             })}
           </DialogDescription>
+          <div className="absolute right-4 top-4 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              className="rounded p-1 text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
+              title={isFullscreen ? localize('com_ui_minimize') : localize('com_ui_fullscreen')}
+            >
+              {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            </button>
+            <button
+              type="button"
+              onClick={() => onOpenChange(false)}
+              className="rounded p-1 text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
+              title={localize('com_ui_close')}
+            >
+              <X size={16} />
+            </button>
+          </div>
         </DialogHeader>
-        <div className="min-h-[60vh] flex-1 overflow-hidden bg-gray-50 p-4 dark:bg-gray-950">
+        <div className={cn(
+          "flex-1 overflow-hidden bg-gray-50 p-4 dark:bg-gray-950",
+          isFullscreen ? "h-[calc(100vh-130px)]" : "min-h-[60vh]"
+        )}>
           {isLoading ? (
-            <div className="flex h-[60vh] items-center justify-center text-text-secondary">
+            <div className={cn("flex items-center justify-center text-text-secondary", isFullscreen ? "h-[calc(100vh-160px)]" : "h-[60vh]")}>
               <Spinner className="mr-2" />
               <span className="text-sm">{localize('com_fm_preview_loading')}</span>
             </div>
           ) : (
-            <textarea
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              spellCheck={false}
-              className="block h-[60vh] w-full resize-none rounded border border-border-light bg-white p-3 font-mono text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-text-primary dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-            />
+            <div className="rounded border border-border-light dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-900">
+              <MonacoEditor
+                height={isFullscreen ? "calc(100vh - 175px)" : "60vh"}
+                language={getLanguageFromFilename(node.name)}
+                theme={isDarkMode ? 'vs-dark' : 'light'}
+                value={draft}
+                onChange={(val) => setDraft(val ?? '')}
+                options={{
+                  minimap: { enabled: !isFullscreen ? false : true },
+                  scrollBeyondLastLine: false,
+                  fontSize: 12,
+                  lineNumbers: 'on',
+                  automaticLayout: true,
+                }}
+              />
+            </div>
           )}
         </div>
         <DialogFooter className="flex w-full items-center justify-between gap-2 border-t border-border-light p-3">

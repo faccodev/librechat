@@ -44,7 +44,7 @@ export type PreviewModalProps = {
   onDelete?: (node: WorkspaceNode) => void;
 };
 
-function getLanguageFromFilename(name: string): string {
+export function getLanguageFromFilename(name: string): string {
   const ext = name.split('.').pop()?.toLowerCase();
   switch (ext) {
     case 'js':
