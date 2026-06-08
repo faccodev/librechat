@@ -815,7 +815,7 @@ const speechTab = z
       .or(
         z.object({
           /** Keep in sync with STTProviders enum (defined below — cannot reference due to eval order) */
-          engineSTT: z.enum(['openai', 'azureOpenAI']).optional(),
+          engineSTT: z.enum(['openai', 'azureOpenAI', 'fasterWhisper']).optional(),
           languageSTT: z.string().optional(),
           autoTranscribeAudio: z.boolean().optional(),
           decibelValue: z.number().optional(),
@@ -2204,6 +2204,15 @@ export enum STTProviders {
    * Provider for Microsoft Azure STT
    */
   AZURE_OPENAI = 'azureOpenAI',
+  /**
+   * Provider for a self-hosted `faster-whisper-server` (CTranslate2 +
+   * HuggingFace Whisper weights). Operators run their own container
+   * (see docker-compose.override.yml) and point the config at it.
+   * The transcribed audio never leaves the host network, so this
+   * is the right choice for privacy-sensitive or cost-sensitive
+   * deployments.
+   */
+  FASTER_WHISPER = 'fasterWhisper',
 }
 
 export enum TTSProviders {

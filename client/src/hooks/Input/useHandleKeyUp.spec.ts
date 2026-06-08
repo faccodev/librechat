@@ -2,6 +2,7 @@ const mockSetShowMentionPopover = jest.fn();
 const mockSetShowPlusPopover = jest.fn();
 const mockSetShowPromptsPopover = jest.fn();
 const mockSetShowSkillsPopover = jest.fn();
+const mockSetShowFileSearchPopover = jest.fn();
 const mockHasPromptsAccess = { current: true };
 const mockHasMultiConvoAccess = { current: true };
 const mockHasSkillsAccess = { current: true };
@@ -42,6 +43,9 @@ jest.mock('recoil', () => ({
     if (atom === 'showSkillsPopoverFamily-0') {
       return mockSetShowSkillsPopover;
     }
+    if (atom === 'showFileSearchPopoverFamily-0') {
+      return mockSetShowFileSearchPopover;
+    }
     return jest.fn();
   }),
 }));
@@ -51,6 +55,7 @@ jest.mock('~/store', () => ({
   showMentionPopoverFamily: (idx: number) => `showMentionPopoverFamily-${idx}`,
   showPlusPopoverFamily: (idx: number) => `showPlusPopoverFamily-${idx}`,
   showSkillsPopoverFamily: (idx: number) => `showSkillsPopoverFamily-${idx}`,
+  showFileSearchPopoverFamily: (idx: number) => `showFileSearchPopoverFamily-${idx}`,
   effectiveEndpointByIndex: (idx: number) => `effectiveEndpointByIndex-${idx}`,
   atCommand: 'atCommand',
   plusCommand: 'plusCommand',
@@ -121,6 +126,7 @@ const renderUseHandleKeyUp = (
     setShowPlusPopover: mockSetShowPlusPopover,
     setShowPromptsPopover: mockSetShowPromptsPopover,
     setShowSkillsPopover: mockSetShowSkillsPopover,
+    setShowFileSearchPopover: mockSetShowFileSearchPopover,
   };
 };
 
@@ -141,18 +147,27 @@ describe('useHandleKeyUp', () => {
   describe('command triggering — normal typing speed (cursor at position 1)', () => {
     it('triggers slash command for "/" at position 1', () => {
       const ref = makeTextAreaRef('/', 1);
-      const { handleKeyUp, setShowPromptsPopover } = renderUseHandleKeyUp(ref);
+      const { handleKeyUp, setShowSkillsPopover } = renderUseHandleKeyUp(ref);
 
       act(() => handleKeyUp(makeKeyEvent('/')));
 
-      expect(setShowPromptsPopover).toHaveBeenCalledWith(true);
+      expect(setShowSkillsPopover).toHaveBeenCalledWith(true);
     });
 
-    it('triggers @ mention for "@" at position 1', () => {
+    it('triggers @ file search for "@" at position 1', () => {
       const ref = makeTextAreaRef('@', 1);
-      const { handleKeyUp, setShowMentionPopover } = renderUseHandleKeyUp(ref);
+      const { handleKeyUp, setShowFileSearchPopover } = renderUseHandleKeyUp(ref);
 
       act(() => handleKeyUp(makeKeyEvent('@')));
+
+      expect(setShowFileSearchPopover).toHaveBeenCalledWith(true);
+    });
+
+    it('triggers $ mention for "$" at position 1', () => {
+      const ref = makeTextAreaRef('$', 1);
+      const { handleKeyUp, setShowMentionPopover } = renderUseHandleKeyUp(ref);
+
+      act(() => handleKeyUp(makeKeyEvent('$')));
 
       expect(setShowMentionPopover).toHaveBeenCalledWith(true);
     });
@@ -165,29 +180,29 @@ describe('useHandleKeyUp', () => {
 
       expect(setShowPlusPopover).toHaveBeenCalledWith(true);
     });
-
-    it('triggers $ skill command for "$" at position 1', () => {
-      const ref = makeTextAreaRef('$', 1);
-      const { handleKeyUp, setShowSkillsPopover } = renderUseHandleKeyUp(ref);
-
-      act(() => handleKeyUp(makeKeyEvent('$')));
-
-      expect(setShowSkillsPopover).toHaveBeenCalledWith(true);
-    });
   });
 
   describe('fast typing — cursor past position 1 but text is short', () => {
     it('triggers slash command for "/sc" (fast typed)', () => {
       const ref = makeTextAreaRef('/sc', 3);
-      const { handleKeyUp, setShowPromptsPopover } = renderUseHandleKeyUp(ref);
+      const { handleKeyUp, setShowSkillsPopover } = renderUseHandleKeyUp(ref);
 
       act(() => handleKeyUp(makeKeyEvent('c')));
 
-      expect(setShowPromptsPopover).toHaveBeenCalledWith(true);
+      expect(setShowSkillsPopover).toHaveBeenCalledWith(true);
     });
 
-    it('triggers @ mention for "@bo" (fast typed)', () => {
+    it('triggers @ file search for "@bo" (fast typed)', () => {
       const ref = makeTextAreaRef('@bo', 3);
+      const { handleKeyUp, setShowFileSearchPopover } = renderUseHandleKeyUp(ref);
+
+      act(() => handleKeyUp(makeKeyEvent('o')));
+
+      expect(setShowFileSearchPopover).toHaveBeenCalledWith(true);
+    });
+
+    it('triggers $ mention for "$bo" (fast typed)', () => {
+      const ref = makeTextAreaRef('$bo', 3);
       const { handleKeyUp, setShowMentionPopover } = renderUseHandleKeyUp(ref);
 
       act(() => handleKeyUp(makeKeyEvent('o')));
@@ -197,29 +212,20 @@ describe('useHandleKeyUp', () => {
 
     it('triggers for text up to MAX_COMMAND_TRIGGER_LENGTH (5 chars)', () => {
       const ref = makeTextAreaRef('/abcd', 5);
-      const { handleKeyUp, setShowPromptsPopover } = renderUseHandleKeyUp(ref);
-
-      act(() => handleKeyUp(makeKeyEvent('d')));
-
-      expect(setShowPromptsPopover).toHaveBeenCalledWith(true);
-    });
-
-    it('triggers $ skill command for "$sk" (fast typed)', () => {
-      const ref = makeTextAreaRef('$sk', 3);
       const { handleKeyUp, setShowSkillsPopover } = renderUseHandleKeyUp(ref);
 
-      act(() => handleKeyUp(makeKeyEvent('k')));
+      act(() => handleKeyUp(makeKeyEvent('d')));
 
       expect(setShowSkillsPopover).toHaveBeenCalledWith(true);
     });
 
     it('does NOT trigger for text exceeding MAX_COMMAND_TRIGGER_LENGTH', () => {
       const ref = makeTextAreaRef('/abcde', 6);
-      const { handleKeyUp, setShowPromptsPopover } = renderUseHandleKeyUp(ref);
+      const { handleKeyUp, setShowSkillsPopover } = renderUseHandleKeyUp(ref);
 
       act(() => handleKeyUp(makeKeyEvent('e')));
 
-      expect(setShowPromptsPopover).not.toHaveBeenCalled();
+      expect(setShowSkillsPopover).not.toHaveBeenCalled();
     });
   });
 
@@ -234,7 +240,7 @@ describe('useHandleKeyUp', () => {
     });
 
     it('does NOT trigger when cursor is mid-text after Delete', () => {
-      const ref = makeTextAreaRef('@bo', 2);
+      const ref = makeTextAreaRef('$bo', 2);
       const { handleKeyUp, setShowMentionPopover } = renderUseHandleKeyUp(ref);
 
       act(() => handleKeyUp(makeKeyEvent('Delete')));
@@ -289,8 +295,8 @@ describe('useHandleKeyUp', () => {
       expect(setShowPromptsPopover).not.toHaveBeenCalled();
     });
 
-    it('does NOT trigger for pasted "@username mentioned in a long message"', () => {
-      const ref = makeTextAreaRef('@username mentioned in a long message', 37);
+    it('does NOT trigger for pasted "$username mentioned in a long message"', () => {
+      const ref = makeTextAreaRef('$username mentioned in a long message', 37);
       const { handleKeyUp, setShowMentionPopover } = renderUseHandleKeyUp(ref);
 
       act(() => handleKeyUp(makeKeyEvent('v')));
@@ -357,19 +363,29 @@ describe('useHandleKeyUp', () => {
     it('does NOT trigger slash command when slashCommand toggle is disabled', () => {
       mockCommandToggles.slash = false;
       const ref = makeTextAreaRef('/', 1);
-      const { handleKeyUp, setShowPromptsPopover } = renderUseHandleKeyUp(ref);
+      const { handleKeyUp, setShowSkillsPopover } = renderUseHandleKeyUp(ref);
 
       act(() => handleKeyUp(makeKeyEvent('/')));
 
-      expect(setShowPromptsPopover).not.toHaveBeenCalled();
+      expect(setShowSkillsPopover).not.toHaveBeenCalled();
     });
 
-    it('does NOT trigger @ mention when atCommand toggle is disabled', () => {
+    it('does NOT trigger @ file search when atCommand toggle is disabled', () => {
       mockCommandToggles.at = false;
       const ref = makeTextAreaRef('@', 1);
-      const { handleKeyUp, setShowMentionPopover } = renderUseHandleKeyUp(ref);
+      const { handleKeyUp, setShowFileSearchPopover } = renderUseHandleKeyUp(ref);
 
       act(() => handleKeyUp(makeKeyEvent('@')));
+
+      expect(setShowFileSearchPopover).not.toHaveBeenCalled();
+    });
+
+    it('does NOT trigger $ mention when dollarCommand toggle is disabled', () => {
+      mockCommandToggles.dollar = false;
+      const ref = makeTextAreaRef('$', 1);
+      const { handleKeyUp, setShowMentionPopover } = renderUseHandleKeyUp(ref);
+
+      act(() => handleKeyUp(makeKeyEvent('$')));
 
       expect(setShowMentionPopover).not.toHaveBeenCalled();
     });
@@ -383,29 +399,9 @@ describe('useHandleKeyUp', () => {
 
       expect(setShowPlusPopover).not.toHaveBeenCalled();
     });
-
-    it('does NOT trigger $ skill command when dollarCommand toggle is disabled', () => {
-      mockCommandToggles.dollar = false;
-      const ref = makeTextAreaRef('$', 1);
-      const { handleKeyUp, setShowSkillsPopover } = renderUseHandleKeyUp(ref);
-
-      act(() => handleKeyUp(makeKeyEvent('$')));
-
-      expect(setShowSkillsPopover).not.toHaveBeenCalled();
-    });
   });
 
   describe('permission gating', () => {
-    it('does NOT trigger slash command without PROMPTS access', () => {
-      mockHasPromptsAccess.current = false;
-      const ref = makeTextAreaRef('/', 1);
-      const { handleKeyUp, setShowPromptsPopover } = renderUseHandleKeyUp(ref);
-
-      act(() => handleKeyUp(makeKeyEvent('/')));
-
-      expect(setShowPromptsPopover).not.toHaveBeenCalled();
-    });
-
     it('does NOT trigger + command without MULTI_CONVO access', () => {
       mockHasMultiConvoAccess.current = false;
       const ref = makeTextAreaRef('+', 1);
@@ -416,33 +412,33 @@ describe('useHandleKeyUp', () => {
       expect(setShowPlusPopover).not.toHaveBeenCalled();
     });
 
-    it('triggers @ mention regardless of other permissions', () => {
+    it('triggers $ mention regardless of other permissions', () => {
       mockHasPromptsAccess.current = false;
       mockHasMultiConvoAccess.current = false;
-      const ref = makeTextAreaRef('@', 1);
+      const ref = makeTextAreaRef('$', 1);
       const { handleKeyUp, setShowMentionPopover } = renderUseHandleKeyUp(ref);
 
-      act(() => handleKeyUp(makeKeyEvent('@')));
+      act(() => handleKeyUp(makeKeyEvent('$')));
 
       expect(setShowMentionPopover).toHaveBeenCalledWith(true);
     });
 
-    it('does NOT trigger $ skill command without SKILLS access', () => {
+    it('does NOT trigger slash skill command without SKILLS access', () => {
       mockHasSkillsAccess.current = false;
-      const ref = makeTextAreaRef('$', 1);
+      const ref = makeTextAreaRef('/', 1);
       const { handleKeyUp, setShowSkillsPopover } = renderUseHandleKeyUp(ref);
 
-      act(() => handleKeyUp(makeKeyEvent('$')));
+      act(() => handleKeyUp(makeKeyEvent('/')));
 
       expect(setShowSkillsPopover).not.toHaveBeenCalled();
     });
 
-    it('does NOT trigger $ skill command when skills capability is disabled on agents endpoint', () => {
+    it('does NOT trigger slash skill command when skills capability is disabled on agents endpoint', () => {
       mockSkillsEnabled.current = false;
-      const ref = makeTextAreaRef('$', 1);
+      const ref = makeTextAreaRef('/', 1);
       const { handleKeyUp, setShowSkillsPopover } = renderUseHandleKeyUp(ref);
 
-      act(() => handleKeyUp(makeKeyEvent('$')));
+      act(() => handleKeyUp(makeKeyEvent('/')));
 
       expect(setShowSkillsPopover).not.toHaveBeenCalled();
     });
@@ -489,22 +485,22 @@ describe('useHandleKeyUp', () => {
       expect(setShowPlusPopover).toHaveBeenCalledWith(true);
     });
 
-    it('does NOT trigger $ skill command on assistants endpoint', () => {
+    it('does NOT trigger slash skill command on assistants endpoint', () => {
       mockEndpoint.current = 'assistants';
-      const ref = makeTextAreaRef('$', 1);
+      const ref = makeTextAreaRef('/', 1);
       const { handleKeyUp, setShowSkillsPopover } = renderUseHandleKeyUp(ref);
 
-      act(() => handleKeyUp(makeKeyEvent('$')));
+      act(() => handleKeyUp(makeKeyEvent('/')));
 
       expect(setShowSkillsPopover).not.toHaveBeenCalledWith(true);
     });
 
-    it('does NOT trigger $ skill command on azureAssistants endpoint', () => {
+    it('does NOT trigger slash skill command on azureAssistants endpoint', () => {
       mockEndpoint.current = 'azureAssistants';
-      const ref = makeTextAreaRef('$', 1);
+      const ref = makeTextAreaRef('/', 1);
       const { handleKeyUp, setShowSkillsPopover } = renderUseHandleKeyUp(ref);
 
-      act(() => handleKeyUp(makeKeyEvent('$')));
+      act(() => handleKeyUp(makeKeyEvent('/')));
 
       expect(setShowSkillsPopover).not.toHaveBeenCalledWith(true);
     });

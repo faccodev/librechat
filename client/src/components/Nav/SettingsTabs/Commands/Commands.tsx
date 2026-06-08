@@ -14,6 +14,13 @@ const commandSwitchConfigs = [
     permissionType: undefined,
   },
   {
+    stateAtom: store.dollarCommand,
+    localizationKey: 'com_nav_dollar_command_description' as const,
+    switchId: 'dollarCommand',
+    key: 'dollarCommand',
+    permissionType: undefined,
+  },
+  {
     stateAtom: store.plusCommand,
     localizationKey: 'com_nav_plus_command_description' as const,
     switchId: 'plusCommand',
@@ -25,15 +32,15 @@ const commandSwitchConfigs = [
     localizationKey: 'com_nav_slash_command_description' as const,
     switchId: 'slashCommand',
     key: 'slashCommand',
-    permissionType: PermissionTypes.PROMPTS,
+    permissionType: PermissionTypes.SKILLS,
   },
 ] as const;
 
 function Commands() {
   const localize = useLocalize();
 
-  const hasAccessToPrompts = useHasAccess({
-    permissionType: PermissionTypes.PROMPTS,
+  const hasAccessToSkills = useHasAccess({
+    permissionType: PermissionTypes.SKILLS,
     permission: Permissions.USE,
   });
 
@@ -49,8 +56,8 @@ function Commands() {
     if (permissionType === PermissionTypes.MULTI_CONVO) {
       return hasAccessToMultiConvo === true;
     }
-    if (permissionType === PermissionTypes.PROMPTS) {
-      return hasAccessToPrompts === true;
+    if (permissionType === PermissionTypes.SKILLS) {
+      return hasAccessToSkills === true;
     }
     return true;
   };

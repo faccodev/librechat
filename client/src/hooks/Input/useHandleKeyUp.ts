@@ -73,6 +73,7 @@ const useHandleKeyUp = ({
   const setShowPlusPopover = useSetRecoilState(store.showPlusPopoverFamily(index));
   const setShowPromptsPopover = useSetRecoilState(store.showPromptsPopoverFamily(index));
   const setShowSkillsPopover = useSetRecoilState(store.showSkillsPopoverFamily(index));
+  const setShowFileSearchPopover = useSetRecoilState(store.showFileSearchPopoverFamily(index));
 
   const atCommandEnabled = useRecoilValue(store.atCommand);
   const plusCommandEnabled = useRecoilValue(store.plusCommand);
@@ -86,11 +87,17 @@ const useHandleKeyUp = ({
     }
   }, [endpoint, setShowPlusPopover, setShowSkillsPopover]);
 
-  const handleAtCommand = useCallback(() => {
-    if (atCommandEnabled && shouldTriggerCommand(textAreaRef, '@')) {
+  const handleMentionCommand = useCallback(() => {
+    if (dollarCommandEnabled && shouldTriggerCommand(textAreaRef, '$')) {
       setShowMentionPopover(true);
     }
-  }, [textAreaRef, setShowMentionPopover, atCommandEnabled]);
+  }, [textAreaRef, setShowMentionPopover, dollarCommandEnabled]);
+
+  const handleFileSearchCommand = useCallback(() => {
+    if (atCommandEnabled && shouldTriggerCommand(textAreaRef, '@')) {
+      setShowFileSearchPopover(true);
+    }
+  }, [textAreaRef, setShowFileSearchPopover, atCommandEnabled]);
 
   const handlePlusCommand = useCallback(() => {
     if (!hasMultiConvoAccess || !plusCommandEnabled || isAssistantsEndpoint(endpoint)) {
@@ -114,12 +121,12 @@ const useHandleKeyUp = ({
     if (
       !hasSkillsAccess ||
       !skillsEnabled ||
-      !dollarCommandEnabled ||
+      !slashCommandEnabled ||
       isAssistantsEndpoint(endpoint)
     ) {
       return;
     }
-    if (shouldTriggerCommand(textAreaRef, '$')) {
+    if (shouldTriggerCommand(textAreaRef, '/')) {
       setShowSkillsPopover(true);
     }
   }, [
@@ -127,18 +134,18 @@ const useHandleKeyUp = ({
     hasSkillsAccess,
     skillsEnabled,
     setShowSkillsPopover,
-    dollarCommandEnabled,
+    slashCommandEnabled,
     endpoint,
   ]);
 
   const commandHandlers = useMemo(
     () => ({
-      '@': handleAtCommand,
+      '@': handleFileSearchCommand,
+      '$': handleMentionCommand,
       '+': handlePlusCommand,
-      '/': handlePromptsCommand,
-      $: handleSkillsCommand,
+      '/': handleSkillsCommand,
     }),
-    [handleAtCommand, handlePlusCommand, handlePromptsCommand, handleSkillsCommand],
+    [handleFileSearchCommand, handleMentionCommand, handlePlusCommand, handleSkillsCommand],
   );
 
   const handleUpArrow = useCallback(

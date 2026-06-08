@@ -117,6 +117,7 @@ class STTService {
     this.providerStrategies = {
       [STTProviders.OPENAI]: this.openAIProvider,
       [STTProviders.AZURE_OPENAI]: this.azureOpenAIProvider,
+      [STTProviders.FASTER_WHISPER]: this.fasterWhisperProvider,
     };
   }
 
@@ -265,6 +266,92 @@ class STTService {
       ...(apiKey && { 'api-key': apiKey }),
     };
 
+    [headers].forEach(this.removeUndefined);
+
+    return [url, formData, { ...headers, ...formData.getHeaders() }];
+  }
+
+  /**
+   * Prepares the request for a self-hosted `faster-whisper-server`
+   * (the `syuoni/faster-whisper-asr` image is the reference deployment,
+   * exposing `POST /asr` with multipart payload: `audio_file` plus
+   * the same params as the upstream CTranslate2 CLI — `language`,
+   * `task`, `vad_filter`, `word_timestamps`, `output=json`).
+   *
+   * The transcribed text is returned in `response.data.text` when
+   * `output=json`, which is what we set here. No auth header is
+   * required when the server is on a trusted Docker network
+   * (this is the documented `librechat.yaml` config).
+   *
+   * Config shape in librechat.yaml:
+   *   speech:
+   *     stt:
+   *       fasterWhisper:
+   *         url: 'http://mcp-faster-whisper:9000/asr'
+   *         # optional: defaults shown
+   *         language: ''        # empty -> auto-detect
+   *         task: 'transcribe'  # or 'translate' (translate→English)
+   *         vad_filter: true    # skip silent chunks
+   *         word_timestamps: false
+   *
+   * @param {Object} sttSchema - The STT schema for faster-whisper.
+   * @param {Buffer} audioBuffer - The audio data to be transcribed.
+   * @param {Object} audioFile - The audio file object containing
+   *   originalname, mimetype, and size.
+   * @param {string} language - The user-selected language code from
+   *   the client (overrides schema default if non-empty).
+   * @returns {Array} An array containing the URL, data, and headers
+   *   for the request.
+   * @throws {Error} If the audio file is too large or has an
+   *   unsupported format.
+   */
+  fasterWhisperProvider(sttSchema, audioBuffer, audioFile, language) {
+    const url = sttSchema?.url || 'http://mcp-faster-whisper:9000/asr';
+    const apiKey = sttSchema.apiKey ? extractEnvVariable(sttSchema.apiKey) : '';
+
+    if (audioBuffer.byteLength > 25 * 1024 * 1024) {
+      throw new Error('The audio file size exceeds the limit of 25MB');
+    }
+
+    const acceptedFormats = ['flac', 'mp3', 'mp4', 'mpeg', 'mpga', 'm4a', 'ogg', 'wav', 'webm'];
+    const [mimePrefix, rawFormat = ''] = audioFile.mimetype.split('/');
+    const isAudioMime = mimePrefix === 'audio' || mimePrefix === 'video';
+    const isKnownMime = audioFile.mimetype in MIME_TO_EXTENSION_MAP;
+    const normalizedFormat = isKnownMime ? MIME_TO_EXTENSION_MAP[audioFile.mimetype] : null;
+    if (
+      !acceptedFormats.includes(normalizedFormat) &&
+      !(isAudioMime && acceptedFormats.includes(rawFormat))
+    ) {
+      throw new Error(`The audio file format ${rawFormat} is not accepted`);
+    }
+
+    const formData = new FormData();
+    formData.append('audio_file', audioBuffer, {
+      filename: audioFile.originalname,
+      contentType: audioFile.mimetype,
+    });
+
+    // Schema-level defaults, overridable per-request from the
+    // user-selected language in the client dropdown. The `language`
+    // form field on faster-whisper-server is the ISO-639-1 code
+    // (e.g. `pt`, `en`); the browser sends `pt-BR` or `pt`, both
+    // of which are accepted because the validator strips the
+    // region suffix before forwarding.
+    const validLanguage = getValidatedLanguageCode(language);
+    const schemaLanguage = getValidatedLanguageCode(sttSchema.language);
+    const resolvedLanguage = validLanguage || schemaLanguage;
+    if (resolvedLanguage) {
+      formData.append('language', resolvedLanguage);
+    }
+
+    formData.append('task', sttSchema.task || 'transcribe');
+    formData.append('vad_filter', String(sttSchema.vad_filter !== false));
+    formData.append('word_timestamps', String(sttSchema.word_timestamps === true));
+    formData.append('output', 'json');
+
+    const headers = {
+      ...(apiKey && { Authorization: `Bearer ${apiKey}` }),
+    };
     [headers].forEach(this.removeUndefined);
 
     return [url, formData, { ...headers, ...formData.getHeaders() }];

@@ -38,6 +38,7 @@ import SendButton from './SendButton';
 import EditBadges from './EditBadges';
 import BadgeRow from './BadgeRow';
 import Mention from './Mention';
+import FileSearch from './FileSearch';
 import store from '~/store';
 
 interface ChatFormProps {
@@ -264,6 +265,7 @@ const ChatForm = memo(function ChatForm({
             popoverAtom={mentionPopoverAtom}
             newConversation={newConversation}
             textAreaRef={textAreaRef}
+            commandChar="$"
           />
           <PromptsCommand index={index} textAreaRef={textAreaRef} submitPrompt={submitPrompt} />
           <SkillsCommand
@@ -271,6 +273,11 @@ const ChatForm = memo(function ChatForm({
             textAreaRef={textAreaRef}
             conversationId={conversationId}
             agentId={conversation?.agent_id}
+          />
+          <FileSearch
+            index={index}
+            textAreaRef={textAreaRef}
+            setFiles={setFiles}
           />
           <div
             onClick={handleContainerClick}
