@@ -1,10 +1,13 @@
-import { useCallback } from 'react';
+import { useCallback, useState, useContext } from 'react';
 import {
   Download,
   Edit3,
   FileQuestion,
   Loader2,
   Trash2,
+  Maximize2,
+  Minimize2,
+  X,
 } from 'lucide-react';
 import type { WorkspaceNode } from 'librechat-data-provider';
 import {
@@ -16,7 +19,11 @@ import {
   DialogTitle,
   Spinner,
   useToastContext,
+  ThemeContext,
+  isDark,
 } from '@librechat/client';
+import MonacoEditor from '@monaco-editor/react';
+import Markdown from '~/components/Chat/Messages/Content/Markdown';
 import { useLocalize } from '~/hooks';
 import {
   MAX_PREVIEW_TEXT_BYTES,
@@ -24,6 +31,7 @@ import {
   truncatePreviewText,
   useWorkspacePreview,
 } from '~/data-provider';
+import { cn } from '~/utils';
 import { formatBytes, formatRelative } from './utils/format';
 import { downloadWorkspaceFile } from './utils/download';
 
@@ -36,16 +44,63 @@ export type PreviewModalProps = {
   onDelete?: (node: WorkspaceNode) => void;
 };
 
+function getLanguageFromFilename(name: string): string {
+  const ext = name.split('.').pop()?.toLowerCase();
+  switch (ext) {
+    case 'js':
+    case 'jsx':
+    case 'mjs':
+      return 'javascript';
+    case 'ts':
+    case 'tsx':
+    case 'mts':
+      return 'typescript';
+    case 'py':
+      return 'python';
+    case 'html':
+      return 'html';
+    case 'css':
+      return 'css';
+    case 'scss':
+      return 'scss';
+    case 'json':
+      return 'json';
+    case 'yaml':
+    case 'yml':
+      return 'yaml';
+    case 'md':
+    case 'mdx':
+      return 'markdown';
+    case 'sh':
+    case 'bash':
+    case 'zsh':
+      return 'shell';
+    case 'sql':
+      return 'sql';
+    case 'c':
+      return 'c';
+    case 'cpp':
+    case 'h':
+    case 'hpp':
+      return 'cpp';
+    case 'cs':
+      return 'csharp';
+    case 'xml':
+      return 'xml';
+    default:
+      return 'plaintext';
+  }
+}
+
 /**
- * Opens a modal preview for any file. The header is intentionally
- * minimal (title + meta + close X) so the close button has the
- * expected spot in the top-right; primary actions (Download, Edit,
- * Delete) live in the footer. The body delegates to `PreviewBody`,
- * which is also exported so the editor modal can reuse it.
+ * Opens a modal preview for any file. The header has controls to toggle
+ * fullscreen mode and close the modal. Primary actions (Download, Edit,
+ * Delete) live in the footer.
  */
 const PreviewModal = ({ node, open, onOpenChange, onEdit, onDelete }: PreviewModalProps) => {
   const localize = useLocalize();
   const { showToast } = useToastContext();
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const kind = previewKindFromNode(node);
   const query = useWorkspacePreview(node?.path ?? null, kind);
 
@@ -59,16 +114,21 @@ const PreviewModal = ({ node, open, onOpenChange, onEdit, onDelete }: PreviewMod
     }
   }, [node, showToast, localize]);
 
-  const canEdit = !!node && kind === 'text';
+  const canEdit = !!node && (kind === 'text' || kind === 'markdown');
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="flex max-h-[90vh] w-full max-w-4xl flex-col gap-0 overflow-hidden p-0 sm:rounded-lg"
+        showCloseButton={false}
+        className={cn(
+          isFullscreen
+            ? 'fixed inset-0 z-[999] flex h-screen w-screen max-w-none max-h-none flex-col gap-0 overflow-hidden p-0 rounded-none sm:rounded-none left-0 top-0 -translate-x-0 -translate-y-0 transform-none border-0'
+            : 'flex max-h-[90vh] w-full max-w-4xl flex-col gap-0 overflow-hidden p-0 sm:rounded-lg'
+        )}
       >
         {node && (
           <>
-            <DialogHeader className="border-b border-border-light p-4">
+            <DialogHeader className="relative border-b border-border-light p-4 pr-24">
               <DialogTitle className="truncate text-base" title={node.name}>
                 {node.name}
               </DialogTitle>
@@ -78,9 +138,30 @@ const PreviewModal = ({ node, open, onOpenChange, onEdit, onDelete }: PreviewMod
                 {' · '}
                 {formatRelative(node.modifiedAt)}
               </p>
+              <div className="absolute right-4 top-4 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsFullscreen(!isFullscreen)}
+                  className="rounded p-1 text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
+                  title={isFullscreen ? localize('com_ui_minimize') : localize('com_ui_fullscreen')}
+                >
+                  {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onOpenChange(false)}
+                  className="rounded p-1 text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
+                  title={localize('com_ui_close')}
+                >
+                  <X size={16} />
+                </button>
+              </div>
             </DialogHeader>
-            <div className="min-h-[200px] flex-1 overflow-auto bg-gray-50 p-4 dark:bg-gray-950">
-              <PreviewBody node={node} kind={kind} query={query} />
+            <div className={cn(
+              "flex-1 overflow-auto bg-gray-50 p-4 dark:bg-gray-950",
+              isFullscreen ? "h-[calc(100vh-130px)]" : "min-h-[200px]"
+            )}>
+              <PreviewBody node={node} kind={kind} query={query} isFullscreen={isFullscreen} />
             </div>
             <DialogFooter className="justify-end gap-2 border-t border-border-light p-3">
               <Button
@@ -129,10 +210,13 @@ type PreviewBodyProps = {
   node: WorkspaceNode;
   kind: ReturnType<typeof previewKindFromNode>;
   query: ReturnType<typeof useWorkspacePreview>;
+  isFullscreen?: boolean;
 };
 
-export const PreviewBody = ({ node, kind, query }: PreviewBodyProps) => {
+export const PreviewBody = ({ node, kind, query, isFullscreen = false }: PreviewBodyProps) => {
   const localize = useLocalize();
+  const { theme } = useContext(ThemeContext);
+  const isDarkMode = isDark(theme);
   const { isLoading, isError, data, error, refetch } = query;
 
   if (isLoading) {
@@ -205,8 +289,30 @@ export const PreviewBody = ({ node, kind, query }: PreviewBodyProps) => {
         title={node.name}
         src={data.objectUrl}
         sandbox=""
-        className="h-[70vh] w-full rounded border border-border-light bg-white dark:bg-gray-900"
+        className={cn("w-full rounded border border-border-light bg-white dark:bg-gray-900", isFullscreen ? "h-[calc(100vh-160px)]" : "h-[70vh]")}
       />
+    );
+  }
+
+  if (kind === 'pdf' && data?.objectUrl) {
+    return (
+      <iframe
+        title={node.name}
+        src={data.objectUrl}
+        className={cn("w-full rounded border border-border-light bg-white", isFullscreen ? "h-[calc(100vh-160px)]" : "h-[70vh]")}
+      />
+    );
+  }
+
+  if (kind === 'markdown') {
+    const text = data?.text ?? '';
+    return (
+      <div className={cn(
+        "prose dark:prose-invert max-w-none p-4 bg-white dark:bg-gray-900 rounded border border-border-light dark:border-gray-700 overflow-auto",
+        isFullscreen ? "h-[calc(100vh-160px)]" : "max-h-[70vh]"
+      )}>
+        <Markdown content={text} isLatestMessage={false} />
+      </div>
     );
   }
 
@@ -214,12 +320,25 @@ export const PreviewBody = ({ node, kind, query }: PreviewBodyProps) => {
     const text = data?.text ?? '';
     const { text: clipped, truncated } = truncatePreviewText(text);
     return (
-      <div className="flex flex-col">
-        <pre className="max-h-[70vh] overflow-auto rounded border border-border-light bg-white p-3 font-mono text-xs text-text-primary dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100">
-          {clipped}
-        </pre>
+      <div className="flex flex-col gap-2">
+        <div className="rounded border border-border-light dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-900">
+          <MonacoEditor
+            height={isFullscreen ? "calc(100vh - 175px)" : "60vh"}
+            language={getLanguageFromFilename(node.name)}
+            theme={isDarkMode ? 'vs-dark' : 'light'}
+            value={clipped}
+            options={{
+              readOnly: true,
+              minimap: { enabled: !isFullscreen ? false : true },
+              scrollBeyondLastLine: false,
+              fontSize: 12,
+              lineNumbers: 'on',
+              automaticLayout: true,
+            }}
+          />
+        </div>
         {truncated && (
-          <p className="mt-2 text-xs text-text-secondary">
+          <p className="text-xs text-text-secondary">
             {localize('com_fm_preview_truncated', {
               size: formatBytes(MAX_PREVIEW_TEXT_BYTES),
             })}

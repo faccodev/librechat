@@ -6,27 +6,21 @@ import axios from 'axios';
 
 const MAX_TEXT_PREVIEW_BYTES = 256 * 1024;
 
-export type WorkspacePreviewKind = 'image' | 'video' | 'audio' | 'html' | 'text' | 'binary';
+export type WorkspacePreviewKind = 'image' | 'video' | 'audio' | 'html' | 'text' | 'pdf' | 'markdown' | 'binary';
 
 const detectKind = (mime?: string, name?: string): WorkspacePreviewKind => {
   if (mime?.startsWith('image/')) return 'image';
   if (mime?.startsWith('video/')) return 'video';
   if (mime?.startsWith('audio/')) return 'audio';
+  if (mime === 'application/pdf') return 'pdf';
   if (mime === 'text/html' || mime === 'application/xhtml+xml') return 'html';
-  if (mime?.startsWith('text/')) return 'text';
-  if (
-    mime === 'application/json' ||
-    mime === 'application/xml' ||
-    mime === 'application/javascript' ||
-    mime === 'application/typescript' ||
-    mime === 'application/x-yaml'
-  ) {
-    return 'text';
-  }
+  if (mime === 'text/markdown' || mime === 'text/x-markdown') return 'markdown';
   if (!mime && name) {
     const dot = name.lastIndexOf('.');
     if (dot > -1) {
       const ext = name.slice(dot + 1).toLowerCase();
+      if (ext === 'pdf') return 'pdf';
+      if (ext === 'md' || ext === 'mdx') return 'markdown';
       if (
         [
           'json',
@@ -39,8 +33,6 @@ const detectKind = (mime?: string, name?: string): WorkspacePreviewKind => {
           'yaml',
           'yml',
           'toml',
-          'md',
-          'mdx',
           'txt',
           'log',
           'csv',
@@ -50,11 +42,22 @@ const detectKind = (mime?: string, name?: string): WorkspacePreviewKind => {
           'scss',
           'sql',
           'sh',
+          'bash',
         ].includes(ext)
       ) {
         return 'text';
       }
     }
+  }
+  if (mime?.startsWith('text/')) return 'text';
+  if (
+    mime === 'application/json' ||
+    mime === 'application/xml' ||
+    mime === 'application/javascript' ||
+    mime === 'application/typescript' ||
+    mime === 'application/x-yaml'
+  ) {
+    return 'text';
   }
   return 'binary';
 };
@@ -80,7 +83,7 @@ export const useWorkspacePreview = (path: string | null, kind: WorkspacePreviewK
     staleTime: 5 * 60 * 1000,
     queryFn: async (): Promise<{ objectUrl?: string; text?: string; size?: number }> => {
       if (!path) return {};
-      if (kind === 'text') {
+      if (kind === 'text' || kind === 'markdown') {
         const { data } = await axios.get<string>(url, { responseType: 'text' });
         return { text: data, size: data.length };
       }
