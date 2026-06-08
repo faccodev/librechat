@@ -6,6 +6,7 @@ import {
   FolderOpen,
   MoreVertical,
   Trash2,
+  Paperclip,
 } from 'lucide-react';
 import {
   Button,
@@ -28,6 +29,7 @@ export type NodeActionsProps = {
   onEdit?: (node: WorkspaceNode) => void;
   onRename?: (node: WorkspaceNode) => void;
   onDelete?: (node: WorkspaceNode) => void;
+  onAttach?: (node: WorkspaceNode) => void;
 };
 
 /**
@@ -36,7 +38,7 @@ export type NodeActionsProps = {
  * text/code files; View is offered for everything that has a
  * preview).
  */
-const NodeActions = ({ node, onView, onEdit, onRename, onDelete }: NodeActionsProps) => {
+const NodeActions = ({ node, onView, onEdit, onRename, onDelete, onAttach }: NodeActionsProps) => {
   const localize = useLocalize();
   const { showToast } = useToastContext();
   const kind = previewKindFromNode(node);
@@ -75,6 +77,12 @@ const NodeActions = ({ node, onView, onEdit, onRename, onDelete }: NodeActionsPr
           <DropdownMenuItem onSelect={() => onEdit(node)}>
             <Edit3 className="mr-2 size-4" aria-hidden="true" />
             {localize('com_fm_action_edit')}
+          </DropdownMenuItem>
+        )}
+        {node.type === 'file' && onAttach && (
+          <DropdownMenuItem onSelect={() => onAttach(node)}>
+            <Paperclip className="mr-2 size-4" aria-hidden="true" />
+            {localize('com_ui_attach')}
           </DropdownMenuItem>
         )}
         {node.type === 'dir' && onEdit && (

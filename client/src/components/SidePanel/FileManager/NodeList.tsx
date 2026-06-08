@@ -24,6 +24,7 @@ type NodeListProps = {
   onEdit?: (node: WorkspaceNode) => void;
   onRename?: (node: WorkspaceNode) => void;
   onDelete?: (node: WorkspaceNode) => void;
+  onAttach?: (node: WorkspaceNode) => void;
 };
 
 const NodeList = ({
@@ -42,6 +43,7 @@ const NodeList = ({
   onEdit,
   onRename,
   onDelete,
+  onAttach,
 }: NodeListProps) => {
   const localize = useLocalize();
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -190,6 +192,7 @@ const NodeList = ({
                   onEdit={onEdit}
                   onRename={onRename}
                   onDelete={onDelete}
+                  onAttach={onAttach}
                 />
               </div>
             );

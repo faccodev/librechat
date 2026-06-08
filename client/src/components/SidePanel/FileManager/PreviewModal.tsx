@@ -56,6 +56,7 @@ export function getLanguageFromFilename(name: string): string {
     case 'mts':
       return 'typescript';
     case 'py':
+    case 'pyw':
       return 'python';
     case 'html':
       return 'html';
@@ -78,6 +79,8 @@ export function getLanguageFromFilename(name: string): string {
     case 'sql':
       return 'sql';
     case 'c':
+    case 'cc':
+    case 'cxx':
       return 'c';
     case 'cpp':
     case 'h':
@@ -85,9 +88,41 @@ export function getLanguageFromFilename(name: string): string {
       return 'cpp';
     case 'cs':
       return 'csharp';
+    case 'go':
+      return 'go';
+    case 'rs':
+      return 'rust';
+    case 'rb':
+      return 'ruby';
+    case 'php':
+      return 'php';
+    case 'swift':
+      return 'swift';
+    case 'kt':
+    case 'kts':
+      return 'kotlin';
+    case 'scala':
+      return 'scala';
+    case 'dart':
+      return 'dart';
+    case 'lua':
+      return 'lua';
+    case 'r':
+      return 'r';
     case 'xml':
       return 'xml';
+    case 'ini':
+    case 'conf':
+    case 'cfg':
+    case 'properties':
+      return 'ini';
+    case 'bat':
+    case 'cmd':
+      return 'bat';
+    case 'ps1':
+      return 'powershell';
     default:
+      if (name.toLowerCase() === 'dockerfile') return 'dockerfile';
       return 'plaintext';
   }
 }

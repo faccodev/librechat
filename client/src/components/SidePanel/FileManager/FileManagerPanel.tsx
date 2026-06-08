@@ -9,7 +9,15 @@ import {
   Upload,
   X,
 } from 'lucide-react';
-import type { WorkspaceNode } from 'librechat-data-provider';
+import type { WorkspaceNode, TFile } from 'librechat-data-provider';
+import {
+  megabyte,
+  mergeFileConfig,
+  checkOpenAIStorage,
+  isAssistantsEndpoint,
+  getEndpointFileConfig,
+  fileConfig as defaultFileConfig,
+} from 'librechat-data-provider';
 import {
   Button,
   DropdownMenu,
@@ -21,7 +29,8 @@ import {
   Spinner,
   useToastContext,
 } from '@librechat/client';
-import { useLocalize } from '~/hooks';
+import { useLocalize, useUpdateFiles } from '~/hooks';
+import { useChatContext } from '~/Providers';
 import { useFileManagerPath } from './hooks/useFileManagerPath';
 import {
   useCreateWorkspaceDirectory,
@@ -30,7 +39,7 @@ import {
   useRenameWorkspaceNode,
   useUploadWorkspaceFile,
 } from '~/data-provider/Files/workspaceMutations';
-import { useWorkspaceTree } from '~/data-provider';
+import { useWorkspaceTree, useGetFileConfig, useGetFiles } from '~/data-provider';
 import Breadcrumb from './Breadcrumb';
 import NodeList from './NodeList';
 import PreviewModal from './PreviewModal';
@@ -60,6 +69,13 @@ const FileManagerPanel = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const tree = useWorkspaceTree(path);
   const { data, isLoading, isError, isFetching, refetch } = tree;
+
+  const { files, setFiles, conversation } = useChatContext();
+  const { addFile } = useUpdateFiles(setFiles);
+  const { data: fileConfig = null } = useGetFileConfig({
+    select: (data) => mergeFileConfig(data),
+  });
+  const { data: dbFiles = [] } = useGetFiles<TFile[]>();
 
   const [, setSelected] = useState<WorkspaceNode | null>(null);
 
@@ -185,6 +201,124 @@ const FileManagerPanel = () => {
       setDialog({ kind: 'edit', node });
     },
     [setPath],
+  );
+
+  const handleAttach = useCallback(
+    (node: WorkspaceNode) => {
+      if (node.type !== 'file') {
+        return;
+      }
+      if (!conversation?.endpoint) {
+        showToast({
+          message: localize('com_ui_attach_error'),
+          status: 'error',
+        });
+        return;
+      }
+
+      const file = dbFiles.find((f) => f.filename === node.path);
+      if (!file) {
+        showToast({
+          message: localize('com_ui_attach_error'),
+          status: 'error',
+        });
+        return;
+      }
+
+      const endpoint = conversation.endpoint;
+      const endpointType = conversation.endpointType;
+      const isOpenAIStorage = checkOpenAIStorage(file.source ?? '');
+      const isAssistants = isAssistantsEndpoint(endpoint);
+
+      if (isOpenAIStorage && !isAssistants) {
+        showToast({
+          message: localize('com_ui_attach_error_openai'),
+          status: 'error',
+        });
+        return;
+      }
+
+      if (!isOpenAIStorage && isAssistants) {
+        showToast({
+          message: localize('com_ui_attach_warn_endpoint'),
+          status: 'warning',
+        });
+      }
+
+      const endpointFileConfig = getEndpointFileConfig({
+        fileConfig,
+        endpoint,
+        endpointType,
+      });
+
+      if (endpointFileConfig.disabled === true) {
+        showToast({
+          message: localize('com_ui_attach_error_disabled'),
+          status: 'error',
+        });
+        return;
+      }
+
+      if (endpointFileConfig.fileLimit && files.size >= endpointFileConfig.fileLimit) {
+        showToast({
+          message: `${localize('com_ui_attach_error_limit')} ${endpointFileConfig.fileLimit} files (${endpoint})`,
+          status: 'error',
+        });
+        return;
+      }
+
+      if (file.bytes >= (endpointFileConfig.fileSizeLimit ?? Number.MAX_SAFE_INTEGER)) {
+        showToast({
+          message: `${localize('com_ui_attach_error_size')} ${
+            (endpointFileConfig.fileSizeLimit ?? 0) / megabyte
+          } MB (${endpoint})`,
+          status: 'error',
+        });
+        return;
+      }
+
+      if (!defaultFileConfig.checkType(file.type, endpointFileConfig.supportedMimeTypes ?? [])) {
+        showToast({
+          message: `${localize('com_ui_attach_error_type')} ${file.type} (${endpoint})`,
+          status: 'error',
+        });
+        return;
+      }
+
+      if (endpointFileConfig.totalSizeLimit) {
+        const existing = files.get(file.file_id);
+        let currentTotalSize = 0;
+        for (const f of files.values()) {
+          currentTotalSize += f.size;
+        }
+        currentTotalSize -= existing?.size ?? 0;
+        if (currentTotalSize + file.bytes > endpointFileConfig.totalSizeLimit) {
+          showToast({
+            message: `${localize('com_ui_attach_error_total_size')} ${
+              endpointFileConfig.totalSizeLimit / megabyte
+            } MB (${endpoint})`,
+            status: 'error',
+          });
+          return;
+        }
+      }
+
+      addFile({
+        progress: 1,
+        attached: true,
+        file_id: file.file_id,
+        filepath: file.filepath,
+        preview: file.filepath,
+        type: file.type,
+        height: file.height,
+        width: file.width,
+        filename: file.filename,
+        source: file.source,
+        size: file.bytes,
+        metadata: file.metadata,
+      });
+    },
+    [addFile, files, dbFiles, conversation, localize, showToast, fileConfig],
   );
 
   const handleGoUp = useCallback(() => {
@@ -356,6 +490,7 @@ const FileManagerPanel = () => {
           onEdit={handleEdit}
           onRename={(node) => setDialog({ kind: 'rename', node })}
           onDelete={(node) => setDialog({ kind: 'delete', nodes: [node] })}
+          onAttach={handleAttach}
         />
       )}
 

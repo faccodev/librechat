@@ -20,6 +20,7 @@ type NodeRowProps = {
   onEdit?: (node: WorkspaceNode) => void;
   onRename?: (node: WorkspaceNode) => void;
   onDelete?: (node: WorkspaceNode) => void;
+  onAttach?: (node: WorkspaceNode) => void;
 };
 
 const NodeRow = ({
@@ -31,6 +32,7 @@ const NodeRow = ({
   onEdit,
   onRename,
   onDelete,
+  onAttach,
 }: NodeRowProps) => {
   const localize = useLocalize();
   const isDir = node.type === 'dir';
@@ -88,6 +90,7 @@ const NodeRow = ({
           onEdit={onEdit}
           onRename={onRename}
           onDelete={onDelete}
+          onAttach={onAttach}
         />
       </span>
     </div>

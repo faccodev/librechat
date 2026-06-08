@@ -15,6 +15,7 @@ const detectKind = (mime?: string, name?: string): WorkspacePreviewKind => {
   if (mime === 'application/pdf') return 'pdf';
   if (mime === 'text/html' || mime === 'application/xhtml+xml') return 'html';
   if (mime === 'text/markdown' || mime === 'text/x-markdown') return 'markdown';
+  if (name?.toLowerCase() === 'dockerfile') return 'text';
   if (!mime && name) {
     const dot = name.lastIndexOf('.');
     if (dot > -1) {
@@ -30,6 +31,7 @@ const detectKind = (mime?: string, name?: string): WorkspacePreviewKind => {
           'ts',
           'tsx',
           'jsx',
+          'mts',
           'yaml',
           'yml',
           'toml',
@@ -43,6 +45,37 @@ const detectKind = (mime?: string, name?: string): WorkspacePreviewKind => {
           'sql',
           'sh',
           'bash',
+          'zsh',
+          'py',
+          'pyw',
+          'c',
+          'cpp',
+          'cc',
+          'cxx',
+          'h',
+          'hpp',
+          'cs',
+          'go',
+          'rs',
+          'rb',
+          'php',
+          'pl',
+          'pm',
+          'swift',
+          'kt',
+          'kts',
+          'scala',
+          'dart',
+          'lua',
+          'r',
+          'ini',
+          'conf',
+          'cfg',
+          'env',
+          'properties',
+          'bat',
+          'cmd',
+          'ps1',
         ].includes(ext)
       ) {
         return 'text';
