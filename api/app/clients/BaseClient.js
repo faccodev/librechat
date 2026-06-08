@@ -1265,6 +1265,10 @@ class BaseClient {
       ) {
         categorizedAttachments.documents.push(file);
         allFiles.push(file);
+      } else {
+        // Fallback to treat any other file type as a document attachment (e.g. workspace scripts/code)
+        categorizedAttachments.documents.push(file);
+        allFiles.push(file);
       }
     }
 

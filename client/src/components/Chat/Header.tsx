@@ -24,10 +24,7 @@ function Header() {
     [startupConfig],
   );
 
-  const hasAccessToBookmarks = useHasAccess({
-    permissionType: PermissionTypes.BOOKMARKS,
-    permission: Permissions.USE,
-  });
+  const hasAccessToBookmarks = false; // Disabled as requested
 
   const hasAccessToMultiConvo = useHasAccess({
     permissionType: PermissionTypes.MULTI_CONVO,
@@ -54,7 +51,8 @@ function Header() {
               )}
             >
               <ModelSelector startupConfig={startupConfig} />
-              {interfaceConfig.presets === true && interfaceConfig.modelSelect && <PresetsMenu />}
+              {/* Presets and Bookmarks are disabled as requested */}
+              {/* {interfaceConfig.presets === true && interfaceConfig.modelSelect && <PresetsMenu />} */}
               {hasAccessToBookmarks === true && <BookmarkMenu />}
               {hasAccessToMultiConvo === true && <AddMultiConvo />}
               {isSmallScreen && (

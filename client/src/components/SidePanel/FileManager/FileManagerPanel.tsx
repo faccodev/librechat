@@ -277,6 +277,8 @@ const FileManagerPanel = () => {
         return;
       }
 
+      /* Mime type check is bypassed to allow attaching any file from the File Manager as requested */
+      /*
       if (!defaultFileConfig.checkType(file.type, endpointFileConfig.supportedMimeTypes ?? [])) {
         showToast({
           message: `${localize('com_ui_attach_error_type')} ${file.type} (${endpoint})`,
@@ -284,6 +286,7 @@ const FileManagerPanel = () => {
         });
         return;
       }
+      */
 
       if (endpointFileConfig.totalSizeLimit) {
         const existing = files.get(file.file_id);

@@ -56,10 +56,7 @@ const useHandleKeyUp = ({
   index: number;
   textAreaRef: React.RefObject<HTMLTextAreaElement>;
 }) => {
-  const hasPromptsAccess = useHasAccess({
-    permissionType: PermissionTypes.PROMPTS,
-    permission: Permissions.USE,
-  });
+  const hasPromptsAccess = false; // Disabled as requested
   const hasMultiConvoAccess = useHasAccess({
     permissionType: PermissionTypes.MULTI_CONVO,
     permission: Permissions.USE,

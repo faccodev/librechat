@@ -54,18 +54,12 @@ export default function useSideNavLinks({
   endpointsConfig: TEndpointsConfig;
   includeHidePanel?: boolean;
 }) {
-  const hasAccessToPrompts = useHasAccess({
-    permissionType: PermissionTypes.PROMPTS,
-    permission: Permissions.USE,
-  });
+  const hasAccessToPrompts = false; // Disabled as requested
   const hasAccessToSkills = useHasAccess({
     permissionType: PermissionTypes.SKILLS,
     permission: Permissions.USE,
   });
-  const hasAccessToBookmarks = useHasAccess({
-    permissionType: PermissionTypes.BOOKMARKS,
-    permission: Permissions.USE,
-  });
+  const hasAccessToBookmarks = false; // Disabled as requested
   const hasAccessToMemories = useHasAccess({
     permissionType: PermissionTypes.MEMORIES,
     permission: Permissions.USE,
