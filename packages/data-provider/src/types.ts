@@ -571,6 +571,39 @@ export type TRequestPasswordResetResponse = {
 };
 
 /**
+ * Body for the self-service `POST /api/auth/password` endpoint.
+ * Requires the caller to be authenticated and to have a `local` provider.
+ */
+export type TChangePasswordBody = {
+  currentPassword: string;
+  newPassword: string;
+};
+
+/**
+ * Body for the admin `POST /api/admin/users/:id/password` endpoint.
+ * `password` is optional; when absent the server generates a strong
+ * random one and returns it in the response.
+ */
+export type TAdminSetPasswordBody = {
+  password?: string;
+};
+
+export type TAdminSetPasswordResponse = {
+  ok: true;
+  /**
+   * The plaintext password — either the one the admin typed (after
+   * server-side validation) or the random one the server generated.
+   * The admin must hand this to the user out-of-band; it is never sent
+   * to the user automatically and is not retrievable later.
+   */
+  password: string;
+};
+
+export type TChangePasswordResponse = {
+  ok: true;
+};
+
+/**
  * Represents the response from the import endpoint.
  */
 export type TImportResponse = {

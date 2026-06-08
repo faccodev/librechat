@@ -169,6 +169,13 @@ export const requestPasswordReset = () => `${BASE_URL}/api/auth/requestPasswordR
 
 export const resetPassword = () => `${BASE_URL}/api/auth/resetPassword`;
 
+/** Self-service: change the caller's own password. */
+export const changePassword = () => `${BASE_URL}/api/auth/password`;
+
+/** Admin: reset another user's password. */
+export const adminSetUserPassword = (userId: string) =>
+  `${BASE_URL}/api/admin/users/${userId}/password`;
+
 export const verifyEmail = () => `${BASE_URL}/api/user/verify`;
 
 // Auth page URLs (for client-side navigation and redirects)

@@ -5,12 +5,14 @@ const {
   validateWorkspaceSubdir,
   resolveWorkspacePath,
   ensureWorkspaceDir,
+  adminSetPassword,
 } = require('@librechat/api');
 const { SystemCapabilities } = require('@librechat/data-schemas');
 const { requireCapability } = require('~/server/middleware/roles/capabilities');
 const { requireJwtAuth } = require('~/server/middleware');
 const db = require('~/models');
 const bcrypt = require('bcryptjs');
+const logger = require('~/config/winston');
 
 const router = express.Router();
 
@@ -153,5 +155,52 @@ router.put('/:id/role', requireManageUsers, async (req, res) => {
     return res.status(500).json({ error: 'Failed to update user role' });
   }
 });
+
+// Admin-initiated password reset. Returns the plaintext password (or the
+// generated one) so the admin can hand it to the user out-of-band. This
+// route never sends email — it is intentionally silent so the admin can
+// choose their own notification channel.
+router.post(
+  '/:id/password',
+  requireManageUsers,
+  async (req, res) => {
+    const { id } = req.params;
+    const { password } = req.body ?? {};
+    if (password != null && typeof password !== 'string') {
+      return res.status(400).json({ error: 'password must be a string' });
+    }
+    if (password && password.length < 8) {
+      return res
+        .status(400)
+        .json({ error: 'password must be at least 8 characters' });
+    }
+
+    try {
+      const result = await adminSetPassword(id, password, {
+        findUserById: async (targetId) => db.getUserById(targetId, '+password'),
+        updateUserPassword: async (targetId, hash) =>
+          db.updateUser(targetId, { password: hash }),
+        hash: async (plaintext) => bcrypt.hash(plaintext, 10),
+      });
+
+      if (result.ok) {
+        return res.status(200).json({ ok: true, password: result.generatedPassword });
+      }
+
+      switch (result.code) {
+        case 'not_local':
+          return res
+            .status(400)
+            .json({ error: 'Cannot reset password for non-local accounts' });
+        case 'user_not_found':
+        default:
+          return res.status(404).json({ error: 'User not found' });
+      }
+    } catch (err) {
+      logger.error('[adminUsers] setUserPassword route error:', err);
+      return res.status(500).json({ error: 'Failed to set password' });
+    }
+  },
+);
 
 module.exports = router;

@@ -176,6 +176,19 @@ export const resetPassword = (payload: t.TResetPassword) => {
   return request.post(endpoints.resetPassword(), payload);
 };
 
+export const changePassword = (
+  payload: t.TChangePasswordBody,
+): Promise<t.TChangePasswordResponse> => {
+  return request.post(endpoints.changePassword(), payload);
+};
+
+export const adminSetUserPassword = (
+  userId: string,
+  payload: t.TAdminSetPasswordBody = {},
+): Promise<t.TAdminSetPasswordResponse> => {
+  return request.post(endpoints.adminSetUserPassword(userId), payload);
+};
+
 export const verifyEmail = (payload: t.TVerifyEmail): Promise<t.VerifyEmailResponse> => {
   return request.post(endpoints.verifyEmail(), payload);
 };

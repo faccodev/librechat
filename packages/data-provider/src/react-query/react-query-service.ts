@@ -295,6 +295,32 @@ export const useResetPasswordMutation = (): UseMutationResult<
   return useMutation((payload: t.TResetPassword) => dataService.resetPassword(payload));
 };
 
+export const useChangePasswordMutation = (): UseMutationResult<
+  t.TChangePasswordResponse,
+  Error,
+  t.TChangePasswordBody,
+  unknown
+> => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: t.TChangePasswordBody) => dataService.changePassword(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries([QueryKeys.user]);
+    },
+  });
+};
+
+export const useAdminSetUserPasswordMutation = (): UseMutationResult<
+  t.TAdminSetPasswordResponse,
+  Error,
+  { userId: string; body: t.TAdminSetPasswordBody },
+  unknown
+> => {
+  return useMutation({
+    mutationFn: ({ userId, body }) => dataService.adminSetUserPassword(userId, body),
+  });
+};
+
 export const useAvailablePluginsQuery = <TData = s.TPlugin[]>(
   config?: UseQueryOptions<s.TPlugin[], unknown, TData>,
 ): QueryObserverResult<TData> => {

@@ -13,6 +13,7 @@ import {
   Tag,
   UserPlus,
   Trash2,
+  KeyRound,
 } from 'lucide-react';
 import {
   OGDialog,
@@ -28,6 +29,7 @@ import {
   useUpdateAdminUserRole,
   useDeleteAdminUser,
 } from '~/data-provider';
+import AdminResetPasswordDialog from './AdminResetPasswordDialog';
 import UserWorkspacePanel from '../Nav/Workspaces/UserWorkspacePanel';
 
 const PAGE_SIZE = 20;
@@ -90,7 +92,9 @@ function AdminUserRow({ user, onClick, isSelected }: AdminUserRowProps) {
             {displayName}
           </span>
           {isAdmin && (
-            <Shield className="size-3 text-amber-500 flex-shrink-0" title="Admin" />
+            <span title="Admin" className="flex-shrink-0">
+              <Shield className="size-3 text-amber-500" />
+            </span>
           )}
         </div>
         <div className="truncate text-xs text-text-secondary">{user.email}</div>
@@ -120,10 +124,13 @@ function UserDetailPanel({ user, onClose, onUserUpdate }: UserDetailPanelProps) 
   const updateRoleMutation = useUpdateAdminUserRole(user.id);
   const deleteUserMutation = useDeleteAdminUser();
   const { user: currentUser } = useAuthContext();
+  const localize = useLocalize();
   const [role, setRole] = useState(user.role);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isResetPasswordOpen, setResetPasswordOpen] = useState(false);
   const isAdmin = role === SystemRoles.ADMIN;
   const isSelf = currentUser?.id === user.id;
+  const isLocal = user.provider === 'local';
   const initial = (user.name || user.email || '?').charAt(0).toUpperCase();
   const joinDate = user.createdAt
     ? new Date(user.createdAt).toLocaleDateString('pt-BR', {
@@ -248,59 +255,78 @@ function UserDetailPanel({ user, onClose, onUserUpdate }: UserDetailPanelProps) 
 
       {/* Danger zone — delete user (blocked for self) */}
       <div className="mt-auto border-t border-border-light pt-4">
-        {!isSelf ? (
-          confirmDelete ? (
-            <div className="space-y-2 rounded-lg border border-red-300 bg-red-50 p-3 dark:border-red-800 dark:bg-red-950/30">
-              <p className="text-xs font-medium text-red-700 dark:text-red-300">
-                Excluir <strong>{user.name || user.email}</strong> permanentemente?
-                Esta ação não pode ser desfeita.
-              </p>
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setConfirmDelete(false)}
-                  disabled={deleteUserMutation.isLoading}
-                  className="rounded-lg border border-border-light px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-surface-secondary"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    deleteUserMutation.mutate(user.id, {
-                      onSuccess: () => {
-                        setConfirmDelete(false);
-                        onUserUpdate();
-                        onClose();
-                      },
-                      onError: (err: any) => {
-                        alert(err?.message || 'Failed to delete user');
-                      },
-                    });
-                  }}
-                  disabled={deleteUserMutation.isLoading}
-                  className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
-                >
-                  {deleteUserMutation.isLoading ? 'Excluindo...' : 'Excluir definitivamente'}
-                </button>
-              </div>
-            </div>
-          ) : (
+        <div className="space-y-2">
+          {isLocal && !isSelf ? (
             <button
               type="button"
-              onClick={() => setConfirmDelete(true)}
-              className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-300 px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/30"
+              onClick={() => setResetPasswordOpen(true)}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-amber-300 px-3 py-2 text-xs font-medium text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-950/30"
             >
-              <Trash2 className="size-3.5" />
-              Excluir usuário
+              <KeyRound className="size-3.5" />
+              {localize('com_ui_admin_reset_password_action')}
             </button>
-          )
-        ) : (
-          <p className="text-[10px] italic text-text-secondary">
-            Você não pode excluir sua própria conta pelo painel admin.
-          </p>
-        )}
+          ) : null}
+          {!isSelf ? (
+            confirmDelete ? (
+              <div className="space-y-2 rounded-lg border border-red-300 bg-red-50 p-3 dark:border-red-800 dark:bg-red-950/30">
+                <p className="text-xs font-medium text-red-700 dark:text-red-300">
+                  Excluir <strong>{user.name || user.email}</strong> permanentemente?
+                  Esta ação não pode ser desfeita.
+                </p>
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete(false)}
+                    disabled={deleteUserMutation.isLoading}
+                    className="rounded-lg border border-border-light px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-surface-secondary"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      deleteUserMutation.mutate(user.id, {
+                        onSuccess: () => {
+                          setConfirmDelete(false);
+                          onUserUpdate();
+                          onClose();
+                        },
+                        onError: (err: any) => {
+                          alert(err?.message || 'Failed to delete user');
+                        },
+                      });
+                    }}
+                    disabled={deleteUserMutation.isLoading}
+                    className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                  >
+                    {deleteUserMutation.isLoading ? 'Excluindo...' : 'Excluir definitivamente'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(true)}
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-300 px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/30"
+              >
+                <Trash2 className="size-3.5" />
+                Excluir usuário
+              </button>
+            )
+          ) : (
+            <p className="text-[10px] italic text-text-secondary">
+              Você não pode excluir sua própria conta pelo painel admin.
+            </p>
+          )}
+        </div>
       </div>
+
+      <AdminResetPasswordDialog
+        open={isResetPasswordOpen}
+        onOpenChange={setResetPasswordOpen}
+        userId={user.id}
+        userName={user.name || user.email || user.username || user.id}
+      />
     </div>
   );
 }
