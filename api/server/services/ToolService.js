@@ -64,7 +64,7 @@ const { primeFiles: primeCodeFiles } = require('~/server/services/Files/Code/pro
 const { manifestToolMap, toolkits } = require('~/app/clients/tools/manifest');
 const { createOnSearchResults } = require('~/server/services/Tools/search');
 const { reinitMCPServer } = require('~/server/services/Tools/mcp');
-const { createMCPPermissionContext, resolveConfigServers } = require('~/server/services/MCP');
+const { createMCPPermissionContext, resolveConfigServers, resolveAllMcpConfigs } = require('~/server/services/MCP');
 const { recordUsage } = require('~/server/services/Threads');
 const { loadTools } = require('~/app/clients/tools/util');
 const { redactMessage } = require('~/config/parsers');
@@ -530,11 +530,12 @@ const isBuiltInTool = (toolName) =>
  * }>}
  */
 async function loadToolDefinitionsWrapper({ req, res, agent, streamId = null, tool_resources }) {
-  if (!agent.tools || agent.tools.length === 0) {
+  if ((!agent.tools || agent.tools.length === 0) && agent.autoTools !== true) {
     return { toolDefinitions: [] };
   }
 
   if (
+    agent.tools &&
     agent.tools.length === 1 &&
     (agent.tools[0] === AgentCapabilities.context || agent.tools[0] === AgentCapabilities.ocr)
   ) {
@@ -552,11 +553,28 @@ async function loadToolDefinitionsWrapper({ req, res, agent, streamId = null, to
   const codeExecutionEnabled =
     agent.tools?.includes(Tools.execute_code) === true &&
     enabledCapabilities.has(AgentCapabilities.execute_code);
-  const hasMCPTools = agent.tools?.some((tool) => tool?.includes(Constants.mcp_delimiter));
+  const hasMCPTools =
+    agent.autoTools === true ||
+    agent.tools?.some((tool) => tool?.includes(Constants.mcp_delimiter));
   const mcpPermissionContext = createMCPPermissionContext(req);
   const canUseMCP = hasMCPTools ? await mcpPermissionContext.canUseServers(req.user) : true;
 
-  let filteredTools = agent.tools?.filter((tool) => {
+  let tools = [...(agent.tools || [])];
+  if (agent.autoTools === true && areToolsEnabled && canUseMCP) {
+    const mcpConfigs = await resolveAllMcpConfigs(req.user.id, req.user);
+    const serverNames = Object.keys(mcpConfigs ?? {});
+    for (const serverName of serverNames) {
+      const alreadyCovered = tools.some(t =>
+        t === `${Constants.mcp_all}${Constants.mcp_delimiter}${serverName}` ||
+        t.endsWith(`${Constants.mcp_delimiter}${serverName}`)
+      );
+      if (!alreadyCovered) {
+        tools.push(`${Constants.mcp_all}${Constants.mcp_delimiter}${serverName}`);
+      }
+    }
+  }
+
+  let filteredTools = tools.filter((tool) => {
     if (tool === Tools.file_search) {
       return checkCapability(AgentCapabilities.file_search);
     }
@@ -839,6 +857,7 @@ async function loadToolDefinitionsWrapper({ req, res, agent, streamId = null, to
       deferredToolsEnabled,
       programmaticToolsEnabled,
       codeExecutionEnabled,
+      autoTools: agent.autoTools,
     },
     {
       isBuiltInTool,
@@ -895,6 +914,7 @@ async function loadToolDefinitionsWrapper({ req, res, agent, streamId = null, to
           deferredToolsEnabled,
           programmaticToolsEnabled,
           codeExecutionEnabled,
+          autoTools: agent.autoTools,
         },
         {
           isBuiltInTool,
@@ -1032,7 +1052,7 @@ async function loadAgentTools({
     return loadToolDefinitionsWrapper({ req, res, agent, streamId, tool_resources });
   }
 
-  if (!agent.tools || agent.tools.length === 0) {
+  if ((!agent.tools || agent.tools.length === 0) && agent.autoTools !== true) {
     return { toolDefinitions: [] };
   } else if (
     agent.tools &&
@@ -1062,12 +1082,29 @@ async function loadAgentTools({
   };
   const areToolsEnabled = checkCapability(AgentCapabilities.tools);
   const actionsEnabled = checkCapability(AgentCapabilities.actions);
-  const hasMCPTools = agent.tools?.some((tool) => tool?.includes(Constants.mcp_delimiter));
+  const hasMCPTools =
+    agent.autoTools === true ||
+    agent.tools?.some((tool) => tool?.includes(Constants.mcp_delimiter));
   const mcpPermissionContext = createMCPPermissionContext(req);
   const canUseMCP = hasMCPTools ? await mcpPermissionContext.canUseServers(req.user) : true;
 
   let includesWebSearch = false;
-  let _agentTools = agent.tools?.filter((tool) => {
+  let tools = [...(agent.tools || [])];
+  if (agent.autoTools === true && areToolsEnabled && canUseMCP) {
+    const mcpConfigs = await resolveAllMcpConfigs(req.user.id, req.user);
+    const serverNames = Object.keys(mcpConfigs ?? {});
+    for (const serverName of serverNames) {
+      const alreadyCovered = tools.some(t =>
+        t === `${Constants.mcp_all}${Constants.mcp_delimiter}${serverName}` ||
+        t.endsWith(`${Constants.mcp_delimiter}${serverName}`)
+      );
+      if (!alreadyCovered) {
+        tools.push(`${Constants.mcp_all}${Constants.mcp_delimiter}${serverName}`);
+      }
+    }
+  }
+
+  let _agentTools = tools.filter((tool) => {
     if (tool === Tools.file_search) {
       return checkCapability(AgentCapabilities.file_search);
     } else if (tool === Tools.execute_code) {
@@ -1199,6 +1236,7 @@ async function loadAgentTools({
       programmaticToolsEnabled,
       codeExecutionEnabled,
       authHeaders: () => getCodeApiAuthHeaders(req),
+      autoTools: agent.autoTools,
     });
 
   const agentTools = [];

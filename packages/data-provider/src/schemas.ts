@@ -316,6 +316,7 @@ export const defaultAgentFormValues = {
   subagents: undefined as
     | { enabled?: boolean; allowSelf?: boolean; agent_ids?: string[] }
     | undefined,
+  autoTools: false,
 };
 
 export const ImageVisionTool: FunctionTool = {

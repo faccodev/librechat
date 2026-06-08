@@ -36,7 +36,7 @@ export * from './accessPermissions';
 export * from './keys';
 /* api call helpers */
 export * from './headers-helpers';
-export { loginPage, registerPage, apiBaseUrl, buildLoginRedirectUrl } from './api-endpoints';
+export { loginPage, registerPage, apiBaseUrl, buildLoginRedirectUrl, workspaceRaw } from './api-endpoints';
 export { default as request } from './request';
 export { dataService };
 import * as dataService from './data-service';

@@ -124,9 +124,9 @@ export function createAppConfigService(deps: AppConfigServiceDeps) {
    */
   async function ensureBaseConfig(refresh?: boolean): Promise<AppConfig> {
     let baseConfig = (await cache.get(BASE_CONFIG_KEY)) as AppConfig | undefined;
-    if (!baseConfig || refresh) {
-      logger.info('[ensureBaseConfig] Loading base configuration...');
-      baseConfig = await loadBaseConfig();
+      if (!baseConfig || refresh) {
+        logger.debug('[ensureBaseConfig] Loading base configuration...');
+        baseConfig = await loadBaseConfig();
 
       if (!baseConfig) {
         throw new Error('Failed to initialize app configuration through AppService.');

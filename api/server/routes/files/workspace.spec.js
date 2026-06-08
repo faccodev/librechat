@@ -17,6 +17,7 @@ const router = require('./workspace');
 
 const buildApp = ({ user, appConfig }) => {
   const app = express();
+  app.use(express.json());
   app.use((req, _res, next) => {
     req.user = user;
     req.config = appConfig;
@@ -219,5 +220,252 @@ describe('GET /files/workspace/raw', () => {
     });
     const res = await request(app).get('/files/workspace/raw?path=note.txt');
     expect(res.status).toBe(404);
+  });
+});
+
+describe('CRUD: POST /files/workspace/mkdir', () => {
+  let workRoot;
+  let user;
+  beforeEach(async () => {
+    workRoot = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'librechat-ws-mkdir-'));
+    user = { id: 'user-1', workspaceSubdir: null };
+  });
+  afterEach(async () => {
+    await fs.promises.rm(workRoot, { recursive: true, force: true });
+  });
+
+  it('creates a directory', async () => {
+    const app = buildApp({
+      user,
+      appConfig: { workspaces: { enabled: true, containerBasePath: workRoot, sizeLimitMB: 2048 } },
+    });
+    const res = await request(app)
+      .post('/files/workspace/mkdir')
+      .send({ parentPath: '', name: 'new-folder' });
+    expect(res.status).toBe(201);
+    expect(res.body.name).toBe('new-folder');
+    expect(res.body.type).toBe('dir');
+    const stat = await fs.promises.stat(path.join(workRoot, 'new-folder'));
+    expect(stat.isDirectory()).toBe(true);
+  });
+
+  it('rejects invalid names', async () => {
+    const app = buildApp({
+      user,
+      appConfig: { workspaces: { enabled: true, containerBasePath: workRoot, sizeLimitMB: 2048 } },
+    });
+    const res = await request(app)
+      .post('/files/workspace/mkdir')
+      .send({ parentPath: '', name: '../escape' });
+    expect(res.status).toBe(400);
+  });
+});
+
+describe('CRUD: POST /files/workspace/create', () => {
+  let workRoot;
+  let user;
+  beforeEach(async () => {
+    workRoot = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'librechat-ws-create-'));
+    user = { id: 'user-1', workspaceSubdir: null };
+  });
+  afterEach(async () => {
+    await fs.promises.rm(workRoot, { recursive: true, force: true });
+  });
+
+  it('creates an empty file by default', async () => {
+    const app = buildApp({
+      user,
+      appConfig: { workspaces: { enabled: true, containerBasePath: workRoot, sizeLimitMB: 2048 } },
+    });
+    const res = await request(app)
+      .post('/files/workspace/create')
+      .send({ parentPath: '', name: 'note.txt' });
+    expect(res.status).toBe(201);
+    expect(res.body.name).toBe('note.txt');
+    expect(res.body.size).toBe(0);
+    const content = await fs.promises.readFile(path.join(workRoot, 'note.txt'), 'utf8');
+    expect(content).toBe('');
+  });
+
+  it('seeds content when provided', async () => {
+    const app = buildApp({
+      user,
+      appConfig: { workspaces: { enabled: true, containerBasePath: workRoot, sizeLimitMB: 2048 } },
+    });
+    const res = await request(app)
+      .post('/files/workspace/create')
+      .send({ parentPath: '', name: 'README.md', content: '# hi' });
+    expect(res.status).toBe(201);
+    expect(res.body.size).toBe(4);
+    const content = await fs.promises.readFile(path.join(workRoot, 'README.md'), 'utf8');
+    expect(content).toBe('# hi');
+  });
+
+  it('returns 409 on collision', async () => {
+    await fs.promises.writeFile(path.join(workRoot, 'dup.txt'), 'x');
+    const app = buildApp({
+      user,
+      appConfig: { workspaces: { enabled: true, containerBasePath: workRoot, sizeLimitMB: 2048 } },
+    });
+    const res = await request(app)
+      .post('/files/workspace/create')
+      .send({ parentPath: '', name: 'dup.txt' });
+    expect(res.status).toBe(409);
+  });
+});
+
+describe('CRUD: PUT /files/workspace/content', () => {
+  let workRoot;
+  let user;
+  beforeEach(async () => {
+    workRoot = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'librechat-ws-write-'));
+    user = { id: 'user-1', workspaceSubdir: null };
+  });
+  afterEach(async () => {
+    await fs.promises.rm(workRoot, { recursive: true, force: true });
+  });
+
+  it('overwrites the content of an existing file', async () => {
+    await fs.promises.writeFile(path.join(workRoot, 'target.txt'), 'old');
+    const app = buildApp({
+      user,
+      appConfig: { workspaces: { enabled: true, containerBasePath: workRoot, sizeLimitMB: 2048 } },
+    });
+    const res = await request(app)
+      .put('/files/workspace/content')
+      .send({ path: 'target.txt', content: 'new' });
+    expect(res.status).toBe(200);
+    const content = await fs.promises.readFile(path.join(workRoot, 'target.txt'), 'utf8');
+    expect(content).toBe('new');
+  });
+
+  it('returns 404 for a missing file', async () => {
+    const app = buildApp({
+      user,
+      appConfig: { workspaces: { enabled: true, containerBasePath: workRoot, sizeLimitMB: 2048 } },
+    });
+    const res = await request(app)
+      .put('/files/workspace/content')
+      .send({ path: 'missing.txt', content: 'x' });
+    expect(res.status).toBe(404);
+  });
+});
+
+describe('CRUD: PATCH /files/workspace/rename', () => {
+  let workRoot;
+  let user;
+  beforeEach(async () => {
+    workRoot = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'librechat-ws-rename-'));
+    user = { id: 'user-1', workspaceSubdir: null };
+  });
+  afterEach(async () => {
+    await fs.promises.rm(workRoot, { recursive: true, force: true });
+  });
+
+  it('renames a file', async () => {
+    await fs.promises.writeFile(path.join(workRoot, 'a.txt'), 'x');
+    const app = buildApp({
+      user,
+      appConfig: { workspaces: { enabled: true, containerBasePath: workRoot, sizeLimitMB: 2048 } },
+    });
+    const res = await request(app)
+      .patch('/files/workspace/rename')
+      .send({ path: 'a.txt', newName: 'b.txt' });
+    expect(res.status).toBe(200);
+    expect(res.body.name).toBe('b.txt');
+    await expect(fs.promises.stat(path.join(workRoot, 'b.txt'))).resolves.toBeDefined();
+    await expect(fs.promises.stat(path.join(workRoot, 'a.txt'))).rejects.toMatchObject({
+      code: 'ENOENT',
+    });
+  });
+
+  it('rejects when name already exists', async () => {
+    await fs.promises.writeFile(path.join(workRoot, 'a.txt'), 'x');
+    await fs.promises.writeFile(path.join(workRoot, 'b.txt'), 'x');
+    const app = buildApp({
+      user,
+      appConfig: { workspaces: { enabled: true, containerBasePath: workRoot, sizeLimitMB: 2048 } },
+    });
+    const res = await request(app)
+      .patch('/files/workspace/rename')
+      .send({ path: 'a.txt', newName: 'b.txt' });
+    expect(res.status).toBe(409);
+  });
+});
+
+describe('CRUD: PATCH /files/workspace/move', () => {
+  let workRoot;
+  let user;
+  beforeEach(async () => {
+    workRoot = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'librechat-ws-move-'));
+    user = { id: 'user-1', workspaceSubdir: null };
+  });
+  afterEach(async () => {
+    await fs.promises.rm(workRoot, { recursive: true, force: true });
+  });
+
+  it('moves a file into a subdirectory', async () => {
+    const sub = path.join(workRoot, 'sub');
+    await fs.promises.mkdir(sub);
+    await fs.promises.writeFile(path.join(workRoot, 'm.txt'), 'x');
+    const app = buildApp({
+      user,
+      appConfig: { workspaces: { enabled: true, containerBasePath: workRoot, sizeLimitMB: 2048 } },
+    });
+    const res = await request(app)
+      .patch('/files/workspace/move')
+      .send({ from: 'm.txt', toParent: 'sub' });
+    expect(res.status).toBe(200);
+    expect(res.body.path).toBe('sub/m.txt');
+  });
+});
+
+describe('CRUD: DELETE /files/workspace', () => {
+  let workRoot;
+  let user;
+  beforeEach(async () => {
+    workRoot = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'librechat-ws-del-'));
+    user = { id: 'user-1', workspaceSubdir: null };
+  });
+  afterEach(async () => {
+    await fs.promises.rm(workRoot, { recursive: true, force: true });
+  });
+
+  it('deletes a file', async () => {
+    await fs.promises.writeFile(path.join(workRoot, 'doomed.txt'), 'x');
+    const app = buildApp({
+      user,
+      appConfig: { workspaces: { enabled: true, containerBasePath: workRoot, sizeLimitMB: 2048 } },
+    });
+    const res = await request(app)
+      .delete('/files/workspace')
+      .send({ paths: ['doomed.txt'] });
+    expect(res.status).toBe(200);
+    expect(res.body.deleted).toEqual(['doomed.txt']);
+    expect(res.body.failed).toEqual([]);
+  });
+
+  it('reports per-path failure for missing entries', async () => {
+    const app = buildApp({
+      user,
+      appConfig: { workspaces: { enabled: true, containerBasePath: workRoot, sizeLimitMB: 2048 } },
+    });
+    const res = await request(app)
+      .delete('/files/workspace')
+      .send({ paths: ['missing.txt'] });
+    expect(res.status).toBe(200);
+    expect(res.body.deleted).toEqual([]);
+    expect(res.body.failed).toHaveLength(1);
+  });
+
+  it('rejects an empty paths array', async () => {
+    const app = buildApp({
+      user,
+      appConfig: { workspaces: { enabled: true, containerBasePath: workRoot, sizeLimitMB: 2048 } },
+    });
+    const res = await request(app)
+      .delete('/files/workspace')
+      .send({ paths: [] });
+    expect(res.status).toBe(400);
   });
 });

@@ -365,7 +365,7 @@ export function createRoleMethods(mongoose: typeof import('mongoose'), deps: Rol
 
         logger.info(`Updated '${roleName}' role permissions`);
       } else {
-        logger.info(`No changes needed for '${roleName}' role permissions`);
+        logger.debug(`No changes needed for '${roleName}' role permissions`);
       }
     } catch (error) {
       logger.error(`Failed to update ${roleName} role permissions:`, error);

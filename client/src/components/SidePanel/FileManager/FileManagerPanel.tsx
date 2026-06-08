@@ -1,43 +1,156 @@
-import { useMemo, useState, useCallback, useEffect } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { matchSorter } from 'match-sorter';
-import { RefreshCw, Search, X } from 'lucide-react';
+import {
+  Ellipsis,
+  FilePlus2,
+  FolderPlus,
+  RefreshCw,
+  Search,
+  Upload,
+  X,
+} from 'lucide-react';
 import type { WorkspaceNode } from 'librechat-data-provider';
 import {
   Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
   FilterInput,
-  TooltipAnchor,
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
+  Spinner,
+  useToastContext,
 } from '@librechat/client';
-import { useWorkspaceTree } from '~/data-provider';
 import { useLocalize } from '~/hooks';
 import { useFileManagerPath } from './hooks/useFileManagerPath';
+import {
+  useCreateWorkspaceDirectory,
+  useCreateWorkspaceFile,
+  useDeleteWorkspaceNodes,
+  useRenameWorkspaceNode,
+  useUploadWorkspaceFile,
+} from '~/data-provider/Files/workspaceMutations';
+import { useWorkspaceTree } from '~/data-provider';
 import Breadcrumb from './Breadcrumb';
 import NodeList from './NodeList';
-import PreviewPane from './PreviewPane';
+import PreviewModal from './PreviewModal';
+import EditorModal from './EditorModal';
+import SearchResultsView from './SearchResultsView';
+import NewNameDialog from './dialogs/NewNameDialog';
+import DeleteConfirmDialog from './dialogs/DeleteConfirmDialog';
 
-const PANEL_LIST_DEFAULT = 60;
-const PANEL_LIST_MIN = 35;
-const PANEL_LIST_MAX = 80;
-const LS_PANEL_SIZE_KEY = 'librechat:fm:listSize';
+type DialogState =
+  | { kind: 'none' }
+  | { kind: 'newFile' }
+  | { kind: 'newFolder' }
+  | { kind: 'rename'; node: WorkspaceNode }
+  | { kind: 'delete'; nodes: WorkspaceNode[] }
+  | { kind: 'preview'; node: WorkspaceNode }
+  | { kind: 'edit'; node: WorkspaceNode };
+
+/** Min chars before we switch from local filter to the recursive search. */
+const SEARCH_MIN_CHARS = 3;
 
 const FileManagerPanel = () => {
   const localize = useLocalize();
+  const { showToast } = useToastContext();
   const { path, setPath } = useFileManagerPath();
   const [filter, setFilter] = useState('');
-  const [selected, setSelected] = useState<WorkspaceNode | null>(null);
+  const [dialog, setDialog] = useState<DialogState>({ kind: 'none' });
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const tree = useWorkspaceTree(path);
   const { data, isLoading, isError, isFetching, refetch } = tree;
+
+  const [, setSelected] = useState<WorkspaceNode | null>(null);
 
   const allNodes = data?.nodes ?? [];
   const truncated = data?.truncated ?? false;
   const workspacePath = data?.workspacePath;
 
+  const trimmedFilter = filter.trim();
+  const searchMode = trimmedFilter.length >= SEARCH_MIN_CHARS;
+
+  /** Local fast-filter applied to the current directory only. */
   const visibleNodes = useMemo(() => {
-    if (!filter.trim()) return allNodes;
-    return matchSorter(allNodes, filter, { keys: ['name'] });
-  }, [allNodes, filter]);
+    if (!trimmedFilter) return allNodes;
+    return matchSorter(allNodes, trimmedFilter, { keys: ['name'] });
+  }, [allNodes, trimmedFilter]);
+
+  const createDirectory = useCreateWorkspaceDirectory({
+    onSuccess: (node) => {
+      showToast({ message: localize('com_fm_action_folder_created'), status: 'success' });
+      setDialog({ kind: 'none' });
+      setPath(node.path);
+    },
+    onError: (err) => {
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        localize('com_fm_action_folder_create_failed');
+      showToast({ message, status: 'error' });
+    },
+  });
+
+  const createFile = useCreateWorkspaceFile({
+    onSuccess: (node) => {
+      showToast({ message: localize('com_fm_action_file_created'), status: 'success' });
+      setDialog({ kind: 'none' });
+      setDialog({ kind: 'edit', node });
+    },
+    onError: (err) => {
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        localize('com_fm_action_file_create_failed');
+      showToast({ message, status: 'error' });
+    },
+  });
+
+  const renameNode = useRenameWorkspaceNode({
+    onSuccess: () => {
+      showToast({ message: localize('com_fm_action_renamed'), status: 'success' });
+      setDialog({ kind: 'none' });
+    },
+    onError: (err) => {
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        localize('com_fm_action_rename_failed');
+      showToast({ message, status: 'error' });
+    },
+  });
+
+  const deleteNodes = useDeleteWorkspaceNodes({
+    onSuccess: (result) => {
+      if (result.failed.length > 0) {
+        showToast({
+          message: localize('com_fm_action_delete_partial', {
+            deleted: result.deleted.length,
+            failed: result.failed.length,
+          }),
+          status: 'warning',
+        });
+      } else {
+        showToast({ message: localize('com_fm_action_deleted'), status: 'success' });
+      }
+      setDialog({ kind: 'none' });
+    },
+    onError: (err) => {
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        localize('com_fm_action_delete_failed');
+      showToast({ message, status: 'error' });
+    },
+  });
+
+  const upload = useUploadWorkspaceFile({
+    onSuccess: () => {
+      showToast({ message: localize('com_fm_action_uploaded'), status: 'success' });
+    },
+    onError: (err) => {
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        localize('com_fm_action_upload_failed');
+      showToast({ message, status: 'error' });
+    },
+  });
 
   const handleEnterDir = useCallback(
     (node: WorkspaceNode) => {
@@ -48,44 +161,90 @@ const FileManagerPanel = () => {
     [setPath],
   );
 
-  const handleSelect = useCallback((node: WorkspaceNode) => {
-    if (node.type === 'dir') {
-      setSelected(null);
-      setPath(node.path);
-      return;
-    }
-    setSelected(node);
-  }, [setPath]);
+  const handleSelect = useCallback(
+    (node: WorkspaceNode) => {
+      if (node.type === 'dir') {
+        setPath(node.path);
+        return;
+      }
+      setDialog({ kind: 'preview', node });
+    },
+    [setPath],
+  );
 
-  const handleClosePreview = useCallback(() => setSelected(null), []);
+  const handleView = useCallback((node: WorkspaceNode) => {
+    setDialog({ kind: 'preview', node });
+  }, []);
+
+  const handleEdit = useCallback(
+    (node: WorkspaceNode) => {
+      if (node.type === 'dir') {
+        setPath(node.path);
+        return;
+      }
+      setDialog({ kind: 'edit', node });
+    },
+    [setPath],
+  );
 
   const handleGoUp = useCallback(() => {
     if (!path) return;
     const segments = path.split('/').filter(Boolean);
     segments.pop();
     setPath(segments.join('/'));
-    setSelected(null);
   }, [path, setPath]);
 
   const handleClearFilter = useCallback(() => setFilter(''), []);
 
-  // ESC closes the preview regardless of focus inside the panel.
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && selected) {
-        e.stopPropagation();
-        setSelected(null);
+  const handleUpload = useCallback(
+    async (files: FileList) => {
+      for (let i = 0; i < files.length; i += 1) {
+        const file = files[i];
+        const formData = new FormData();
+        formData.append('file', file);
+        await upload.mutateAsync({ parentPath: path, formData });
       }
-    };
-    window.addEventListener('keydown', onKeyDown, { capture: true });
-    return () => window.removeEventListener('keydown', onKeyDown, { capture: true });
-  }, [selected]);
+    },
+    [path, upload],
+  );
 
-  // Clear selection when navigating to a different directory so the
-  // preview pane doesn't keep showing a file that's no longer in view.
-  useEffect(() => {
-    setSelected(null);
-  }, [path]);
+  const handleFileInput = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files) {
+        handleUpload(e.target.files).finally(() => {
+          if (fileInputRef.current) fileInputRef.current.value = '';
+        });
+      }
+    },
+    [handleUpload],
+  );
+
+  const handleDropFiles = useCallback(
+    (files: FileList) => {
+      void handleUpload(files);
+    },
+    [handleUpload],
+  );
+
+  /** Open a search result: dirs navigate, files navigate to parent + open preview. */
+  const handleOpenSearchDir = useCallback(
+    (target: string) => {
+      setFilter('');
+      setPath(target);
+    },
+    [setPath],
+  );
+
+  const handleOpenSearchFile = useCallback(
+    (node: WorkspaceNode) => {
+      setFilter('');
+      const lastSlash = node.path.lastIndexOf('/');
+      const parent = lastSlash > 0 ? node.path.slice(0, lastSlash) : '';
+      setPath(parent);
+      setDialog({ kind: 'preview', node });
+    },
+    [setPath],
+  );
 
   return (
     <div
@@ -93,97 +252,186 @@ const FileManagerPanel = () => {
       aria-label={localize('com_sidepanel_file_manager')}
       className="flex h-full w-full flex-col"
     >
-      <ResizablePanelGroup orientation="horizontal" className="flex-1">
-        <ResizablePanel
-          defaultSize={PANEL_LIST_DEFAULT}
-          minSize={PANEL_LIST_MIN}
-          maxSize={PANEL_LIST_MAX}
-          id="fm-list"
-        >
-          <div className="flex h-full w-full flex-col px-3 pb-3 pt-2">
-            <div className="flex items-center gap-2 pb-2">
-              <div className="relative flex-1">
-                <FilterInput
-                  inputId="fm-filter"
-                  label={localize('com_fm_filter_placeholder')}
-                  value={filter}
-                  onChange={(e) => setFilter(e.target.value)}
-                />
-                {filter ? (
-                  <button
-                    type="button"
-                    onClick={handleClearFilter}
-                    aria-label={localize('com_ui_clear')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
-                  >
-                    <X className="size-3.5" aria-hidden="true" />
-                  </button>
-                ) : (
-                  <Search
-                    className="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-text-secondary"
-                    aria-hidden="true"
-                  />
-                )}
-              </div>
-              <TooltipAnchor
-                description={localize('com_ui_refresh')}
-                side="bottom"
-                render={
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="size-9 shrink-0 bg-transparent"
-                    aria-label={localize('com_ui_refresh')}
-                    onClick={() => refetch()}
-                    disabled={isFetching}
-                  >
-                    <RefreshCw
-                      className={isFetching ? 'size-4 animate-spin' : 'size-4'}
-                      aria-hidden="true"
-                    />
-                  </Button>
-                }
-              />
-            </div>
-
-            <div className="min-w-0 pb-2">
-              <Breadcrumb path={path} onNavigate={setPath} />
-            </div>
-
-            <NodeList
-              isLoading={isLoading}
-              isError={isError}
-              isFetching={isFetching}
-              path={path}
-              nodes={visibleNodes}
-              truncated={truncated}
-              onEnterDir={handleEnterDir}
-              onSelect={handleSelect}
-              onGoUp={handleGoUp}
-              onRetry={() => refetch()}
-              selected={selected}
+      <div className="flex flex-col gap-1.5 px-3 pt-2">
+        {/* Search bar + actions menu */}
+        <div className="flex items-center gap-1.5">
+          <div className="relative flex-1">
+            <FilterInput
+              inputId="fm-filter"
+              label={localize('com_fm_filter_placeholder')}
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              containerClassName="w-full"
             />
-
-            {workspacePath && (
-              <p
-                className="mt-1 truncate border-t border-border-light pt-2 font-mono text-[10px] text-text-secondary"
-                title={workspacePath}
+            {filter ? (
+              <button
+                type="button"
+                onClick={handleClearFilter}
+                aria-label={localize('com_ui_clear')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
               >
-                {workspacePath}
-              </p>
+                <X className="size-3.5" aria-hidden="true" />
+              </button>
+            ) : (
+              <Search
+                className="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-text-secondary"
+                aria-hidden="true"
+              />
             )}
           </div>
-        </ResizablePanel>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                className="size-9 shrink-0 bg-transparent"
+                aria-label={localize('com_fm_actions_menu_aria')}
+                disabled={upload.isLoading}
+              >
+                {upload.isLoading ? (
+                  <Spinner className="size-4" />
+                ) : (
+                  <Ellipsis className="size-4" aria-hidden="true" />
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-[180px]">
+              <DropdownMenuItem onSelect={() => setDialog({ kind: 'newFile' })}>
+                <FilePlus2 className="mr-2 size-4" aria-hidden="true" />
+                {localize('com_fm_action_new_file')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setDialog({ kind: 'newFolder' })}>
+                <FolderPlus className="mr-2 size-4" aria-hidden="true" />
+                {localize('com_fm_action_new_folder')}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() => fileInputRef.current?.click()}
+                disabled={upload.isLoading}
+              >
+                <Upload className="mr-2 size-4" aria-hidden="true" />
+                {localize('com_fm_action_upload')}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => refetch()} disabled={isFetching}>
+                <RefreshCw
+                  className={isFetching ? 'mr-2 size-4 animate-spin' : 'mr-2 size-4'}
+                  aria-hidden="true"
+                />
+                {localize('com_ui_refresh')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            className="hidden"
+            onChange={handleFileInput}
+          />
+        </div>
 
-        {selected && (
-          <>
-            <ResizableHandle withHandle id="fm-resize" />
-            <ResizablePanel id="fm-preview" minSize={20}>
-              <PreviewPane node={selected} onClose={handleClosePreview} />
-            </ResizablePanel>
-          </>
-        )}
-      </ResizablePanelGroup>
+        <Breadcrumb path={path} onNavigate={setPath} />
+      </div>
+
+      {searchMode ? (
+        <SearchResultsView
+          query={trimmedFilter}
+          onOpenDir={handleOpenSearchDir}
+          onOpenFile={handleOpenSearchFile}
+        />
+      ) : (
+        <NodeList
+          isLoading={isLoading}
+          isError={isError}
+          isFetching={isFetching}
+          path={path}
+          nodes={visibleNodes}
+          truncated={truncated}
+          onEnterDir={handleEnterDir}
+          onSelect={handleSelect}
+          onGoUp={handleGoUp}
+          onRetry={() => refetch()}
+          onDropFiles={handleDropFiles}
+          onView={handleView}
+          onEdit={handleEdit}
+          onRename={(node) => setDialog({ kind: 'rename', node })}
+          onDelete={(node) => setDialog({ kind: 'delete', nodes: [node] })}
+        />
+      )}
+
+      {workspacePath && !searchMode && (
+        <p
+          className="mx-3 mt-1 truncate border-t border-border-light pt-2 font-mono text-[10px] text-text-secondary"
+          title={workspacePath}
+        >
+          {workspacePath}
+        </p>
+      )}
+
+      <PreviewModal
+        node={dialog.kind === 'preview' ? dialog.node : null}
+        open={dialog.kind === 'preview'}
+        onOpenChange={(open) => {
+          if (!open) setDialog({ kind: 'none' });
+        }}
+        onEdit={(node) => setDialog({ kind: 'edit', node })}
+        onDelete={(node) => setDialog({ kind: 'delete', nodes: [node] })}
+      />
+
+      <EditorModal
+        node={dialog.kind === 'edit' ? dialog.node : null}
+        open={dialog.kind === 'edit'}
+        onOpenChange={(open) => {
+          if (!open) setDialog({ kind: 'none' });
+        }}
+      />
+
+      <NewNameDialog
+        open={dialog.kind === 'newFolder'}
+        onOpenChange={(open) => {
+          if (!open) setDialog({ kind: 'none' });
+        }}
+        mode="folder"
+        onSubmit={(name) => createDirectory.mutate({ parentPath: path, name })}
+        isSubmitting={createDirectory.isLoading}
+      />
+
+      <NewNameDialog
+        open={dialog.kind === 'newFile'}
+        onOpenChange={(open) => {
+          if (!open) setDialog({ kind: 'none' });
+        }}
+        mode="file"
+        onSubmit={(name) => createFile.mutate({ parentPath: path, name })}
+        isSubmitting={createFile.isLoading}
+      />
+
+      <NewNameDialog
+        open={dialog.kind === 'rename'}
+        onOpenChange={(open) => {
+          if (!open) setDialog({ kind: 'none' });
+        }}
+        mode="rename"
+        initialValue={dialog.kind === 'rename' ? dialog.node.name : ''}
+        onSubmit={(newName) => {
+          if (dialog.kind !== 'rename') return;
+          renameNode.mutate({ path: dialog.node.path, newName });
+        }}
+        isSubmitting={renameNode.isLoading}
+      />
+
+      <DeleteConfirmDialog
+        open={dialog.kind === 'delete'}
+        onOpenChange={(open) => {
+          if (!open) setDialog({ kind: 'none' });
+        }}
+        nodes={dialog.kind === 'delete' ? dialog.nodes : []}
+        onConfirm={() => {
+          if (dialog.kind !== 'delete') return;
+          deleteNodes.mutate({ paths: dialog.nodes.map((n) => n.path) });
+        }}
+        isSubmitting={deleteNodes.isLoading}
+      />
     </div>
   );
 };

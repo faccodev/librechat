@@ -26,6 +26,7 @@ export enum QueryKeys {
   workspaceTree = 'workspaceTree',
   workspaceSearch = 'workspaceSearch',
   workspacePreview = 'workspacePreview',
+  workspaceMutations = 'workspaceMutations',
   tools = 'tools',
   toolAuth = 'toolAuth',
   toolCalls = 'toolCalls',
@@ -134,4 +135,11 @@ export enum MutationKeys {
   updateSkillNodeContent = 'updateSkillNodeContent',
   /* Workspace mutations */
   setUserWorkspace = 'setUserWorkspace',
+  createWorkspaceDirectory = 'createWorkspaceDirectory',
+  createWorkspaceFile = 'createWorkspaceFile',
+  writeWorkspaceContent = 'writeWorkspaceContent',
+  uploadWorkspaceFile = 'uploadWorkspaceFile',
+  renameWorkspaceNode = 'renameWorkspaceNode',
+  moveWorkspaceNode = 'moveWorkspaceNode',
+  deleteWorkspaceNodes = 'deleteWorkspaceNodes',
 }

@@ -9,15 +9,29 @@ import { useLocalize } from '~/hooks';
 import { formatBytes, formatRelative } from './utils/format';
 import { getCategoryIcon, getFileCategory } from './utils/mime';
 import { cn } from '~/utils';
+import NodeActions from './NodeActions';
 
 type NodeRowProps = {
   node: WorkspaceNode;
   isActive: boolean;
   onActivate: (node: WorkspaceNode) => void;
   onOpen: (node: WorkspaceNode) => void;
+  onView?: (node: WorkspaceNode) => void;
+  onEdit?: (node: WorkspaceNode) => void;
+  onRename?: (node: WorkspaceNode) => void;
+  onDelete?: (node: WorkspaceNode) => void;
 };
 
-const NodeRow = ({ node, isActive, onActivate, onOpen }: NodeRowProps) => {
+const NodeRow = ({
+  node,
+  isActive,
+  onActivate,
+  onOpen,
+  onView,
+  onEdit,
+  onRename,
+  onDelete,
+}: NodeRowProps) => {
   const localize = useLocalize();
   const isDir = node.type === 'dir';
   const Icon = isDir
@@ -42,7 +56,7 @@ const NodeRow = ({ node, isActive, onActivate, onOpen }: NodeRowProps) => {
         }
       }}
       className={cn(
-        'flex h-10 w-full items-center gap-2 rounded-md px-2 text-sm transition-colors',
+        'group flex h-10 w-full items-center gap-2 rounded-md px-2 text-sm transition-colors',
         'hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary',
         isActive && 'bg-surface-active font-medium ring-1 ring-inset ring-text-primary/20',
       )}
@@ -66,6 +80,15 @@ const NodeRow = ({ node, isActive, onActivate, onOpen }: NodeRowProps) => {
       </span>
       <span className="hidden w-16 shrink-0 text-right text-xs text-text-secondary sm:block">
         {formatRelative(node.modifiedAt)}
+      </span>
+      <span className="ml-1 shrink-0">
+        <NodeActions
+          node={node}
+          onView={onView}
+          onEdit={onEdit}
+          onRename={onRename}
+          onDelete={onDelete}
+        />
       </span>
     </div>
   );

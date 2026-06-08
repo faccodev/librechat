@@ -319,6 +319,17 @@ export const workspaceRaw = ({ path, download }: { path: string; download?: bool
   return `${BASE_URL}/api/files/workspace/raw?path=${encoded}${params}`;
 };
 
+export const workspaceMkdir = () => `${BASE_URL}/api/files/workspace/mkdir`;
+export const workspaceCreate = () => `${BASE_URL}/api/files/workspace/create`;
+export const workspaceContent = () => `${BASE_URL}/api/files/workspace/content`;
+export const workspaceUpload = (parentPath = '') => {
+  const encoded = parentPath ? `?parentPath=${encodeURIComponent(parentPath)}` : '';
+  return `${BASE_URL}/api/files/workspace/upload${encoded}`;
+};
+export const workspaceRename = () => `${BASE_URL}/api/files/workspace/rename`;
+export const workspaceMove = () => `${BASE_URL}/api/files/workspace/move`;
+export const workspaceDelete = () => `${BASE_URL}/api/files/workspace`;
+
 export const images = () => `${files()}/images`;
 
 export const avatar = () => `${images()}/avatar`;

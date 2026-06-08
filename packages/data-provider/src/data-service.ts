@@ -441,6 +441,51 @@ export const getWorkspaceSearch = (q: string): Promise<f.WorkspaceSearchResult> 
   return request.get(endpoints.workspaceSearch(q));
 };
 
+export const createWorkspaceDirectory = (
+  body: f.WorkspaceCreateDirectoryBody,
+): Promise<f.WorkspaceNode> => {
+  return request.post(endpoints.workspaceMkdir(), body);
+};
+
+export const createWorkspaceFile = (
+  body: f.WorkspaceCreateFileBody,
+): Promise<f.WorkspaceNode> => {
+  return request.post(endpoints.workspaceCreate(), body);
+};
+
+export const writeWorkspaceContent = (
+  body: f.WorkspaceWriteContentBody,
+): Promise<f.WorkspaceNode> => {
+  return request.put(endpoints.workspaceContent(), body);
+};
+
+export const uploadWorkspaceFile = (
+  parentPath: string,
+  formData: FormData,
+  signal?: AbortSignal | null,
+): Promise<f.WorkspaceNode> => {
+  const config = signal ? { signal } : undefined;
+  return request.postMultiPart(endpoints.workspaceUpload(parentPath), formData, config);
+};
+
+export const renameWorkspaceNode = (
+  body: f.WorkspaceRenameBody,
+): Promise<f.WorkspaceNode> => {
+  return request.patch(endpoints.workspaceRename(), body);
+};
+
+export const moveWorkspaceNode = (
+  body: f.WorkspaceMoveBody,
+): Promise<f.WorkspaceNode> => {
+  return request.patch(endpoints.workspaceMove(), body);
+};
+
+export const deleteWorkspaceNodes = (
+  body: f.WorkspaceDeleteBody,
+): Promise<f.WorkspaceDeleteResult> => {
+  return request.deleteWithOptions(endpoints.workspaceDelete(), { data: body });
+};
+
 export const uploadImage = (
   data: FormData,
   signal?: AbortSignal | null,

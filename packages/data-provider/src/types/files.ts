@@ -220,6 +220,45 @@ export type WorkspaceSearchResult = {
   truncated: boolean;
 };
 
+export type WorkspaceCreateDirectoryBody = {
+  parentPath: string;
+  name: string;
+};
+
+export type WorkspaceCreateFileBody = {
+  parentPath: string;
+  name: string;
+  content?: string;
+};
+
+export type WorkspaceWriteContentBody = {
+  path: string;
+  content: string;
+};
+
+export type WorkspaceUploadQuery = {
+  parentPath?: string;
+};
+
+export type WorkspaceRenameBody = {
+  path: string;
+  newName: string;
+};
+
+export type WorkspaceMoveBody = {
+  from: string;
+  toParent: string;
+};
+
+export type WorkspaceDeleteBody = {
+  paths: string[];
+};
+
+export type WorkspaceDeleteResult = {
+  deleted: string[];
+  failed: Array<{ path: string; message: string }>;
+};
+
 export type AvatarUploadResponse = {
   url: string;
 };

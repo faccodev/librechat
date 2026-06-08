@@ -1,7 +1,18 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { listWorkspaceTree, searchWorkspaceTree } from './workspaceFiles';
+import {
+  listWorkspaceTree,
+  searchWorkspaceTree,
+  createWorkspaceDirectory,
+  createWorkspaceFile,
+  writeWorkspaceFile,
+  writeWorkspaceContent,
+  renameWorkspaceNode,
+  moveWorkspaceNode,
+  deleteWorkspaceNodes,
+  sanitizeEntryName,
+} from './workspaceFiles';
 import type { TCustomConfig } from 'librechat-data-provider';
 
 const makeAppConfig = (containerBasePath: string): TCustomConfig =>
@@ -214,6 +225,337 @@ describe('workspaceFiles', () => {
         query: 'match',
       });
       expect(result.matches.map((m) => m.name)).toEqual(['public-match.txt']);
+    });
+  });
+
+  describe('sanitizeEntryName', () => {
+    test('accepts normal names', () => {
+      expect(sanitizeEntryName('hello.txt')).toBe('hello.txt');
+      expect(sanitizeEntryName('  spaced  ')).toBe('spaced');
+      expect(sanitizeEntryName('with-dash_and.dots')).toBe('with-dash_and.dots');
+    });
+
+    test('rejects path separators and traversal', () => {
+      expect(() => sanitizeEntryName('a/b')).toThrow();
+      expect(() => sanitizeEntryName('a\\b')).toThrow();
+      expect(() => sanitizeEntryName('..')).toThrow();
+      expect(() => sanitizeEntryName('.')).toThrow();
+    });
+
+    test('rejects hidden and invalid characters', () => {
+      expect(() => sanitizeEntryName('.hidden')).toThrow();
+      expect(() => sanitizeEntryName('a$b')).toThrow();
+      expect(() => sanitizeEntryName('a;b')).toThrow();
+      expect(() => sanitizeEntryName('')).toThrow();
+    });
+  });
+
+  describe('createWorkspaceDirectory', () => {
+    test('creates a directory and returns its node', async () => {
+      const result = await createWorkspaceDirectory({
+        appConfig: makeAppConfig(workRoot),
+        user: makeUser(null),
+        parentPath: '',
+        name: 'new-folder',
+      });
+      expect(result.name).toBe('new-folder');
+      expect(result.type).toBe('dir');
+      const exists = await fs.promises.stat(path.join(workRoot, 'new-folder'));
+      expect(exists.isDirectory()).toBe(true);
+    });
+
+    test('returns 409 when name already exists', async () => {
+      await fs.promises.mkdir(path.join(workRoot, 'dup'));
+      await expect(
+        createWorkspaceDirectory({
+          appConfig: makeAppConfig(workRoot),
+          user: makeUser(null),
+          parentPath: '',
+          name: 'dup',
+        }),
+      ).rejects.toMatchObject({ status: 409 });
+    });
+
+    test('returns 400 on invalid name', async () => {
+      await expect(
+        createWorkspaceDirectory({
+          appConfig: makeAppConfig(workRoot),
+          user: makeUser(null),
+          parentPath: '',
+          name: '../escape',
+        }),
+      ).rejects.toMatchObject({ status: 400 });
+    });
+
+    test('returns 404 when parent does not exist', async () => {
+      await expect(
+        createWorkspaceDirectory({
+          appConfig: makeAppConfig(workRoot),
+          user: makeUser(null),
+          parentPath: 'missing',
+          name: 'child',
+        }),
+      ).rejects.toMatchObject({ status: 404 });
+    });
+  });
+
+  describe('writeWorkspaceFile', () => {
+    test('moves a temp file into the workspace', async () => {
+      const tempPath = path.join(workRoot, '..', `upload-${Date.now()}.bin`);
+      await fs.promises.writeFile(tempPath, 'hello');
+      const result = await writeWorkspaceFile({
+        appConfig: makeAppConfig(workRoot),
+        user: makeUser(null),
+        parentPath: '',
+        originalName: 'greeting.txt',
+        tempPath,
+        size: 5,
+      });
+      expect(result.name).toBe('greeting.txt');
+      expect(result.size).toBe(5);
+      const exists = await fs.promises.stat(path.join(workRoot, 'greeting.txt'));
+      expect(exists.isFile()).toBe(true);
+      // temp file should be moved (not copied)
+      await expect(fs.promises.stat(tempPath)).rejects.toMatchObject({ code: 'ENOENT' });
+    });
+
+    test('rejects files larger than the workspace size limit', async () => {
+      const tempPath = path.join(workRoot, '..', `big-${Date.now()}.bin`);
+      await fs.promises.writeFile(tempPath, 'x');
+      const config = {
+        workspaces: { enabled: true, containerBasePath: workRoot, sizeLimitMB: 0 },
+      } as TCustomConfig;
+      await expect(
+        writeWorkspaceFile({
+          appConfig: config,
+          user: makeUser(null),
+          parentPath: '',
+          originalName: 'big.bin',
+          tempPath,
+          size: 1,
+        }),
+      ).rejects.toMatchObject({ status: 413 });
+      // temp should be cleaned up on rejection
+      await expect(fs.promises.stat(tempPath)).rejects.toMatchObject({ code: 'ENOENT' });
+    });
+
+    test('returns 409 when destination already exists', async () => {
+      await fs.promises.writeFile(path.join(workRoot, 'collision.txt'), 'old');
+      const tempPath = path.join(workRoot, '..', `cl-${Date.now()}.bin`);
+      await fs.promises.writeFile(tempPath, 'new');
+      await expect(
+        writeWorkspaceFile({
+          appConfig: makeAppConfig(workRoot),
+          user: makeUser(null),
+          parentPath: '',
+          originalName: 'collision.txt',
+          tempPath,
+          size: 3,
+        }),
+      ).rejects.toMatchObject({ status: 409 });
+    });
+  });
+
+  describe('renameWorkspaceNode', () => {
+    test('renames a file', async () => {
+      await fs.promises.writeFile(path.join(workRoot, 'old.txt'), 'x');
+      const result = await renameWorkspaceNode({
+        appConfig: makeAppConfig(workRoot),
+        user: makeUser(null),
+        relPath: 'old.txt',
+        newName: 'new.txt',
+      });
+      expect(result.name).toBe('new.txt');
+      expect(result.path).toBe('new.txt');
+      const exists = await fs.promises.stat(path.join(workRoot, 'new.txt'));
+      expect(exists.isFile()).toBe(true);
+    });
+
+    test('returns 404 for missing path', async () => {
+      await expect(
+        renameWorkspaceNode({
+          appConfig: makeAppConfig(workRoot),
+          user: makeUser(null),
+          relPath: 'missing.txt',
+          newName: 'whatever.txt',
+        }),
+      ).rejects.toMatchObject({ status: 404 });
+    });
+
+    test('returns 409 when target name is taken', async () => {
+      await fs.promises.writeFile(path.join(workRoot, 'a.txt'), 'x');
+      await fs.promises.writeFile(path.join(workRoot, 'b.txt'), 'x');
+      await expect(
+        renameWorkspaceNode({
+          appConfig: makeAppConfig(workRoot),
+          user: makeUser(null),
+          relPath: 'a.txt',
+          newName: 'b.txt',
+        }),
+      ).rejects.toMatchObject({ status: 409 });
+    });
+  });
+
+  describe('moveWorkspaceNode', () => {
+    test('moves a file into a subdirectory', async () => {
+      const sub = path.join(workRoot, 'sub');
+      await fs.promises.mkdir(sub);
+      await fs.promises.writeFile(path.join(workRoot, 'm.txt'), 'x');
+      const result = await moveWorkspaceNode({
+        appConfig: makeAppConfig(workRoot),
+        user: makeUser(null),
+        fromPath: 'm.txt',
+        toParentPath: 'sub',
+      });
+      expect(result.path).toBe('sub/m.txt');
+      const exists = await fs.promises.stat(path.join(sub, 'm.txt'));
+      expect(exists.isFile()).toBe(true);
+    });
+
+    test('refuses to move a folder into itself', async () => {
+      const a = path.join(workRoot, 'a');
+      await fs.promises.mkdir(a);
+      const b = path.join(a, 'b');
+      await fs.promises.mkdir(b);
+      await expect(
+        moveWorkspaceNode({
+          appConfig: makeAppConfig(workRoot),
+          user: makeUser(null),
+          fromPath: 'a',
+          toParentPath: 'a/b',
+        }),
+      ).rejects.toMatchObject({ status: 400 });
+    });
+  });
+
+  describe('deleteWorkspaceNodes', () => {
+    test('deletes a single file', async () => {
+      await fs.promises.writeFile(path.join(workRoot, 'doomed.txt'), 'x');
+      const result = await deleteWorkspaceNodes({
+        appConfig: makeAppConfig(workRoot),
+        user: makeUser(null),
+        paths: ['doomed.txt'],
+      });
+      expect(result.deleted).toEqual(['doomed.txt']);
+      expect(result.failed).toEqual([]);
+      await expect(fs.promises.stat(path.join(workRoot, 'doomed.txt'))).rejects.toMatchObject({
+        code: 'ENOENT',
+      });
+    });
+
+    test('deletes a folder recursively', async () => {
+      const d = path.join(workRoot, 'd');
+      await fs.promises.mkdir(d);
+      await fs.promises.writeFile(path.join(d, 'inner.txt'), 'x');
+      const result = await deleteWorkspaceNodes({
+        appConfig: makeAppConfig(workRoot),
+        user: makeUser(null),
+        paths: ['d'],
+      });
+      expect(result.deleted).toEqual(['d']);
+      await expect(fs.promises.stat(d)).rejects.toMatchObject({ code: 'ENOENT' });
+    });
+
+    test('reports per-path failure for missing entries without aborting the batch', async () => {
+      await fs.promises.writeFile(path.join(workRoot, 'real.txt'), 'x');
+      const result = await deleteWorkspaceNodes({
+        appConfig: makeAppConfig(workRoot),
+        user: makeUser(null),
+        paths: ['real.txt', 'missing.txt'],
+      });
+      expect(result.deleted).toEqual(['real.txt']);
+      expect(result.failed).toHaveLength(1);
+      expect(result.failed[0].path).toBe('missing.txt');
+    });
+  });
+
+  describe('createWorkspaceFile', () => {
+    test('creates an empty file by default', async () => {
+      const result = await createWorkspaceFile({
+        appConfig: makeAppConfig(workRoot),
+        user: makeUser(null),
+        parentPath: '',
+        name: 'note.txt',
+      });
+      expect(result.name).toBe('note.txt');
+      expect(result.type).toBe('file');
+      expect(result.size).toBe(0);
+      const content = await fs.promises.readFile(path.join(workRoot, 'note.txt'), 'utf8');
+      expect(content).toBe('');
+    });
+
+    test('seeds the file with content when provided', async () => {
+      const result = await createWorkspaceFile({
+        appConfig: makeAppConfig(workRoot),
+        user: makeUser(null),
+        parentPath: '',
+        name: 'README.md',
+        content: '# hello',
+      });
+      expect(result.size).toBe(7);
+      const content = await fs.promises.readFile(path.join(workRoot, 'README.md'), 'utf8');
+      expect(content).toBe('# hello');
+    });
+
+    test('returns 409 when name already exists', async () => {
+      await fs.promises.writeFile(path.join(workRoot, 'collision.txt'), 'x');
+      await expect(
+        createWorkspaceFile({
+          appConfig: makeAppConfig(workRoot),
+          user: makeUser(null),
+          parentPath: '',
+          name: 'collision.txt',
+        }),
+      ).rejects.toMatchObject({ status: 409 });
+    });
+
+    test('rejects path-separator in name', async () => {
+      await expect(
+        createWorkspaceFile({
+          appConfig: makeAppConfig(workRoot),
+          user: makeUser(null),
+          parentPath: '',
+          name: 'a/b',
+        }),
+      ).rejects.toMatchObject({ status: 400 });
+    });
+  });
+
+  describe('writeWorkspaceContent', () => {
+    test('overwrites an existing file', async () => {
+      await fs.promises.writeFile(path.join(workRoot, 'target.txt'), 'old');
+      const result = await writeWorkspaceContent({
+        appConfig: makeAppConfig(workRoot),
+        user: makeUser(null),
+        relPath: 'target.txt',
+        content: 'new content',
+      });
+      expect(result.size).toBe(11);
+      const content = await fs.promises.readFile(path.join(workRoot, 'target.txt'), 'utf8');
+      expect(content).toBe('new content');
+    });
+
+    test('returns 404 for a missing file', async () => {
+      await expect(
+        writeWorkspaceContent({
+          appConfig: makeAppConfig(workRoot),
+          user: makeUser(null),
+          relPath: 'missing.txt',
+          content: 'x',
+        }),
+      ).rejects.toMatchObject({ status: 404 });
+    });
+
+    test('refuses to overwrite a directory', async () => {
+      await fs.promises.mkdir(path.join(workRoot, 'a-dir'));
+      await expect(
+        writeWorkspaceContent({
+          appConfig: makeAppConfig(workRoot),
+          user: makeUser(null),
+          relPath: 'a-dir',
+          content: 'x',
+        }),
+      ).rejects.toMatchObject({ status: 400 });
     });
   });
 });

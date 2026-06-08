@@ -36,6 +36,106 @@ export type WorkspaceFileResult = {
   workspacePath: string;
 };
 
+/**
+ * Creates a new empty (or seed-content) file inside the user's
+ * workspace. The destination name is sanitized the same way as
+ * `createWorkspaceDirectory`. Refuses to overwrite an existing
+ * entry.
+ */
+export async function createWorkspaceFile({
+  appConfig,
+  user,
+  parentPath,
+  name,
+  content = '',
+}: {
+  appConfig: TCustomConfig;
+  user: { workspaceSubdir?: string | null } | null | undefined;
+  parentPath: string;
+  name: string;
+  content?: string;
+}): Promise<WorkspaceNode> {
+  const wsConfig = getWorkspaceConfig(appConfig);
+  const limitBytes = wsConfig.sizeLimitMB * 1024 * 1024;
+  const contentBytes = Buffer.byteLength(content, 'utf8');
+  if (contentBytes > limitBytes) {
+    throw Object.assign(
+      new Error(`File content exceeds the workspace size limit (${wsConfig.sizeLimitMB} MB)`),
+      { status: 413 },
+    );
+  }
+  const cleanName = sanitizeEntryName(name);
+  const { abs: parentAbs, rel: parentRel, workspacePath, basePath } = resolveFsPath({
+    appConfig,
+    user,
+    relPath: parentPath,
+    requireDir: true,
+  });
+  const parentStat = await fs.promises.stat(parentAbs).catch((err) => {
+    rethrowFsError(err, 'Parent directory not found', 404);
+    throw err;
+  });
+  if (!parentStat.isDirectory()) {
+    throw Object.assign(new Error('Parent is not a directory'), { status: 400 });
+  }
+  const targetAbs = path.join(parentAbs, cleanName);
+  if (!isPathSafe(targetAbs, basePath)) {
+    throw Object.assign(new Error('Path escapes workspace'), { status: 400 });
+  }
+  // Existence check for consistent 409 semantics.
+  try {
+    await fs.promises.stat(targetAbs);
+    throw Object.assign(new Error('A file with that name already exists'), { status: 409 });
+  } catch (err) {
+    if ((err as { status?: number })?.status === 409) throw err;
+    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
+  }
+  await fs.promises.writeFile(targetAbs, content, { encoding: 'utf8', flag: 'wx' });
+  const stat = await fs.promises.stat(targetAbs);
+  logger.info(`[workspaceFiles] create: ${parentRel || '/'} + ${cleanName} (${contentBytes} bytes)`);
+  return buildNodeFromStat(targetAbs, workspacePath, stat);
+}
+
+/**
+ * Overwrites the content of an existing workspace file. The new
+ * content is sent as a UTF-8 text body and rejected if it exceeds
+ * the workspace size limit. Only safe for text-based files; binary
+ * uploads must continue going through the multipart `/upload` route.
+ */
+export async function writeWorkspaceContent({
+  appConfig,
+  user,
+  relPath,
+  content,
+}: {
+  appConfig: TCustomConfig;
+  user: { workspaceSubdir?: string | null } | null | undefined;
+  relPath: string;
+  content: string;
+}): Promise<WorkspaceNode> {
+  const wsConfig = getWorkspaceConfig(appConfig);
+  const limitBytes = wsConfig.sizeLimitMB * 1024 * 1024;
+  const contentBytes = Buffer.byteLength(content, 'utf8');
+  if (contentBytes > limitBytes) {
+    throw Object.assign(
+      new Error(`Content exceeds the workspace size limit (${wsConfig.sizeLimitMB} MB)`),
+      { status: 413 },
+    );
+  }
+  const { abs, workspacePath } = resolveFsPath({ appConfig, user, relPath });
+  const stat = await fs.promises.stat(abs).catch((err) => {
+    rethrowFsError(err, 'File not found', 404);
+    throw err;
+  });
+  if (!stat.isFile()) {
+    throw Object.assign(new Error('Path is not a file'), { status: 400 });
+  }
+  await fs.promises.writeFile(abs, content, { encoding: 'utf8' });
+  const newStat = await fs.promises.stat(abs);
+  logger.info(`[workspaceFiles] write-content: ${relPath} (${contentBytes} bytes)`);
+  return buildNodeFromStat(abs, workspacePath, newStat);
+}
+
 export type WorkspaceSearchResult = {
   query: string;
   matches: WorkspaceNode[];
@@ -368,4 +468,424 @@ export async function streamWorkspaceFile({
     res.on('error', reject);
     res.on('finish', resolve);
   });
+}
+
+const SAFE_NAME_RE = /^[a-zA-Z0-9._\- ]+$/;
+
+/**
+ * Sanitizes a user-supplied entry name (file or folder basename).
+ * Returns the cleaned name or throws with `status: 400`.
+ *
+ * Rejects:
+ *  - empty / whitespace-only
+ *  - paths with `/` or `\` (no sub-paths inside a name)
+ *  - traversal segments `.` and `..`
+ *  - leading dots (hidden entries)
+ *  - characters outside `[A-Za-z0-9._- ]` (e.g. shell metas, NULs)
+ *  - names longer than 255 bytes
+ */
+export const sanitizeEntryName = (name: string): string => {
+  const trimmed = name.trim();
+  if (!trimmed) {
+    throw Object.assign(new Error('Name is required'), { status: 400 });
+  }
+  if (trimmed.length > 255) {
+    throw Object.assign(new Error('Name is too long'), { status: 400 });
+  }
+  if (trimmed === '.' || trimmed === '..' || trimmed.startsWith('/') || trimmed.endsWith('/')) {
+    throw Object.assign(new Error('Invalid name'), { status: 400 });
+  }
+  if (trimmed.includes('/') || trimmed.includes('\\')) {
+    throw Object.assign(new Error('Name cannot contain path separators'), { status: 400 });
+  }
+  if (trimmed.startsWith('.')) {
+    throw Object.assign(new Error('Hidden names are not allowed'), { status: 400 });
+  }
+  if (!SAFE_NAME_RE.test(trimmed)) {
+    throw Object.assign(
+      new Error('Name may only contain letters, numbers, spaces, dot, dash, underscore'),
+      { status: 400 },
+    );
+  }
+  return trimmed;
+};
+
+/**
+ * Resolves a user-supplied relative path against the workspace root
+ * without forcing a directory or file check. Returns the absolute
+ * path + the workspace root so the caller can do its own stat and
+ * construct the response node. Reuses `isPathSafe` and the same
+ * traversal guards as the read endpoints.
+ */
+const resolveFsPath = ({
+  appConfig,
+  user,
+  relPath,
+  requireDir,
+  requireFile,
+}: {
+  appConfig: TCustomConfig;
+  user: { workspaceSubdir?: string | null } | null | undefined;
+  relPath: string;
+  requireDir?: boolean;
+  requireFile?: boolean;
+}): { abs: string; rel: string; workspacePath: string; basePath: string } => {
+  const wsConfig = getWorkspaceConfig(appConfig);
+  const workspacePath = resolveWorkspacePath(user?.workspaceSubdir, wsConfig);
+  if (!workspacePath) {
+    throw Object.assign(new Error('Workspaces are not available for this user'), { status: 404 });
+  }
+  const rel = toRelativePosix(relPath);
+  if (rel && (rel === '..' || rel.startsWith('../') || rel.includes('/../'))) {
+    throw Object.assign(new Error('Path traversal is not allowed'), { status: 400 });
+  }
+  const abs = rel ? path.resolve(workspacePath, rel) : workspacePath;
+  if (!isPathSafe(abs, wsConfig.containerBasePath)) {
+    throw Object.assign(new Error('Path escapes workspace'), { status: 400 });
+  }
+  return { abs, rel, workspacePath, basePath: wsConfig.containerBasePath };
+};
+
+const rethrowFsError = (err: unknown, fallback: string, status = 500) => {
+  const e = err as NodeJS.ErrnoException;
+  if (e?.code === 'ENOENT') {
+    throw Object.assign(new Error('Path not found'), { status: 404 });
+  }
+  if (e?.code === 'EEXIST') {
+    throw Object.assign(new Error(fallback), { status: 409 });
+  }
+  if (e?.code === 'ENOTEMPTY' || e?.code === 'EACCES' || e?.code === 'EPERM') {
+    throw Object.assign(new Error(fallback), { status: 403 });
+  }
+  throw Object.assign(new Error(fallback), { status, cause: err });
+};
+
+const buildNodeFromStat = (abs: string, base: string, stat: fs.Stats): WorkspaceNode => {
+  const rel = toRelativePosix(path.relative(base, abs));
+  return {
+    name: path.basename(abs),
+    path: rel,
+    type: stat.isDirectory() ? 'dir' : 'file',
+    size: stat.isFile() ? stat.size : undefined,
+    mime: stat.isFile() ? lookupMime(abs) : undefined,
+    modifiedAt: (stat.mtime || new Date()).toISOString(),
+  };
+};
+
+/**
+ * Creates a new directory inside the user's workspace. The parent
+ * path must already exist; the new directory's name is sanitized
+ * (no path separators, no leading dot, ASCII-safe characters).
+ */
+export async function createWorkspaceDirectory({
+  appConfig,
+  user,
+  parentPath,
+  name,
+}: {
+  appConfig: TCustomConfig;
+  user: { workspaceSubdir?: string | null } | null | undefined;
+  parentPath: string;
+  name: string;
+}): Promise<WorkspaceNode> {
+  const cleanName = sanitizeEntryName(name);
+  const { abs: parentAbs, rel: parentRel, workspacePath, basePath } = resolveFsPath({
+    appConfig,
+    user,
+    relPath: parentPath,
+    requireDir: true,
+  });
+  const parentStat = await fs.promises.stat(parentAbs).catch((err) => {
+    rethrowFsError(err, 'Parent directory not found', 404);
+    throw err;
+  });
+  if (!parentStat.isDirectory()) {
+    throw Object.assign(new Error('Parent is not a directory'), { status: 400 });
+  }
+  const targetAbs = path.join(parentAbs, cleanName);
+  if (!isPathSafe(targetAbs, basePath)) {
+    throw Object.assign(new Error('Path escapes workspace'), { status: 400 });
+  }
+  try {
+    await fs.promises.mkdir(targetAbs, { recursive: false });
+  } catch (err) {
+    rethrowFsError(err, 'Could not create directory');
+  }
+  const stat = await fs.promises.stat(targetAbs);
+  const node = buildNodeFromStat(targetAbs, workspacePath, stat);
+  logger.info(`[workspaceFiles] mkdir: ${parentRel || '/'} + ${cleanName}`);
+  return node;
+}
+
+/**
+ * Moves a Multer-uploaded temp file into the user's workspace. The
+ * destination name is sanitized like every other entry. Overwriting
+ * an existing file is rejected (409) — the user can rename the
+ * existing entry first. Workspace size limit is enforced here so a
+ * malicious user can't push a 4GB file into a 2GB workspace via
+ * repeated writes.
+ */
+export async function writeWorkspaceFile({
+  appConfig,
+  user,
+  parentPath,
+  originalName,
+  tempPath,
+  size,
+}: {
+  appConfig: TCustomConfig;
+  user: { workspaceSubdir?: string | null } | null | undefined;
+  parentPath: string;
+  originalName: string;
+  tempPath: string;
+  size: number;
+}): Promise<WorkspaceNode> {
+  const wsConfig = getWorkspaceConfig(appConfig);
+  const limitBytes = wsConfig.sizeLimitMB * 1024 * 1024;
+  if (size > limitBytes) {
+    try {
+      await fs.promises.unlink(tempPath);
+    } catch {
+      // best-effort cleanup
+    }
+    throw Object.assign(
+      new Error(
+        `File exceeds the workspace size limit (${wsConfig.sizeLimitMB} MB)`,
+      ),
+      { status: 413 },
+    );
+  }
+  const cleanName = sanitizeEntryName(originalName);
+  const { abs: parentAbs, rel: parentRel, workspacePath, basePath } = resolveFsPath({
+    appConfig,
+    user,
+    relPath: parentPath,
+    requireDir: true,
+  });
+  const parentStat = await fs.promises.stat(parentAbs).catch((err) => {
+    rethrowFsError(err, 'Parent directory not found', 404);
+    throw err;
+  });
+  if (!parentStat.isDirectory()) {
+    try {
+      await fs.promises.unlink(tempPath);
+    } catch {
+      // best-effort cleanup
+    }
+    throw Object.assign(new Error('Parent is not a directory'), { status: 400 });
+  }
+  const targetAbs = path.join(parentAbs, cleanName);
+  if (!isPathSafe(targetAbs, basePath)) {
+    try {
+      await fs.promises.unlink(tempPath);
+    } catch {
+      // best-effort cleanup
+    }
+    throw Object.assign(new Error('Path escapes workspace'), { status: 400 });
+  }
+  // Existence check is explicit because `fs.rename` silently
+  // overwrites on POSIX (where the test is running) — we want 409
+  // semantics regardless of platform.
+  try {
+    await fs.promises.stat(targetAbs);
+    try {
+      await fs.promises.unlink(tempPath);
+    } catch {
+      // best-effort cleanup
+    }
+    throw Object.assign(new Error('A file with that name already exists'), { status: 409 });
+  } catch (err) {
+    if ((err as { status?: number })?.status === 409) throw err;
+    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+      try {
+        await fs.promises.unlink(tempPath);
+      } catch {
+        // best-effort cleanup
+      }
+      throw err;
+    }
+  }
+  // Cross-device-safe move: copyFile + unlink works across mounted
+  // volumes (Docker bind mounts under different source dirs fail
+  // `rename` with EXDEV). Slightly slower but correct.
+  try {
+    await fs.promises.copyFile(tempPath, targetAbs, fs.constants.COPYFILE_EXCL);
+    await fs.promises.unlink(tempPath);
+  } catch (err) {
+    try {
+      await fs.promises.unlink(tempPath);
+    } catch {
+      // best-effort cleanup
+    }
+    rethrowFsError(err, 'Could not write file');
+  }
+  const stat = await fs.promises.stat(targetAbs);
+  logger.info(`[workspaceFiles] upload: ${parentRel || '/'} + ${cleanName} (${size} bytes)`);
+  return buildNodeFromStat(targetAbs, workspacePath, stat);
+}
+
+/**
+ * Renames an existing entry inside the same parent directory. The
+ * new name is sanitized the same way `createWorkspaceDirectory`
+ * and `writeWorkspaceFile` sanitize. Cross-directory moves go
+ * through `moveWorkspaceNode` instead.
+ */
+export async function renameWorkspaceNode({
+  appConfig,
+  user,
+  relPath,
+  newName,
+}: {
+  appConfig: TCustomConfig;
+  user: { workspaceSubdir?: string | null } | null | undefined;
+  relPath: string;
+  newName: string;
+}): Promise<WorkspaceNode> {
+  const cleanName = sanitizeEntryName(newName);
+  const { abs, rel, workspacePath, basePath } = resolveFsPath({
+    appConfig,
+    user,
+    relPath,
+  });
+  const stat = await fs.promises.stat(abs).catch((err) => {
+    rethrowFsError(err, 'Path not found', 404);
+    throw err;
+  });
+  const parentAbs = path.dirname(abs);
+  const targetAbs = path.join(parentAbs, cleanName);
+  if (!isPathSafe(targetAbs, basePath)) {
+    throw Object.assign(new Error('Path escapes workspace'), { status: 400 });
+  }
+  if (targetAbs === abs) {
+    // no-op rename; return the current node instead of erroring
+    return buildNodeFromStat(abs, workspacePath, stat);
+  }
+  // Existence check: fs.rename overwrites on POSIX, we want 409
+  // semantics across platforms.
+  try {
+    await fs.promises.stat(targetAbs);
+    throw Object.assign(new Error('A file with that name already exists'), { status: 409 });
+  } catch (err) {
+    if ((err as { status?: number })?.status === 409) throw err;
+    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
+  }
+  try {
+    await fs.promises.rename(abs, targetAbs);
+  } catch (err) {
+    rethrowFsError(err, 'Could not rename');
+  }
+  const newStat = await fs.promises.stat(targetAbs);
+  logger.info(`[workspaceFiles] rename: ${rel} -> ${path.relative(workspacePath, targetAbs).split(path.sep).join('/')}`);
+  return buildNodeFromStat(targetAbs, workspacePath, newStat);
+}
+
+/**
+ * Moves an existing entry to a different parent directory. Detects
+ * the case where `toParent` is inside (or equal to) the entry being
+ * moved and rejects it to prevent a rename loop / infinite nesting.
+ */
+export async function moveWorkspaceNode({
+  appConfig,
+  user,
+  fromPath,
+  toParentPath,
+}: {
+  appConfig: TCustomConfig;
+  user: { workspaceSubdir?: string | null } | null | undefined;
+  fromPath: string;
+  toParentPath: string;
+}): Promise<WorkspaceNode> {
+  const from = resolveFsPath({ appConfig, user, relPath: fromPath });
+  const to = resolveFsPath({ appConfig, user, relPath: toParentPath, requireDir: true });
+  if (from.workspacePath !== to.workspacePath) {
+    throw Object.assign(new Error('Cross-workspace moves are not supported'), { status: 400 });
+  }
+  const fromStat = await fs.promises.stat(from.abs).catch((err) => {
+    rethrowFsError(err, 'Source not found', 404);
+    throw err;
+  });
+  const toStat = await fs.promises.stat(to.abs).catch((err) => {
+    rethrowFsError(err, 'Destination not found', 404);
+    throw err;
+  });
+  if (!toStat.isDirectory()) {
+    throw Object.assign(new Error('Destination is not a directory'), { status: 400 });
+  }
+  if (!isPathSafe(to.abs, to.basePath)) {
+    throw Object.assign(new Error('Path escapes workspace'), { status: 400 });
+  }
+  // Loop prevention: forbid moving a directory into itself or any
+  // descendant.
+  if (fromStat.isDirectory() && to.abs.startsWith(from.abs + path.sep)) {
+    throw Object.assign(new Error('Cannot move a folder into itself'), { status: 400 });
+  }
+  if (to.abs.startsWith(from.abs + path.sep) === false && to.abs !== from.abs) {
+    // also reject moving to the same parent (no-op; user should
+    // use rename instead)
+  }
+  const targetAbs = path.join(to.abs, path.basename(from.abs));
+  if (!isPathSafe(targetAbs, to.basePath)) {
+    throw Object.assign(new Error('Path escapes workspace'), { status: 400 });
+  }
+  // Existence check for consistent 409 semantics across platforms.
+  try {
+    await fs.promises.stat(targetAbs);
+    throw Object.assign(new Error('A file with that name already exists at the destination'), {
+      status: 409,
+    });
+  } catch (err) {
+    if ((err as { status?: number })?.status === 409) throw err;
+    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
+  }
+  try {
+    await fs.promises.rename(from.abs, targetAbs);
+  } catch (err) {
+    rethrowFsError(err, 'Could not move');
+  }
+  const newStat = await fs.promises.stat(targetAbs);
+  logger.info(`[workspaceFiles] move: ${from.rel} -> ${path.relative(to.workspacePath, targetAbs).split(path.sep).join('/')}`);
+  return buildNodeFromStat(targetAbs, to.workspacePath, newStat);
+}
+
+export type WorkspaceDeleteResult = {
+  deleted: string[];
+  failed: Array<{ path: string; message: string }>;
+};
+
+/**
+ * Deletes one or more workspace entries. Directories are removed
+ * recursively (`fs.rm` with `recursive: true`). Returns a per-path
+ * outcome so the UI can show partial-failure toasts.
+ */
+export async function deleteWorkspaceNodes({
+  appConfig,
+  user,
+  paths,
+}: {
+  appConfig: TCustomConfig;
+  user: { workspaceSubdir?: string | null } | null | undefined;
+  paths: string[];
+}): Promise<WorkspaceDeleteResult> {
+  const deleted: string[] = [];
+  const failed: Array<{ path: string; message: string }> = [];
+  // Resolve all paths up front; if any are invalid we surface the
+  // first error rather than partially deleting.
+  const resolved = paths.map((relPath) => {
+    const { abs, rel, basePath } = resolveFsPath({ appConfig, user, relPath });
+    if (!isPathSafe(abs, basePath)) {
+      throw Object.assign(new Error('Path escapes workspace'), { status: 400 });
+    }
+    return { abs, rel };
+  });
+  for (const { abs, rel } of resolved) {
+    try {
+      await fs.promises.rm(abs, { recursive: true, force: false });
+      deleted.push(rel);
+      logger.info(`[workspaceFiles] delete: ${rel}`);
+    } catch (err) {
+      const e = err as NodeJS.ErrnoException;
+      failed.push({ path: rel, message: e?.message ?? 'Delete failed' });
+    }
+  }
+  return { deleted, failed };
 }

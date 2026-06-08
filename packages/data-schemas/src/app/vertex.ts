@@ -187,7 +187,7 @@ export function vertexConfigSetup(config: Partial<TCustomConfig>): TVertexAIConf
     throw new Error(errorMessage);
   }
 
-  logger.info('Vertex AI configuration loaded successfully', {
+  logger.debug('Vertex AI configuration loaded successfully', {
     projectId: validatedConfig.projectId,
     region: validatedConfig.region,
     modelCount: validatedConfig.modelNames?.length || 0,

@@ -19,7 +19,11 @@ type NodeListProps = {
   onSelect: (node: WorkspaceNode) => void;
   onGoUp: () => void;
   onRetry: () => void;
-  selected: WorkspaceNode | null;
+  onDropFiles?: (files: FileList) => void;
+  onView?: (node: WorkspaceNode) => void;
+  onEdit?: (node: WorkspaceNode) => void;
+  onRename?: (node: WorkspaceNode) => void;
+  onDelete?: (node: WorkspaceNode) => void;
 };
 
 const NodeList = ({
@@ -33,12 +37,17 @@ const NodeList = ({
   onSelect,
   onGoUp,
   onRetry,
-  selected,
+  onDropFiles,
+  onView,
+  onEdit,
+  onRename,
+  onDelete,
 }: NodeListProps) => {
   const localize = useLocalize();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [containerHeight, setContainerHeight] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -91,11 +100,34 @@ const NodeList = ({
 
   if (nodes.length === 0) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-1 px-4 text-center text-sm text-text-secondary">
+      <div
+        ref={containerRef}
+        className="flex flex-1 flex-col items-center justify-center gap-1 px-4 text-center text-sm text-text-secondary"
+        onDragOver={(e) => {
+          if (!onDropFiles) return;
+          e.preventDefault();
+          setIsDragging(true);
+        }}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={(e) => {
+          if (!onDropFiles) return;
+          e.preventDefault();
+          setIsDragging(false);
+          if (e.dataTransfer.files?.length) onDropFiles(e.dataTransfer.files);
+        }}
+      >
         <p className="font-medium text-text-primary">{localize('com_fm_empty_title')}</p>
         <p className="text-xs">
           {localize('com_fm_empty_description', { path: path || '/' })}
         </p>
+        {onDropFiles && (
+          <p className="mt-2 text-xs text-text-secondary">
+            {localize('com_fm_drop_hint')}
+          </p>
+        )}
+        {isDragging && (
+          <div className="absolute inset-2 rounded-lg border-2 border-dashed border-text-primary/30 bg-text-primary/5" />
+        )}
       </div>
     );
   }
@@ -116,7 +148,19 @@ const NodeList = ({
       role="grid"
       aria-busy={isFetching}
       onScroll={(e) => setScrollTop((e.target as HTMLDivElement).scrollTop)}
-      className="flex-1 overflow-y-auto p-1"
+      onDragOver={(e) => {
+        if (!onDropFiles) return;
+        e.preventDefault();
+        setIsDragging(true);
+      }}
+      onDragLeave={() => setIsDragging(false)}
+      onDrop={(e) => {
+        if (!onDropFiles) return;
+        e.preventDefault();
+        setIsDragging(false);
+        if (e.dataTransfer.files?.length) onDropFiles(e.dataTransfer.files);
+      }}
+      className="relative flex-1 overflow-y-auto p-1"
     >
       <div style={{ height: totalHeight, position: 'relative' }} role="rowgroup">
         <div style={{ transform: `translateY(${offsetY}px)` }}>
@@ -139,9 +183,13 @@ const NodeList = ({
               >
                 <NodeRow
                   node={node}
-                  isActive={selected?.path === node.path}
+                  isActive={false}
                   onActivate={onSelect}
                   onOpen={onEnterDir}
+                  onView={onView}
+                  onEdit={onEdit}
+                  onRename={onRename}
+                  onDelete={onDelete}
                 />
               </div>
             );
@@ -158,6 +206,9 @@ const NodeList = ({
           <Loader2 className="size-3 animate-spin" aria-hidden="true" />
           {localize('com_fm_refreshing')}
         </p>
+      )}
+      {isDragging && onDropFiles && (
+        <div className="pointer-events-none absolute inset-2 rounded-lg border-2 border-dashed border-text-primary/30 bg-text-primary/5" />
       )}
     </div>
   );

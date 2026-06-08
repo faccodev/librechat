@@ -154,18 +154,18 @@ export class MCPServersInitializer {
   // Logs server configuration summary after initialization
   private static logParsedConfig(serverName: string, config: t.ParsedServerConfig): void {
     const prefix = MCPServersInitializer.prefix(serverName);
-    logger.info(`${prefix} -------------------------------------------------┐`);
-    logger.info(`${prefix} URL: ${config.url ? sanitizeUrlForLogging(config.url) : 'N/A'}`);
-    logger.info(`${prefix} OAuth Required: ${config.requiresOAuth}`);
-    logger.info(`${prefix} Capabilities: ${config.capabilities}`);
-    logger.info(`${prefix} Tools: ${config.tools}`);
-    logger.info(
-      `${prefix} Server Instructions: ${MCPServersInitializer.formatInstructionsForLogging(
-        config.serverInstructions,
-      )}`,
-    );
-    logger.info(`${prefix} Initialized in: ${config.initDuration ?? 'N/A'}ms`);
-    logger.info(`${prefix} -------------------------------------------------┘`);
+    const summary = {
+      url: config.url ? sanitizeUrlForLogging(config.url) : 'N/A',
+      requiresOAuth: config.requiresOAuth,
+      capabilities: config.capabilities,
+      tools: config.tools,
+      instructions: MCPServersInitializer.formatInstructionsForLogging(config.serverInstructions),
+      initDurationMs: config.initDuration,
+    };
+    // Verbose per-server dump only at debug — boot logs were drowning
+    // in MCP init noise. `MCP] Initialized with N servers and M tools.`
+    // still shows the totals at info level for a quick health check.
+    logger.debug(`${prefix} initialized`, summary);
   }
 
   private static formatInstructionsForLogging(instructions?: string | boolean): string {

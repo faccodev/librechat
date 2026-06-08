@@ -295,6 +295,8 @@ export type Agent = {
   skills_enabled?: boolean;
   /** Subagent spawning configuration — isolated-context child agents. */
   subagents?: AgentSubagentsConfig;
+  /** Automatically make all configured MCP servers available under-the-hood (using deferred tool loading) */
+  autoTools?: boolean;
 };
 
 export type TAgentsMap = Record<string, Agent | undefined>;
@@ -323,6 +325,7 @@ export type AgentCreateParams = {
   | 'skills'
   | 'skills_enabled'
   | 'subagents'
+  | 'autoTools'
 >;
 
 export type AgentUpdateParams = {
@@ -350,6 +353,7 @@ export type AgentUpdateParams = {
   | 'skills'
   | 'skills_enabled'
   | 'subagents'
+  | 'autoTools'
 >;
 
 export type AgentListParams = {
