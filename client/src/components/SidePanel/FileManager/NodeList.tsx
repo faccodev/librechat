@@ -19,6 +19,7 @@ type NodeListProps = {
   onSelect: (node: WorkspaceNode) => void;
   onGoUp: () => void;
   onRetry: () => void;
+  selected: WorkspaceNode | null;
 };
 
 const NodeList = ({
@@ -32,6 +33,7 @@ const NodeList = ({
   onSelect,
   onGoUp,
   onRetry,
+  selected,
 }: NodeListProps) => {
   const localize = useLocalize();
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -137,7 +139,7 @@ const NodeList = ({
               >
                 <NodeRow
                   node={node}
-                  isActive={false}
+                  isActive={selected?.path === node.path}
                   onActivate={onSelect}
                   onOpen={onEnterDir}
                 />

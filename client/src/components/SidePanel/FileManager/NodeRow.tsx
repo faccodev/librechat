@@ -44,7 +44,7 @@ const NodeRow = ({ node, isActive, onActivate, onOpen }: NodeRowProps) => {
       className={cn(
         'flex h-10 w-full items-center gap-2 rounded-md px-2 text-sm transition-colors',
         'hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary',
-        isActive && 'bg-surface-active',
+        isActive && 'bg-surface-active font-medium ring-1 ring-inset ring-text-primary/20',
       )}
     >
       <Icon

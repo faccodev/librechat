@@ -25,6 +25,7 @@ export enum QueryKeys {
   fileConfig = 'fileConfig',
   workspaceTree = 'workspaceTree',
   workspaceSearch = 'workspaceSearch',
+  workspacePreview = 'workspacePreview',
   tools = 'tools',
   toolAuth = 'toolAuth',
   toolCalls = 'toolCalls',

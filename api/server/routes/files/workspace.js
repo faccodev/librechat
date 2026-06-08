@@ -1,6 +1,11 @@
 const express = require('express');
 const { logger } = require('@librechat/data-schemas');
-const { listWorkspaceTree, searchWorkspaceTree } = require('@librechat/api');
+const {
+  listWorkspaceTree,
+  searchWorkspaceTree,
+  getWorkspaceFile,
+  streamWorkspaceFile,
+} = require('@librechat/api');
 
 const router = express.Router();
 
@@ -10,6 +15,15 @@ const sendError = (res, err) => {
     logger.error('[files/workspace] unexpected error:', err);
   }
   res.status(status).json({ message: err?.message ?? 'Internal Server Error' });
+};
+
+const getContentDisposition = (filename, download) => {
+  const disposition = download ? 'attachment' : 'inline';
+  // Escape quotes per RFC 6266; filenames stay ASCII-safe via the same
+  // helper used by the legacy file-download route.
+  const safe = String(filename).replace(/"/g, '');
+  const encoded = encodeURIComponent(safe);
+  return `${disposition}; filename*=UTF-8''${encoded}`;
 };
 
 /**
@@ -46,6 +60,37 @@ router.get('/search', async (req, res) => {
       query,
     });
     res.status(200).json(result);
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+/**
+ * Streams a single file from the user's workspace. `?download=true`
+ * flips the Content-Disposition to attachment so the browser saves
+ * instead of inline-rendering. Range requests are intentionally NOT
+ * implemented in step 2; the route is enough for image / video / audio
+ * previews in the file manager. Add `Range` support when a real need
+ * shows up (likely during scrubbing on large video files).
+ */
+router.get('/raw', async (req, res) => {
+  try {
+    const relPath = typeof req.query.path === 'string' ? req.query.path : '';
+    if (!relPath) {
+      return res.status(400).json({ message: 'path query parameter is required' });
+    }
+    const file = await getWorkspaceFile({
+      appConfig: req.config,
+      user: req.user,
+      relPath,
+    });
+    const download = req.query.download === 'true' || req.query.download === '1';
+    res.setHeader('Content-Type', file.mime || 'application/octet-stream');
+    res.setHeader('Content-Length', String(file.size));
+    res.setHeader('Content-Disposition', getContentDisposition(file.path.split('/').pop(), download));
+    res.setHeader('Cache-Control', 'no-store');
+    await streamWorkspaceFile({ file, res });
+    res.end();
   } catch (err) {
     sendError(res, err);
   }

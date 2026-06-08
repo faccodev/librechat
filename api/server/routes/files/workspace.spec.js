@@ -135,3 +135,89 @@ describe('GET /files/workspace/search', () => {
     expect(res.body.total).toBe(0);
   });
 });
+
+describe('GET /files/workspace/raw', () => {
+  let workRoot;
+  let user;
+
+  beforeEach(async () => {
+    workRoot = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'librechat-ws-raw-'));
+    user = { id: 'user-1', workspaceSubdir: null };
+  });
+
+  afterEach(async () => {
+    await fs.promises.rm(workRoot, { recursive: true, force: true });
+  });
+
+  it('streams a file with Content-Type and Content-Disposition: inline', async () => {
+    await fs.promises.writeFile(path.join(workRoot, 'note.txt'), 'hello world');
+    const app = buildApp({
+      user,
+      appConfig: { workspaces: { enabled: true, containerBasePath: workRoot, sizeLimitMB: 2048 } },
+    });
+    const res = await request(app).get('/files/workspace/raw?path=note.txt');
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/text\/plain/);
+    expect(res.headers['content-disposition']).toMatch(/^inline;/);
+    expect(res.headers['content-length']).toBe('11');
+    expect(res.text).toBe('hello world');
+  });
+
+  it('forces attachment when ?download=true', async () => {
+    await fs.promises.writeFile(path.join(workRoot, 'note.txt'), 'hi');
+    const app = buildApp({
+      user,
+      appConfig: { workspaces: { enabled: true, containerBasePath: workRoot, sizeLimitMB: 2048 } },
+    });
+    const res = await request(app).get('/files/workspace/raw?path=note.txt&download=true');
+    expect(res.status).toBe(200);
+    expect(res.headers['content-disposition']).toMatch(/^attachment;/);
+    expect(res.headers['content-disposition']).toMatch(/note\.txt/);
+  });
+
+  it('returns 400 when path is missing', async () => {
+    const app = buildApp({
+      user,
+      appConfig: { workspaces: { enabled: true, containerBasePath: workRoot, sizeLimitMB: 2048 } },
+    });
+    const res = await request(app).get('/files/workspace/raw');
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 400 on path traversal', async () => {
+    const app = buildApp({
+      user,
+      appConfig: { workspaces: { enabled: true, containerBasePath: workRoot, sizeLimitMB: 2048 } },
+    });
+    const res = await request(app).get('/files/workspace/raw?path=../etc/passwd');
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 404 for a missing file', async () => {
+    const app = buildApp({
+      user,
+      appConfig: { workspaces: { enabled: true, containerBasePath: workRoot, sizeLimitMB: 2048 } },
+    });
+    const res = await request(app).get('/files/workspace/raw?path=missing.txt');
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 400 when target is a directory', async () => {
+    await fs.promises.mkdir(path.join(workRoot, 'sub'));
+    const app = buildApp({
+      user,
+      appConfig: { workspaces: { enabled: true, containerBasePath: workRoot, sizeLimitMB: 2048 } },
+    });
+    const res = await request(app).get('/files/workspace/raw?path=sub');
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 404 when workspaces are disabled', async () => {
+    const app = buildApp({
+      user,
+      appConfig: { workspaces: { enabled: false, containerBasePath: workRoot, sizeLimitMB: 2048 } },
+    });
+    const res = await request(app).get('/files/workspace/raw?path=note.txt');
+    expect(res.status).toBe(404);
+  });
+});
