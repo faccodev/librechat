@@ -19,7 +19,7 @@ export const TOOLS = [
         },
         workspaceSubdir: {
           type: "string",
-          description: "The subdirectory of the workspace where the files should be accessed/written. Maps to user's workspaceSubdir."
+          description: "The subdirectory of the workspace where the files should be accessed/written. Maps to user's workspaceSubdir. Empty string is allowed and means the workspace root."
         },
         timeout: {
           type: "number",
@@ -43,7 +43,7 @@ export const TOOLS = [
         },
         workspaceSubdir: {
           type: "string",
-          description: "The subdirectory of the workspace where the file is located."
+          description: "The subdirectory of the workspace where the file is located. Empty string is allowed and means the workspace root."
         },
         language: {
           type: "string",
@@ -82,8 +82,8 @@ export async function handleCallTool(request: CallToolRequest) {
         // An empty / undefined workspaceSubdir is intentionally allowed: it
         // means "run in the default workspace root" (i.e. /workspaces itself).
         // Safety (no path traversal, no `..`) is enforced inside
-        // runner.getSafePaths -> validateWorkspaceSubdir, which will throw
-        // a clear error if the value is malicious.
+        // runner.getSafePaths -> validateWorkspaceSubdir, which throws a
+        // clear error if the value is malicious.
 
         const result = await runCode(language, code, workspaceSubdir, timeout);
         return {
@@ -105,45 +105,6 @@ export async function handleCallTool(request: CallToolRequest) {
         };
 
         // See run_code above — empty workspaceSubdir means "default root".
-
-        const result = await runFile(file, workspaceSubdir, language, timeout);
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(result, null, 2)
-            }
-          ],
-          isError: result.exitCode !== 0
-        };
-      }
-
-        const result = await runCode(language, code, workspaceSubdir, timeout);
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(result, null, 2)
-            }
-          ],
-          isError: result.exitCode !== 0
-        };
-      }
-
-      case "run_file": {
-        const { file, workspaceSubdir, language, timeout } = args as {
-          file: string;
-          workspaceSubdir: string;
-          language?: "node" | "python" | "sh";
-          timeout?: number;
-        };
-
-        if (!workspaceSubdir) {
-          return {
-            content: [{ type: "text", text: "Error: workspaceSubdir parameter is required to identify the workspace location." }],
-            isError: true
-          };
-        }
 
         const result = await runFile(file, workspaceSubdir, language, timeout);
         return {
