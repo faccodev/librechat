@@ -96,7 +96,7 @@ services:
       # is exactly the trap Coolify's "use a volume" preset triggers. Setting
       # a default here also means a fresh `docker compose up` on a Linux box
       # Just Works without the operator having to remember to edit the .env.
-      - ${WORKSPACES_HOST_PATH:-/home/workspaces}:/workspaces
+      - /home/workspaces:/workspaces
     # Coolify labels: only `coolify.managed` and `coolify.type` are official.
     # Coolify auto-applies the applicationId. Adding unofficial labels can
     # confuse its parser.
@@ -168,7 +168,7 @@ services:
       # Mount workspaces so browser-based fetches of local files (e.g. an
       # agent navigating to file:///workspaces/report.html) work. The browser
       # sandbox otherwise can't see the host's workspace files.
-      - ${WORKSPACES_HOST_PATH:-/home/workspaces}:/workspaces
+      - /home/workspaces:/workspaces
 
   # ---------------------------------------------------------------------------
   # Web search MCP — DuckDuckGo via nickclyde/duckduckgo-mcp-server.
@@ -238,7 +238,7 @@ services:
       # Mount the workspaces directory so search/fetch_content tools that get
       # passed a /workspaces/... path can read the file directly. Without this
       # the container's /workspaces is empty and any local-file fetch fails.
-      - ${WORKSPACES_HOST_PATH:-/home/workspaces}:/workspaces
+      - /home/workspaces:/workspaces
 
   # ---------------------------------------------------------------------------
   # mcp-code-runner — code execution MCP. Mounts the Docker socket so it can
@@ -251,7 +251,7 @@ services:
     restart: always
     init: true
     volumes:
-      - ${WORKSPACES_HOST_PATH:-/home/workspaces}:/workspaces
+      - /home/workspaces:/workspaces
       # Linux and Windows (Docker Desktop) both expose /var/run/docker.sock
       # inside the container. On Windows the path is the WSL2 VM's docker
       # socket, which is what we want.
@@ -330,7 +330,7 @@ services:
     # container's /workspaces is empty and any attempt to read a workspace
     # file fails with FileNotFoundError.
     volumes:
-      - ${WORKSPACES_HOST_PATH:-/home/workspaces}:/workspaces
+      - /home/workspaces:/workspaces
     ports:
       - "8934:8934"
 
