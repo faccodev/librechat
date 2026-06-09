@@ -238,7 +238,9 @@ services:
   # ---------------------------------------------------------------------------
   # faster-whisper — self-hosted STT. Exposes POST /asr on port 9000 (image
   # default). LibreChat hits http://mcp-faster-whisper:9000/asr per
-  # speech.stt.fasterWhisper.url in librechat.yaml.
+  # speech.stt.fasterWhisper.url in librechat.yaml. Also consumed by the
+  # mcp-transcribe wrapper (below) which exposes the same model as MCP tools
+  # so agents can transcribe on demand.
   # ---------------------------------------------------------------------------
   mcp-faster-whisper:
     image: onerahmet/openai-whisper-asr-webservice:latest
@@ -250,6 +252,27 @@ services:
       - ASR_QUANTIZATION=int8
     volumes:
       - faster_whisper_cache:/data/whisper
+
+  # ---------------------------------------------------------------------------
+  # mcp-transcribe — MCP server wrapper around mcp-faster-whisper. Exposes
+  # three tools to LibreChat agents:
+  #   * transcribe_file(path, language?) — transcribe a local audio/video file
+  #   * transcribe_url(url, language?)   — download URL then transcribe
+  #   * list_models()                     — show loaded faster-whisper model
+  # Streamable-http on port 8934. Built from ./mcp-transcribe/Dockerfile.
+  # ---------------------------------------------------------------------------
+  mcp-transcribe:
+    build:
+      context: ./mcp-transcribe
+    restart: always
+    init: true
+    environment:
+      - FASTER_WHISPER_URL=http://mcp-faster-whisper:9000
+      - FASTER_WHISPER_LANGUAGE=pt
+    depends_on:
+      - mcp-faster-whisper
+    ports:
+      - "8934:8934"
 
 volumes:
   mongodb_data:
