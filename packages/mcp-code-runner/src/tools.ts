@@ -79,12 +79,44 @@ export async function handleCallTool(request: CallToolRequest) {
           timeout?: number;
         };
 
-        if (!workspaceSubdir) {
-          return {
-            content: [{ type: "text", text: "Error: workspaceSubdir parameter is required to identify the workspace location." }],
-            isError: true
-          };
-        }
+        // An empty / undefined workspaceSubdir is intentionally allowed: it
+        // means "run in the default workspace root" (i.e. /workspaces itself).
+        // Safety (no path traversal, no `..`) is enforced inside
+        // runner.getSafePaths -> validateWorkspaceSubdir, which will throw
+        // a clear error if the value is malicious.
+
+        const result = await runCode(language, code, workspaceSubdir, timeout);
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result, null, 2)
+            }
+          ],
+          isError: result.exitCode !== 0
+        };
+      }
+      case "run_file": {
+        const { file, workspaceSubdir, language, timeout } = args as {
+          file: string;
+          workspaceSubdir: string;
+          language?: "node" | "python" | "sh";
+          timeout?: number;
+        };
+
+        // See run_code above — empty workspaceSubdir means "default root".
+
+        const result = await runFile(file, workspaceSubdir, language, timeout);
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result, null, 2)
+            }
+          ],
+          isError: result.exitCode !== 0
+        };
+      }
 
         const result = await runCode(language, code, workspaceSubdir, timeout);
         return {
