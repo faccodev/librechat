@@ -122,15 +122,9 @@ services:
   # Playwright MCP — browser automation. Microsoft image, Chromium preinstalled.
   # Stealth init script and custom entrypoint are bind-mounted from ./.docker/.
   # Persisted browser profile keeps cookies/localStorage between restarts.
-  #
-  # Profile `mcp-playwright`: opt-in. Set COMPOSE_PROFILES=mcp-playwright in
-  # the Coolify env panel to enable. Default: disabled. Why: the image runs
-  # as user `node` and the bind-mounted entrypoint script arrives owned by
-  # `root` — see the sh -c wrapper note below.
   # ---------------------------------------------------------------------------
   mcp-playwright:
     image: mcr.microsoft.com/playwright/mcp:v0.0.75
-    profiles: ["mcp-playwright"]
     restart: always
     init: true
     # The base image hardcodes ENTRYPOINT to `["node","cli.js",...]`. Without
@@ -176,11 +170,8 @@ services:
   # ---------------------------------------------------------------------------
   # mcp-code-runner — code execution MCP. Mounts the Docker socket so it can
   # spin up ephemeral containers to run untrusted code with resource limits.
-  #
-  # Profile `mcp-code-runner`: opt-in.
   # ---------------------------------------------------------------------------
   mcp-code-runner:
-    profiles: ["mcp-code-runner"]
     build:
       context: ./packages/mcp-code-runner
       dockerfile: Dockerfile
@@ -202,11 +193,8 @@ services:
   # ---------------------------------------------------------------------------
   # Notion MCP — persistent container, http transport on port 3001.
   # NOTION_TOKEN must be set in the host env (.env or Coolify panel).
-  #
-  # Profile `mcp-notion`: opt-in.
   # ---------------------------------------------------------------------------
   mcp-notion:
-    profiles: ["mcp-notion"]
     image: node:20-alpine
     restart: always
     command:
@@ -225,11 +213,8 @@ services:
   # faster-whisper — self-hosted STT. Exposes POST /asr on port 9000 (image
   # default). LibreChat hits http://mcp-faster-whisper:9000/asr per
   # speech.stt.fasterWhisper.url in librechat.yaml.
-  #
-  # Profile `mcp-faster-whisper`: opt-in.
   # ---------------------------------------------------------------------------
   mcp-faster-whisper:
-    profiles: ["mcp-faster-whisper"]
     image: onerahmet/openai-whisper-asr-webservice:latest
     restart: always
     init: true
