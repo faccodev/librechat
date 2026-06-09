@@ -313,59 +313,10 @@ html {
   text-overflow: ellipsis;
 }
 
-@font-face {
-  font-display: swap;
-  font-family: Inter;
-  font-style: normal;
-  font-weight: 400;
-  src: url('$fonts/Inter-Regular.woff2') format('woff2');
-  size-adjust: 94%;
-}
-
-@font-face {
-  font-display: swap;
-  font-family: Inter;
-  font-style: italic;
-  font-weight: 400;
-  src: url('$fonts/Inter-Italic.woff2') format('woff2');
-  size-adjust: 94%;
-}
-
-@font-face {
-  font-display: swap;
-  font-family: Inter;
-  font-style: normal;
-  font-weight: 500;
-  src: url('$fonts/Inter-SemiBold.woff2') format('woff2');
-  size-adjust: 94%;
-}
-
-@font-face {
-  font-display: swap;
-  font-family: Inter;
-  font-style: italic;
-  font-weight: 500;
-  src: url('$fonts/Inter-SemiBoldItalic.woff2') format('woff2');
-  size-adjust: 94%;
-}
-
-@font-face {
-  font-display: swap;
-  font-family: Inter;
-  font-style: normal;
-  font-weight: 600;
-  src: url('$fonts/Inter-Bold.woff2') format('woff2');
-  size-adjust: 94%;
-}
-
-@font-face {
-  font-display: swap;
-  font-family: Inter;
-  font-style: italic;
-  font-weight: 600;
-  src: url('$fonts/Inter-BoldItalic.woff2') format('woff2');
-  size-adjust: 94%;
-}
+/* Inter @font-face declarations removed (2026-06-09). The Google Sans
+ * family is now loaded from fonts.googleapis.com in index.html and
+ * declared in tailwind.config.cjs as the default sans family. Roboto
+ * Mono remains for code blocks. */
 
 @font-face {
   font-display: swap;

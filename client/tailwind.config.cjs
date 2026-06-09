@@ -11,7 +11,7 @@ module.exports = {
   darkMode: ['class'],
   theme: {
     fontFamily: {
-      sans: ['Inter', 'sans-serif'],
+      sans: ['"Google Sans"', 'Inter', 'sans-serif'],
       mono: ['Roboto Mono', 'monospace'],
     },
     // fontFamily: {
