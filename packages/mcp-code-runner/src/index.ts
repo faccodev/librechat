@@ -7,64 +7,78 @@ import { TOOLS, handleCallTool } from "./tools.js";
 
 const PORT = process.env.PORT || 8932;
 
-// Create the MCP server
-const server = new Server(
-  {
-    name: "mcp-code-runner",
-    version: "1.0.0"
-  },
-  {
-    capabilities: {
-      tools: {}
-    }
-  }
-);
+type Session = { server: Server; transport: StreamableHTTPServerTransport };
 
-// Register list tools handler
-server.setRequestHandler(ListToolsRequestSchema, async () => {
-  return {
-    tools: TOOLS
-  };
-});
+const sessions = new Map<string, Session>();
 
-// Register call tool handler
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  return handleCallTool(request);
-});
+/** Build a fresh MCP Server + StreamableHTTPServerTransport pair for one session.
+ *
+ * The MCP SDK's `Server` allows only one connected transport at a time. Earlier
+ * revisions of this file reused a module-level Server singleton and just
+ * swapped transports, which crashed on every request without an
+ * ``mcp-session-id`` header with ``Error: Already connected to a transport``.
+ * The fix is to pair a new Server with each new transport and tear both down
+ * together when the session closes.
+ */
+function createSession(): Session {
+  const server = new Server(
+    { name: "mcp-code-runner", version: "1.0.0" },
+    { capabilities: { tools: {} } }
+  );
 
-const sessions = new Map<string, StreamableHTTPServerTransport>();
+  server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: TOOLS }));
+  server.setRequestHandler(CallToolRequestSchema, async (request) => handleCallTool(request));
+
+  const transport = new StreamableHTTPServerTransport({
+    sessionIdGenerator: () => randomUUID()
+  });
+
+  return { server, transport };
+}
 
 const app = express();
 
-// Health check endpoint
-app.get("/health", (req, res) => {
+app.get("/health", (_req, res) => {
   res.status(200).json({ status: "OK", service: "mcp-code-runner" });
 });
 
-// Capture all other routes for MCP streamable-http transport
 app.all("*", async (req, res) => {
+  const sid = req.headers["mcp-session-id"] as string | undefined;
+  let session = sid ? sessions.get(sid) : undefined;
+
+  if (!session) {
+    session = createSession();
+    await session.server.connect(session.transport);
+    session.transport.onclose = () => {
+      if (session?.transport.sessionId) {
+        console.log(`Session closed: ${session.transport.sessionId}`);
+        sessions.delete(session.transport.sessionId);
+      }
+    };
+  }
+
   try {
-    const sid = req.headers["mcp-session-id"] as string | undefined;
-    let transport = sid ? sessions.get(sid) : undefined;
+    await session.transport.handleRequest(req, res);
 
-    if (!transport) {
-      transport = new StreamableHTTPServerTransport({ sessionIdGenerator: () => randomUUID() });
-      await server.connect(transport);
-    }
-
-    await transport.handleRequest(req, res);
-
-    if (transport.sessionId && !sessions.has(transport.sessionId)) {
-      sessions.set(transport.sessionId, transport);
-      transport.onclose = () => {
-        console.log(`Session closed: ${transport.sessionId}`);
-        sessions.delete(transport.sessionId!);
-      };
+    const newSid = session.transport.sessionId;
+    if (newSid && !sessions.has(newSid)) {
+      sessions.set(newSid, session);
     }
   } catch (error) {
     console.error("Error handling request in streamable-http handler:", error);
     if (!res.headersSent) {
       res.status(500).send("Internal Server Error");
+    }
+    // Tear the session down so the next request gets a fresh Server+Transport
+    // pair. Without this, a single failed call would leave the transport in a
+    // half-open state and poison every subsequent request on this session.
+    if (session.transport.sessionId) {
+      sessions.delete(session.transport.sessionId);
+    }
+    try {
+      await session.transport.close();
+    } catch {
+      // transport.close() can throw if it never finished initializing; safe to ignore.
     }
   }
 });
