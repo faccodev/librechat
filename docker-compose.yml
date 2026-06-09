@@ -89,7 +89,14 @@ services:
     volumes:
       - ./librechat.yaml:/app/librechat.yaml
       - librechat_uploads:/app/uploads
-      - ${WORKSPACES_HOST_PATH}:/workspaces
+      # WORKSPACES_HOST_PATH must be an ABSOLUTE host path (e.g. /home/workspaces
+      # on a Linux VPS) for the bind mount to work. Without the explicit
+      # `:-/home/workspaces` fallback, an unset variable becomes the empty
+      # string and Docker silently creates a NAMED VOLUME called ``""`` — which
+      # is exactly the trap Coolify's "use a volume" preset triggers. Setting
+      # a default here also means a fresh `docker compose up` on a Linux box
+      # Just Works without the operator having to remember to edit the .env.
+      - ${WORKSPACES_HOST_PATH:-/home/workspaces}:/workspaces
     # Coolify labels: only `coolify.managed` and `coolify.type` are official.
     # Coolify auto-applies the applicationId. Adding unofficial labels can
     # confuse its parser.
@@ -236,14 +243,20 @@ services:
     restart: always
     init: true
     volumes:
-      - ${WORKSPACES_HOST_PATH}:/workspaces
+      - ${WORKSPACES_HOST_PATH:-/home/workspaces}:/workspaces
       # Linux and Windows (Docker Desktop) both expose /var/run/docker.sock
       # inside the container. On Windows the path is the WSL2 VM's docker
       # socket, which is what we want.
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - WORKSPACES_BASE=/workspaces
-      - HOST_WORKSPACES_BASE=${HOST_WORKSPACES_BASE}
+      # HOST_WORKSPACES_BASE is the path that the mcp-code-runner tells its
+      # child executor containers to mount. Must be the SAME absolute path
+      # the host sees for WORKSPACES_HOST_PATH — the executor container runs
+      # via the host's docker daemon, so the path has to be host-relative,
+      # not container-relative. Default mirrors the WORKSPACES_HOST_PATH
+      # fallback for the same reason.
+      - HOST_WORKSPACES_BASE=${HOST_WORKSPACES_BASE:-/home/workspaces}
       - MAX_TIMEOUT=120
       - RUNNER_MEMORY=${RUNNER_MEMORY:-512m}
       - RUNNER_CPUS=${RUNNER_CPUS:-1.0}

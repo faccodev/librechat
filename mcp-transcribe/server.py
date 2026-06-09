@@ -109,8 +109,14 @@ def transcribe_url(url: str, language: str = DEFAULT_LANGUAGE) -> dict:
 
 @mcp.tool()
 def list_models() -> dict:
-    """Return which faster-whisper model and config is currently loaded."""
-    with httpx.Client(timeout=10) as client:
+    """Return which faster-whisper model and config is currently loaded.
+
+    The faster-whisper root ``/`` returns a 307 redirect to ``/docs``; we
+    follow it (and any subsequent redirects) to surface the real model info
+    the docs page renders. The base httpx client is constructed with
+    ``follow_redirects=True`` for the same reason on the transcribe_url path.
+    """
+    with httpx.Client(timeout=10, follow_redirects=True) as client:
         try:
             r = client.get(f"{FASTER_WHISPER_URL}/")
             r.raise_for_status()
@@ -130,6 +136,22 @@ if __name__ == "__main__":
     if args.transport == "stdio":
         mcp.run(transport="stdio")
     else:
+        # FastMCP 1.x Streamable HTTP enables DNS rebinding protection by
+        # default, which rejects requests whose ``Host`` header is not
+        # 127.0.0.1 or localhost with HTTP 421. Inside the docker network
+        # the api container sends ``Host: mcp-transcribe:8934`` and would
+        # never get past the middleware. Disable the protection so the
+        # middleware short-circuits host/origin validation; the listener
+        # only sees peers on the internal Coolify/compose network.
+        try:
+            from mcp.server.transport_security import TransportSecuritySettings
+        except ImportError:  # older mcp lib layout
+            from mcp.server.fastmcp import TransportSecuritySettings
+        mcp.settings.transport_security = TransportSecuritySettings(
+            allowed_hosts=["*"],
+            allowed_origins=["*"],
+            enable_dns_rebinding_protection=False,
+        )
         mcp.settings.host = args.host
         mcp.settings.port = args.port
         mcp.run(transport="streamable-http")

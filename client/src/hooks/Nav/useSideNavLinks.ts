@@ -8,7 +8,7 @@ import {
   ScrollText,
   ArrowRightToLine,
   SlidersHorizontal,
-  FolderTree,
+  Folder,
 } from 'lucide-react';
 import {
   Permissions,
@@ -171,7 +171,7 @@ export default function useSideNavLinks({
     links.push({
       title: 'com_sidepanel_file_manager',
       label: '',
-      icon: FolderTree,
+      icon: Folder,
       id: 'file-manager',
       Component: FileManagerPanel,
     });
