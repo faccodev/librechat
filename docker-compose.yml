@@ -55,6 +55,14 @@ services:
       - "3080:3080"
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    # Pass the host .env into the api container. The LibreChat api
+    # reads dozens of env vars (ALLOW_REGISTRATION, OPENAI_API_KEY,
+    # GOOGLE_KEY, etc.) — listing them all in `environment:` below
+    # is fragile. `env_file` merges .env into process.env before
+    # the entrypoint runs, and vars explicitly listed in
+    # `environment:` (like MEILI_MASTER_KEY below) win on conflict.
+    env_file:
+      - .env
     depends_on:
       mongodb:
         condition: service_healthy
