@@ -122,34 +122,35 @@ services:
   # Browser MCP — @agent-infra/mcp-server-browser (ByteDance UI-TARS).
   # Token-efficient alternative to Playwright MCP. Uses Puppeteer + structured
   # accessibility tree (~80-90% smaller payloads than Playwright MCP's raw
-  # DOM dump). Exposes streamable-http natively on port 8931, matching the
-  # exact URL shape the old mcp-playwright used — so librechat.yaml can swap
-  # hostnames with zero structural change.
+  # DOM dump). Exposes streamable-http + SSE on port 8931 (same port the old
+  # mcp-playwright used → zero structural change in librechat.yaml).
   #
-  # Image source: ghcr.io/bytedance/agent-infra-mcp-server-browser (official).
-  # --no-sandbox is required when running Chromium as the container's init PID.
-  # --user-data-dir + browser_profile volume persist cookies/localStorage
-  # between restarts (same role as playwright_profile did).
-  #
-  # Replaces the old mcp-playwright service (Microsoft Playwright MCP), which
-  # was crashing the host with a stubborn entrypoint permission issue on
-  # Linux VPS (see git history — .docker/playwright-entrypoint.sh arrived
-  # root-owned and the node user couldn't exec it). Removing it eliminates
-  # the crash loop.
+  # No official pre-built image is published yet (upstream Dockerfile.http
+  # notes "image will be published together"). We build from
+  # ./.docker/mcp-browser.Dockerfile — a slimmed-down fork of the upstream
+  # Dockerfile.http with the hardcoded ENTRYPOINT removed so compose's
+  # `command:` is authoritative. Build context is self-contained (no git
+  # clone required) and the layer cache is friendly to iterative edits.
   # ---------------------------------------------------------------------------
   mcp-browser:
-    image: ghcr.io/bytedance/agent-infra-mcp-server-browser:latest
+    build:
+      context: .
+      dockerfile: .docker/mcp-browser.Dockerfile
     restart: always
     init: true
     # Chromium crashes with Docker's default 64MB /dev/shm. 2GB matches the
     # upstream recommendation in the @agent-infra docs.
     shm_size: '2gb'
+    # The Dockerfile installs `mcp-server-browser` globally via `npm i -g`,
+    # so the binary is on PATH for the pptruser. We invoke it directly as
+    # the entrypoint so flags land on the MCP server, not on `node`.
+    # mcp-server-browser auto-selects streamable-http + SSE transport when
+    # --port is set (per upstream README).
+    entrypoint: mcp-server-browser
     command:
-      - --transport=http
       - --host=0.0.0.0
       - --port=8931
       - --headless
-      - --no-sandbox
       - --user-data-dir=/ms-browser
       - --output-dir=/ms-browser/output
     volumes:
