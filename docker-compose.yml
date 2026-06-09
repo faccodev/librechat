@@ -174,14 +174,13 @@ services:
   # Image: python:3.12-slim + uv (so we can `uvx` the package on demand).
   # uv caches wheels in /uv-cache so the build is fast on restarts.
   #
-  # Wrapper note: the upstream CLI doesn't expose a way to widen the
-  # Streamable HTTP host allowlist, but FastMCP 1.x rejects requests
-  # with Host: mcp-search:8933 (not 127.0.0.1 / localhost) with 421
-  # Misdirected Request. We mount ./mcp-search/launcher.py and run it
-  # via `uvx --with …`; the launcher patches
-  # ``mcp.settings.transport_security`` to wildcard before delegating
-  # to the package's main(). Safe because the listener only sees the
-  # internal docker network.
+  # Wrapper note: the upstream CLI doesn't expose a way to disable FastMCP's
+  # DNS rebinding protection, which rejects requests with
+  # ``Host: mcp-search:8933`` (not 127.0.0.1 / localhost) with HTTP 421.
+  # The launcher is embedded inline in this command (base64-decoded at
+  # startup) so the file lives *inside* the uvx venv, avoiding bind-mount
+  # visibility issues that surfaced when running on Coolify / VPS storage
+  # drivers that hide host bind mounts from uvx's isolated venv.
   # ---------------------------------------------------------------------------
   mcp-search:
     image: python:3.12-slim
@@ -192,9 +191,31 @@ services:
       - -c
       - |
         pip install --no-cache-dir uv && \
+        cat > /tmp/launcher.py <<'LAUNCHER_EOF'
+        """Launcher: disable FastMCP DNS rebinding protection for Docker-internal traffic.
+
+        Default ``enable_dns_rebinding_protection=True`` rejects ``Host: mcp-search:8933``
+        with 421 Misdirected Request. We set it to False so the middleware short-circuits
+        the host/origin validation. Widening ``allowed_hosts`` is *not* enough — the
+        validator only matches exact entries or ``host:*`` port-suffix patterns, not a
+        bare ``"*"``. Safe because the listener only sees the internal Docker network.
+        """
+        import sys
+        import duckduckgo_mcp_server.server as srv
+        try:
+            from mcp.server.transport_security import TransportSecuritySettings
+        except ImportError:
+            from mcp.server.fastmcp import TransportSecuritySettings
+        srv.mcp.settings.transport_security = TransportSecuritySettings(
+            allowed_hosts=["*"],
+            allowed_origins=["*"],
+            enable_dns_rebinding_protection=False,
+        )
+        sys.exit(srv.main())
+        LAUNCHER_EOF
         exec uvx --from "duckduckgo-mcp-server[browser]" \
             --with "duckduckgo-mcp-server[browser]" \
-            python /opt/launcher/launcher.py \
+            python /tmp/launcher.py \
             --transport streamable-http \
             --host 0.0.0.0 \
             --port 8933
@@ -203,7 +224,6 @@ services:
       - DDG_REGION=wt-wt
     volumes:
       - search_uv_cache:/uv-cache
-      - ./mcp-search/launcher.py:/opt/launcher/launcher.py:ro
 
   # ---------------------------------------------------------------------------
   # mcp-code-runner — code execution MCP. Mounts the Docker socket so it can
