@@ -173,6 +173,15 @@ services:
   #
   # Image: python:3.12-slim + uv (so we can `uvx` the package on demand).
   # uv caches wheels in /uv-cache so the build is fast on restarts.
+  #
+  # Wrapper note: the upstream CLI doesn't expose a way to widen the
+  # Streamable HTTP host allowlist, but FastMCP 1.x rejects requests
+  # with Host: mcp-search:8933 (not 127.0.0.1 / localhost) with 421
+  # Misdirected Request. We mount ./mcp-search/launcher.py and run it
+  # via `uvx --with …`; the launcher patches
+  # ``mcp.settings.transport_security`` to wildcard before delegating
+  # to the package's main(). Safe because the listener only sees the
+  # internal docker network.
   # ---------------------------------------------------------------------------
   mcp-search:
     image: python:3.12-slim
@@ -183,7 +192,9 @@ services:
       - -c
       - |
         pip install --no-cache-dir uv && \
-        uvx --from "duckduckgo-mcp-server[browser]" duckduckgo-mcp-server \
+        exec uvx --from "duckduckgo-mcp-server[browser]" \
+            --with "duckduckgo-mcp-server[browser]" \
+            python /opt/launcher/launcher.py \
             --transport streamable-http \
             --host 0.0.0.0 \
             --port 8933
@@ -192,6 +203,7 @@ services:
       - DDG_REGION=wt-wt
     volumes:
       - search_uv_cache:/uv-cache
+      - ./mcp-search/launcher.py:/opt/launcher/launcher.py:ro
 
   # ---------------------------------------------------------------------------
   # mcp-code-runner — code execution MCP. Mounts the Docker socket so it can
