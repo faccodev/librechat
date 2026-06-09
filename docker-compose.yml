@@ -119,53 +119,41 @@ services:
       - meili_data:/meili_data
 
   # ---------------------------------------------------------------------------
-  # Playwright MCP — browser automation. Microsoft image, Chromium preinstalled.
-  # Stealth init script and custom entrypoint are bind-mounted from ./.docker/.
-  # Persisted browser profile keeps cookies/localStorage between restarts.
+  # Browser MCP — @agent-infra/mcp-server-browser (ByteDance UI-TARS).
+  # Token-efficient alternative to Playwright MCP. Uses Puppeteer + structured
+  # accessibility tree (~80-90% smaller payloads than Playwright MCP's raw
+  # DOM dump). Exposes streamable-http natively on port 8931, matching the
+  # exact URL shape the old mcp-playwright used — so librechat.yaml can swap
+  # hostnames with zero structural change.
+  #
+  # Image source: ghcr.io/bytedance/agent-infra-mcp-server-browser (official).
+  # --no-sandbox is required when running Chromium as the container's init PID.
+  # --user-data-dir + browser_profile volume persist cookies/localStorage
+  # between restarts (same role as playwright_profile did).
+  #
+  # Replaces the old mcp-playwright service (Microsoft Playwright MCP), which
+  # was crashing the host with a stubborn entrypoint permission issue on
+  # Linux VPS (see git history — .docker/playwright-entrypoint.sh arrived
+  # root-owned and the node user couldn't exec it). Removing it eliminates
+  # the crash loop.
   # ---------------------------------------------------------------------------
-  mcp-playwright:
-    image: mcr.microsoft.com/playwright/mcp:v0.0.75
+  mcp-browser:
+    image: ghcr.io/bytedance/agent-infra-mcp-server-browser:latest
     restart: always
     init: true
-    # The base image hardcodes ENTRYPOINT to `["node","cli.js",...]`. Without
-    # overriding entrypoint, our `command:` would be APPENDED and cli.js would
-    # receive duplicate args. The entrypoint script is idempotent: it installs
-    # chrome-for-testing (cached by the volume below) and `exec`s cli.js.
-    #
-    # We use `sh -c "exec sh script.sh \"$@\""` rather than calling the
-    # script directly. The base image runs as `node` (UID 1000) and the
-    # bind-mounted script arrives owned by `root`. A direct `execve` on
-    # the script returns "Permission denied" because node has no +x on a
-    # root-owned file. Wrapping in `sh script.sh ...` makes the kernel
-    # call /bin/sh (a real binary with +x) and sh opens the file as text,
-    # which doesn't require +x on the file itself.
-    #
-    # The flags go into `command:` and reach the script as its $1..$N
-    # (the `"$@"` inside the sh -c forwards all positional args except
-    # $0).
-    entrypoint:
-      - /bin/sh
-      - -c
-      - 'exec sh /app/playwright-entrypoint.sh "$@"'
+    # Chromium crashes with Docker's default 64MB /dev/shm. 2GB matches the
+    # upstream recommendation in the @agent-infra docs.
+    shm_size: '2gb'
     command:
+      - --transport=http
+      - --host=0.0.0.0
+      - --port=8931
       - --headless
       - --no-sandbox
-      - --isolated
-      - --browser
-      - chromium
-      - --host
-      - "0.0.0.0"
-      - --port
-      - "8931"
-      - "--device=Desktop Chrome HiDPI"
-      - "--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
-      - --viewport-size=1280x720
-      - --init-script=/app/stealth.js
-      - --allowed-hosts=*
+      - --user-data-dir=/ms-browser
+      - --output-dir=/ms-browser/output
     volumes:
-      - ./.docker/playwright-entrypoint.sh:/app/playwright-entrypoint.sh:ro
-      - ./.docker/playwright-stealth.js:/app/stealth.js:ro
-      - playwright_profile:/ms-playwright
+      - browser_profile:/ms-browser
 
   # ---------------------------------------------------------------------------
   # mcp-code-runner — code execution MCP. Mounts the Docker socket so it can
@@ -230,4 +218,4 @@ volumes:
   meili_data:
   librechat_uploads:
   faster_whisper_cache:
-  playwright_profile:
+  browser_profile:
