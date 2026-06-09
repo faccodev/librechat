@@ -42,24 +42,16 @@ RUN npm install puppeteer puppeteer-core @puppeteer/browsers \
 
 USER root
 
-# Wrapper that fixes volume ownership at startup, then drops to pptruser
-# and execs the MCP server. The entrypoint.sh is bind-mounted from the
-# project (./.docker/mcp-browser-entrypoint.sh) so it can be tweaked
-# without rebuilding the image.
+# Wrapper that runs the MCP server as root. The upstream
+# @agent-infra/mcp-server-browser auto-passes --no-sandbox to Chromium
+# when it detects a container env, so the OS-level sandbox is
+# unnecessary. We tried dropping to pptruser via gosu but it required
+# CAP_SETUID which isn't granted to api-side containers.
 COPY mcp-browser-entrypoint.sh /usr/local/bin/mcp-browser-entrypoint.sh
 RUN chmod +x /usr/local/bin/mcp-browser-entrypoint.sh
 
-# su-exec is the lightweight "setuid + exec" Alpine-style tool that
-# Debian-slim doesn't ship by default. Installing via apt keeps the image
-# self-contained.
-RUN apt-get update && apt-get install -y --no-install-recommends su-exec \
-    && rm -rf /var/lib/apt/lists/*
-
 ENTRYPOINT ["/usr/local/bin/mcp-browser-entrypoint.sh"]
 
-# Reset to pptruser — the entrypoint uses su-exec to drop privileges, so
-# the runtime process matches the bind-mount UIDs of the volume.
-USER ${PPTRUSER_UID}
 WORKDIR /home/pptruser
 
 EXPOSE 8931

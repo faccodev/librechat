@@ -128,9 +128,11 @@ services:
   # No official pre-built image is published yet (upstream Dockerfile.http
   # notes "image will be published together"). We build from
   # ./.docker/mcp-browser.Dockerfile — a slimmed-down fork of the upstream
-  # Dockerfile.http with the hardcoded ENTRYPOINT removed so compose's
-  # `command:` is authoritative. Build context is self-contained (no git
-  # clone required) and the layer cache is friendly to iterative edits.
+  # Dockerfile.http, plus a small entrypoint wrapper
+  # (.docker/mcp-browser-entrypoint.sh) that chowns the browser_profile
+  # volume to pptruser at startup. Without the chown, Chrome fails to
+  # create SingletonLock inside the mounted volume (root-owned by default
+  # in named volumes) and every browser launch aborts.
   # ---------------------------------------------------------------------------
   mcp-browser:
     build:
@@ -141,13 +143,14 @@ services:
     # Chromium crashes with Docker's default 64MB /dev/shm. 2GB matches the
     # upstream recommendation in the @agent-infra docs.
     shm_size: '2gb'
-    # The Dockerfile installs `mcp-server-browser` globally via `npm i -g`,
-    # so the binary is on PATH for the pptruser. We invoke it directly as
-    # the entrypoint so flags land on the MCP server, not on `node`.
-    # mcp-server-browser auto-selects streamable-http + SSE transport when
-    # --port is set (per upstream README).
-    entrypoint: mcp-server-browser
+    # The Dockerfile installs `mcp-server-browser` globally via `npm i -g`
+    # and the entrypoint wrapper just `exec "$@"`. So `command:` passes
+    # the binary + flags directly. The container runs as root because
+    # Chrome's --no-sandbox flag is auto-applied by the upstream server
+    # when it detects a container environment, and dropping to pptruser
+    # would need CAP_SETUID which isn't granted.
     command:
+      - mcp-server-browser
       - --host=0.0.0.0
       - --port=8931
       - --headless
