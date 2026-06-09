@@ -6,6 +6,13 @@ FROM node:24.16.0-alpine AS node
 RUN apk upgrade --no-cache
 RUN apk add --no-cache jemalloc
 RUN apk add --no-cache python3 py3-pip uv
+# su-exec is a tiny setuid wrapper used by the api entrypoint to drop
+# privileges from root to the `node` user after the chown step.
+RUN apk add --no-cache su-exec
+# Copy the entrypoint script. Runs as root to chown the bind-mount
+# directories, then execs the CMD as the unprivileged node user.
+COPY api/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod 755 /usr/local/bin/entrypoint.sh
 
 # Set environment variable to use jemalloc
 ENV LD_PRELOAD=/usr/lib/libjemalloc.so.2
@@ -71,9 +78,18 @@ ENV BUILD_COMMIT=${BUILD_COMMIT}
 ENV BUILD_BRANCH=${BUILD_BRANCH}
 ENV BUILD_DATE=${BUILD_DATE}
 
+# Switch back to root so the entrypoint can chown bind-mount directories
+# (which requires root) before dropping to the unprivileged `node` user
+# to run the actual app via su-exec. The intermediate USER node above
+# is needed during the build so COPY --chown=node:node works.
+USER root
+
 # Node API setup
 EXPOSE 3080
 ENV HOST=0.0.0.0
+# entrypoint.sh chowns /workspaces etc. to node:node and then execs
+# the given command as that user. CMD becomes the argument list.
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["npm", "run", "backend"]
 
 # Optional: for client with nginx routing
