@@ -123,49 +123,7 @@ services:
   # Stealth init script and custom entrypoint are bind-mounted from ./.docker/.
   # Persisted browser profile keeps cookies/localStorage between restarts.
   # ---------------------------------------------------------------------------
-  mcp-playwright:
-    image: mcr.microsoft.com/playwright/mcp:v0.0.75
-    restart: always
-    init: true
-    # The base image hardcodes ENTRYPOINT to `["node","cli.js",...]`. Without
-    # overriding entrypoint, our `command:` would be APPENDED and cli.js would
-    # receive duplicate args. The entrypoint script is idempotent: it installs
-    # chrome-for-testing (cached by the volume below) and `exec`s cli.js.
-    #
-    # Use `sh -c "script.sh"` rather than `entrypoint: [script.sh]`. The
-    # base image runs as `node` (UID 1000), and bind-mounted host files
-    # arrive owned by `root`. A direct `execve` on the script returns
-    # "Permission denied" because node has no +x on a root-owned file.
-    # sh reads the file as a text script (no +x needed) and runs it as
-    # the same user, sidestepping the permission issue.
-    #
-    # The flags go into `command:` and reach the script as its $1..$N
-    # (the script invocation `$@` inside the sh -c forwards all
-    # positional args, excluding $0).
-    entrypoint:
-      - /bin/sh
-      - -c
-      - 'exec /app/playwright-entrypoint.sh "$@"'
-    command:
-      - --headless
-      - --no-sandbox
-      - --isolated
-      - --browser
-      - chromium
-      - --host
-      - "0.0.0.0"
-      - --port
-      - "8931"
-      - "--device=Desktop Chrome HiDPI"
-      - "--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
-      - --viewport-size=1280x720
-      - --init-script=/app/stealth.js
-      - --allowed-hosts=*
-    volumes:
-      - ./.docker/playwright-entrypoint.sh:/app/playwright-entrypoint.sh:ro
-      - ./.docker/playwright-stealth.js:/app/stealth.js:ro
-      - playwright_profile:/ms-playwright
-
+  
   # ---------------------------------------------------------------------------
   # mcp-code-runner — code execution MCP. Mounts the Docker socket so it can
   # spin up ephemeral containers to run untrusted code with resource limits.
