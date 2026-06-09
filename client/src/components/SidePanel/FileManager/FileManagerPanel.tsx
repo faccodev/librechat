@@ -110,7 +110,7 @@ const FileManagerPanel = () => {
     onSuccess: (node) => {
       showToast({ message: localize('com_fm_action_file_created'), status: 'success' });
       setDialog({ kind: 'none' });
-      setDialog({ kind: 'edit', node });
+      setTimeout(() => setDialog({ kind: 'edit', node }), 0);
     },
     onError: (err) => {
       const message =
@@ -433,11 +433,11 @@ const FileManagerPanel = () => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-[180px]">
-              <DropdownMenuItem onSelect={() => setDialog({ kind: 'newFile' })}>
+              <DropdownMenuItem onSelect={() => setTimeout(() => setDialog({ kind: 'newFile' }), 0)}>
                 <FilePlus2 className="mr-2 size-4" aria-hidden="true" />
                 {localize('com_fm_action_new_file')}
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => setDialog({ kind: 'newFolder' })}>
+              <DropdownMenuItem onSelect={() => setTimeout(() => setDialog({ kind: 'newFolder' }), 0)}>
                 <FolderPlus className="mr-2 size-4" aria-hidden="true" />
                 {localize('com_fm_action_new_folder')}
               </DropdownMenuItem>
@@ -512,8 +512,14 @@ const FileManagerPanel = () => {
         onOpenChange={(open) => {
           if (!open) setDialog({ kind: 'none' });
         }}
-        onEdit={(node) => setDialog({ kind: 'edit', node })}
-        onDelete={(node) => setDialog({ kind: 'delete', nodes: [node] })}
+        onEdit={(node) => {
+          setDialog({ kind: 'none' });
+          setTimeout(() => setDialog({ kind: 'edit', node }), 0);
+        }}
+        onDelete={(node) => {
+          setDialog({ kind: 'none' });
+          setTimeout(() => setDialog({ kind: 'delete', nodes: [node] }), 0);
+        }}
       />
 
       <EditorModal

@@ -68,13 +68,13 @@ const NodeActions = ({ node, onView, onEdit, onRename, onDelete, onAttach }: Nod
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-[180px]">
         {onView && (
-          <DropdownMenuItem onSelect={() => onView(node)}>
+          <DropdownMenuItem onSelect={() => setTimeout(() => onView(node), 0)}>
             <Eye className="mr-2 size-4" aria-hidden="true" />
             {localize('com_fm_action_view')}
           </DropdownMenuItem>
         )}
         {onEdit && canEdit && (
-          <DropdownMenuItem onSelect={() => onEdit(node)}>
+          <DropdownMenuItem onSelect={() => setTimeout(() => onEdit(node), 0)}>
             <Edit3 className="mr-2 size-4" aria-hidden="true" />
             {localize('com_fm_action_edit')}
           </DropdownMenuItem>
@@ -86,7 +86,7 @@ const NodeActions = ({ node, onView, onEdit, onRename, onDelete, onAttach }: Nod
           </DropdownMenuItem>
         )}
         {node.type === 'dir' && onEdit && (
-          <DropdownMenuItem onSelect={() => onEdit(node)}>
+          <DropdownMenuItem onSelect={() => setTimeout(() => onEdit(node), 0)}>
             <FolderOpen className="mr-2 size-4" aria-hidden="true" />
             {localize('com_fm_action_open')}
           </DropdownMenuItem>
@@ -97,14 +97,14 @@ const NodeActions = ({ node, onView, onEdit, onRename, onDelete, onAttach }: Nod
         </DropdownMenuItem>
         {(onRename || onDelete) && <DropdownMenuSeparator />}
         {onRename && (
-          <DropdownMenuItem onSelect={() => onRename(node)}>
+          <DropdownMenuItem onSelect={() => setTimeout(() => onRename(node), 0)}>
             <FileEdit className="mr-2 size-4" aria-hidden="true" />
             {localize('com_fm_action_rename')}
           </DropdownMenuItem>
         )}
         {onDelete && (
           <DropdownMenuItem
-            onSelect={() => onDelete(node)}
+            onSelect={() => setTimeout(() => onDelete(node), 0)}
             className="text-red-600 focus:text-red-600"
           >
             <Trash2 className="mr-2 size-4" aria-hidden="true" />

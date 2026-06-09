@@ -2207,10 +2207,10 @@ export enum STTProviders {
   /**
    * Provider for a self-hosted `faster-whisper-server` (CTranslate2 +
    * HuggingFace Whisper weights). Operators run their own container
-   * (see docker-compose.override.yml) and point the config at it.
-   * The transcribed audio never leaves the host network, so this
-   * is the right choice for privacy-sensitive or cost-sensitive
-   * deployments.
+   * (see docker-compose.yml — the `mcp-faster-whisper` service) and
+   * point the config at it. The transcribed audio never leaves the
+   * host network, so this is the right choice for privacy-sensitive
+   * or cost-sensitive deployments.
    */
   FASTER_WHISPER = 'fasterWhisper',
 }
