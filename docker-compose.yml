@@ -165,6 +165,10 @@ services:
       - --output-dir=/ms-browser/output
     volumes:
       - browser_profile:/ms-browser
+      # Mount workspaces so browser-based fetches of local files (e.g. an
+      # agent navigating to file:///workspaces/report.html) work. The browser
+      # sandbox otherwise can't see the host's workspace files.
+      - ${WORKSPACES_HOST_PATH:-/home/workspaces}:/workspaces
 
   # ---------------------------------------------------------------------------
   # Web search MCP — DuckDuckGo via nickclyde/duckduckgo-mcp-server.
@@ -231,6 +235,10 @@ services:
       - DDG_REGION=wt-wt
     volumes:
       - search_uv_cache:/uv-cache
+      # Mount the workspaces directory so search/fetch_content tools that get
+      # passed a /workspaces/... path can read the file directly. Without this
+      # the container's /workspaces is empty and any local-file fetch fails.
+      - ${WORKSPACES_HOST_PATH:-/home/workspaces}:/workspaces
 
   # ---------------------------------------------------------------------------
   # mcp-code-runner — code execution MCP. Mounts the Docker socket so it can
@@ -316,6 +324,13 @@ services:
       - FASTER_WHISPER_LANGUAGE=pt
     depends_on:
       - mcp-faster-whisper
+    # Mount the same workspaces directory the api + mcp-code-runner see,
+    # so transcribe_file(path="/workspaces/...") resolves to the same
+    # host-backed files the FileManager panel shows. Without this, the
+    # container's /workspaces is empty and any attempt to read a workspace
+    # file fails with FileNotFoundError.
+    volumes:
+      - ${WORKSPACES_HOST_PATH:-/home/workspaces}:/workspaces
     ports:
       - "8934:8934"
 
