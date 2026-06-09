@@ -160,6 +160,40 @@ services:
       - browser_profile:/ms-browser
 
   # ---------------------------------------------------------------------------
+  # Web search MCP — DuckDuckGo via nickclyde/duckduckgo-mcp-server.
+  # Free, no API key, with built-in rate limiting (30 search req/min,
+  # 20 fetch req/min). Uses DuckDuckGo's HTML endpoint via httpx by default;
+  # `[browser]` extra adds curl_cffi for TLS fingerprint impersonation on
+  # sites that block the default backend.
+  #
+  # Exposed via streamable-http so it matches the same shape the other MCP
+  # services use (browser, notion, code-runner). Tools exposed: `search`
+  # (returns formatted results w/ titles, URLs, snippets) and
+  # `fetch_content` (fetches + parses arbitrary URL text).
+  #
+  # Image: python:3.12-slim + uv (so we can `uvx` the package on demand).
+  # uv caches wheels in /uv-cache so the build is fast on restarts.
+  # ---------------------------------------------------------------------------
+  mcp-search:
+    image: python:3.12-slim
+    restart: always
+    init: true
+    command:
+      - sh
+      - -c
+      - |
+        pip install --no-cache-dir uv && \
+        uvx --from "duckduckgo-mcp-server[browser]" duckduckgo-mcp-server \
+            --transport streamable-http \
+            --host 0.0.0.0 \
+            --port 8933
+    environment:
+      - DDG_SAFE_SEARCH=MODERATE
+      - DDG_REGION=wt-wt
+    volumes:
+      - search_uv_cache:/uv-cache
+
+  # ---------------------------------------------------------------------------
   # mcp-code-runner — code execution MCP. Mounts the Docker socket so it can
   # spin up ephemeral containers to run untrusted code with resource limits.
   # ---------------------------------------------------------------------------
@@ -223,3 +257,4 @@ volumes:
   librechat_uploads:
   faster_whisper_cache:
   browser_profile:
+  search_uv_cache:
