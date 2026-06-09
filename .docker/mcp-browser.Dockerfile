@@ -40,17 +40,26 @@ WORKDIR /home/pptruser
 RUN npm install puppeteer puppeteer-core @puppeteer/browsers \
     && npm install -g @agent-infra/mcp-server-browser@latest --unsafe-perm
 
+USER root
+
+# Wrapper that fixes volume ownership at startup, then drops to pptruser
+# and execs the MCP server. The entrypoint.sh is bind-mounted from the
+# project (./.docker/mcp-browser-entrypoint.sh) so it can be tweaked
+# without rebuilding the image.
+COPY mcp-browser-entrypoint.sh /usr/local/bin/mcp-browser-entrypoint.sh
+RUN chmod +x /usr/local/bin/mcp-browser-entrypoint.sh
+
+# su-exec is the lightweight "setuid + exec" Alpine-style tool that
+# Debian-slim doesn't ship by default. Installing via apt keeps the image
+# self-contained.
+RUN apt-get update && apt-get install -y --no-install-recommends su-exec \
+    && rm -rf /var/lib/apt/lists/*
+
+ENTRYPOINT ["/usr/local/bin/mcp-browser-entrypoint.sh"]
+
+# Reset to pptruser — the entrypoint uses su-exec to drop privileges, so
+# the runtime process matches the bind-mount UIDs of the volume.
 USER ${PPTRUSER_UID}
 WORKDIR /home/pptruser
 
-# Pre-create the dirs that compose mounts as a named volume, so the volume
-# inherits correct ownership on first attach. Without this, the volume is
-# created by Docker as root:root and pptruser (uid 10042) can't write the
-# Chrome SingletonLock — every browser launch fails with
-# "Failed to create /ms-browser/SingletonLock: Permission denied (13)".
-RUN mkdir -p /ms-browser /ms-browser/output \
-    && chown -R ${PPTRUSER_UID}:${PPTRUSER_UID} /ms-browser
-
-# No ENTRYPOINT — compose's `command:` drives the args. This avoids the
-# upstream's `ENTRYPOINT [..., "--port", "8088"]` swallowing our overrides.
 EXPOSE 8931
