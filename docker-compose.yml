@@ -268,6 +268,10 @@ services:
       - MAX_TIMEOUT=120
       - RUNNER_MEMORY=${RUNNER_MEMORY:-512m}
       - RUNNER_CPUS=${RUNNER_CPUS:-1.0}
+      # Pin PORT to 8932 — do NOT inherit PORT=3080 from .env (that's the
+      # API's port). mcp-code-runner's default is 8932, but it falls back
+      # to process.env.PORT if set, which would conflict with the API.
+      - PORT=8932
 
   # ---------------------------------------------------------------------------
   # Notion MCP — persistent container, http transport on port 3001.
