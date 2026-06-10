@@ -1,9 +1,12 @@
 import {
+  CheckSquare,
   Download,
   Edit3,
   Eye,
   FileEdit,
+  FolderInput,
   FolderOpen,
+  Link as LinkIcon,
   MoreVertical,
   Trash2,
   Paperclip,
@@ -30,6 +33,10 @@ export type NodeActionsProps = {
   onRename?: (node: WorkspaceNode) => void;
   onDelete?: (node: WorkspaceNode) => void;
   onAttach?: (node: WorkspaceNode) => void;
+  onCopyPath?: (node: WorkspaceNode) => void;
+  onMove?: (node: WorkspaceNode) => void;
+  onEnterSelectMode?: (node: WorkspaceNode) => void;
+  selectMode?: boolean;
 };
 
 /**
@@ -38,7 +45,18 @@ export type NodeActionsProps = {
  * text/code files; View is offered for everything that has a
  * preview).
  */
-const NodeActions = ({ node, onView, onEdit, onRename, onDelete, onAttach }: NodeActionsProps) => {
+const NodeActions = ({
+  node,
+  onView,
+  onEdit,
+  onRename,
+  onDelete,
+  onAttach,
+  onCopyPath,
+  onMove,
+  onEnterSelectMode,
+  selectMode,
+}: NodeActionsProps) => {
   const localize = useLocalize();
   const { showToast } = useToastContext();
   const kind = previewKindFromNode(node);
@@ -68,47 +86,117 @@ const NodeActions = ({ node, onView, onEdit, onRename, onDelete, onAttach }: Nod
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-[180px]">
         {onView && (
-          <DropdownMenuItem onSelect={() => setTimeout(() => onView(node), 0)}>
+          <DropdownMenuItem
+            onSelect={(e) => {
+              /** Prevent the underlying row from interpreting this as an
+               * activation click. Radix renders the menu content in a
+               * portal, but the original click still bubbles through React
+               * unless we stop it. */
+              e.preventDefault();
+              onView(node);
+            }}
+          >
             <Eye className="mr-2 size-4" aria-hidden="true" />
             {localize('com_fm_action_view')}
           </DropdownMenuItem>
         )}
         {onEdit && canEdit && (
-          <DropdownMenuItem onSelect={() => setTimeout(() => onEdit(node), 0)}>
+          <DropdownMenuItem
+            onSelect={(e) => {
+              e.preventDefault();
+              onEdit(node);
+            }}
+          >
             <Edit3 className="mr-2 size-4" aria-hidden="true" />
             {localize('com_fm_action_edit')}
           </DropdownMenuItem>
         )}
         {node.type === 'file' && onAttach && (
-          <DropdownMenuItem onSelect={() => onAttach(node)}>
+          <DropdownMenuItem
+            onSelect={(e) => {
+              e.preventDefault();
+              onAttach(node);
+            }}
+          >
             <Paperclip className="mr-2 size-4" aria-hidden="true" />
             {localize('com_ui_attach')}
           </DropdownMenuItem>
         )}
+        {onCopyPath && (
+          <DropdownMenuItem
+            onSelect={(e) => {
+              e.preventDefault();
+              onCopyPath(node);
+            }}
+          >
+            <LinkIcon className="mr-2 size-4" aria-hidden="true" />
+            {localize('com_fm_action_copy_path')}
+          </DropdownMenuItem>
+        )}
         {node.type === 'dir' && onEdit && (
-          <DropdownMenuItem onSelect={() => setTimeout(() => onEdit(node), 0)}>
+          <DropdownMenuItem
+            onSelect={(e) => {
+              e.preventDefault();
+              onEdit(node);
+            }}
+          >
             <FolderOpen className="mr-2 size-4" aria-hidden="true" />
             {localize('com_fm_action_open')}
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem onSelect={handleDownload}>
+        <DropdownMenuItem
+          onSelect={(e) => {
+            e.preventDefault();
+            void handleDownload();
+          }}
+        >
           <Download className="mr-2 size-4" aria-hidden="true" />
           {localize('com_fm_action_download')}
         </DropdownMenuItem>
         {(onRename || onDelete) && <DropdownMenuSeparator />}
         {onRename && (
-          <DropdownMenuItem onSelect={() => setTimeout(() => onRename(node), 0)}>
+          <DropdownMenuItem
+            onSelect={(e) => {
+              e.preventDefault();
+              onRename(node);
+            }}
+          >
             <FileEdit className="mr-2 size-4" aria-hidden="true" />
             {localize('com_fm_action_rename')}
           </DropdownMenuItem>
         )}
         {onDelete && (
           <DropdownMenuItem
-            onSelect={() => setTimeout(() => onDelete(node), 0)}
+            onSelect={(e) => {
+              e.preventDefault();
+              onDelete(node);
+            }}
             className="text-red-600 focus:text-red-600"
           >
             <Trash2 className="mr-2 size-4" aria-hidden="true" />
             {localize('com_fm_action_delete')}
+          </DropdownMenuItem>
+        )}
+        {onMove && (
+          <DropdownMenuItem
+            onSelect={(e) => {
+              e.preventDefault();
+              onMove(node);
+            }}
+          >
+            <FolderInput className="mr-2 size-4" aria-hidden="true" />
+            {localize('com_fm_action_move')}
+          </DropdownMenuItem>
+        )}
+        {onEnterSelectMode && !selectMode && (
+          <DropdownMenuItem
+            onSelect={(e) => {
+              e.preventDefault();
+              onEnterSelectMode(node);
+            }}
+          >
+            <CheckSquare className="mr-2 size-4" aria-hidden="true" />
+            {localize('com_fm_action_select')}
           </DropdownMenuItem>
         )}
       </DropdownMenuContent>

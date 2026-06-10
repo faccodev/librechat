@@ -2,6 +2,8 @@ import { memo } from 'react';
 import {
   Folder as FolderIcon,
   ChevronUp,
+  CheckSquare,
+  Square,
   File as FileIcon,
 } from 'lucide-react';
 import type { WorkspaceNode } from 'librechat-data-provider';
@@ -14,6 +16,8 @@ import NodeActions from './NodeActions';
 type NodeRowProps = {
   node: WorkspaceNode;
   isActive: boolean;
+  isSelected?: boolean;
+  selectMode?: boolean;
   onActivate: (node: WorkspaceNode) => void;
   onOpen: (node: WorkspaceNode) => void;
   onView?: (node: WorkspaceNode) => void;
@@ -21,11 +25,17 @@ type NodeRowProps = {
   onRename?: (node: WorkspaceNode) => void;
   onDelete?: (node: WorkspaceNode) => void;
   onAttach?: (node: WorkspaceNode) => void;
+  onCopyPath?: (node: WorkspaceNode) => void;
+  onMove?: (node: WorkspaceNode) => void;
+  onEnterSelectMode?: (node: WorkspaceNode) => void;
+  onToggleSelect?: (path: string) => void;
 };
 
 const NodeRow = ({
   node,
   isActive,
+  isSelected = false,
+  selectMode = false,
   onActivate,
   onOpen,
   onView,
@@ -33,6 +43,10 @@ const NodeRow = ({
   onRename,
   onDelete,
   onAttach,
+  onCopyPath,
+  onMove,
+  onEnterSelectMode,
+  onToggleSelect,
 }: NodeRowProps) => {
   const localize = useLocalize();
   const isDir = node.type === 'dir';
@@ -46,23 +60,62 @@ const NodeRow = ({
   return (
     <div
       role="row"
-      aria-selected={isActive}
+      aria-selected={isActive || isSelected}
       aria-label={ariaLabel}
       tabIndex={0}
-      onClick={() => onActivate(node)}
-      onDoubleClick={() => isDir && onOpen(node)}
+      onClick={(e) => {
+        /** Only activate when the click lands on the row itself, not on a
+         * child element (like the 3-dots dropdown trigger or the actions
+         * menu portal). Without this guard, a click that opens a DropdownMenu
+         * item also fires onActivate — making the row always look "opened". */
+        if (e.target !== e.currentTarget) {
+          return;
+        }
+        if (selectMode) {
+          onToggleSelect?.(node.path);
+        } else {
+          onActivate(node);
+        }
+      }}
+      onDoubleClick={() => isDir && !selectMode && onOpen(node)}
       onKeyDown={(e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
-          isDir ? onOpen(node) : onActivate(node);
+          if (selectMode) {
+            onToggleSelect?.(node.path);
+          } else {
+            isDir ? onOpen(node) : onActivate(node);
+          }
         }
       }}
       className={cn(
         'group flex h-10 w-full items-center gap-2 rounded-md px-2 text-sm transition-colors',
         'hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary',
         isActive && 'bg-surface-active font-medium ring-1 ring-inset ring-text-primary/20',
+        isSelected && 'bg-surface-active',
       )}
     >
+      {selectMode && (
+        <button
+          type="button"
+          className="shrink-0 text-text-primary"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleSelect?.(node.path);
+          }}
+          aria-label={
+            isSelected
+              ? localize('com_fm_action_deselect_row', { name: node.name })
+              : localize('com_fm_action_select_row', { name: node.name })
+          }
+        >
+          {isSelected ? (
+            <CheckSquare className="size-4" aria-hidden="true" />
+          ) : (
+            <Square className="size-4" aria-hidden="true" />
+          )}
+        </button>
+      )}
       <Icon
         className={cn(
           'size-4 shrink-0',
@@ -91,6 +144,10 @@ const NodeRow = ({
           onRename={onRename}
           onDelete={onDelete}
           onAttach={onAttach}
+          onCopyPath={onCopyPath}
+          onMove={onMove}
+          onEnterSelectMode={onEnterSelectMode}
+          selectMode={selectMode}
         />
       </span>
     </div>

@@ -88,7 +88,8 @@ const detectKind = (mime?: string, name?: string): WorkspacePreviewKind => {
     mime === 'application/xml' ||
     mime === 'application/javascript' ||
     mime === 'application/typescript' ||
-    mime === 'application/x-yaml'
+    mime === 'application/x-yaml' ||
+    mime === 'application/x-sh'
   ) {
     return 'text';
   }

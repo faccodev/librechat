@@ -25,6 +25,12 @@ type NodeListProps = {
   onRename?: (node: WorkspaceNode) => void;
   onDelete?: (node: WorkspaceNode) => void;
   onAttach?: (node: WorkspaceNode) => void;
+  onCopyPath?: (node: WorkspaceNode) => void;
+  onMove?: (node: WorkspaceNode) => void;
+  onEnterSelectMode?: (node: WorkspaceNode) => void;
+  selectMode?: boolean;
+  selectedPaths?: Set<string>;
+  onToggleSelect?: (path: string) => void;
 };
 
 const NodeList = ({
@@ -44,6 +50,12 @@ const NodeList = ({
   onRename,
   onDelete,
   onAttach,
+  onCopyPath,
+  onMove,
+  onEnterSelectMode,
+  selectMode = false,
+  selectedPaths,
+  onToggleSelect,
 }: NodeListProps) => {
   const localize = useLocalize();
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -186,6 +198,8 @@ const NodeList = ({
                 <NodeRow
                   node={node}
                   isActive={false}
+                  isSelected={selectedPaths?.has(node.path) ?? false}
+                  selectMode={selectMode}
                   onActivate={onSelect}
                   onOpen={onEnterDir}
                   onView={onView}
@@ -193,6 +207,10 @@ const NodeList = ({
                   onRename={onRename}
                   onDelete={onDelete}
                   onAttach={onAttach}
+                  onCopyPath={onCopyPath}
+                  onMove={onMove}
+                  onEnterSelectMode={onEnterSelectMode}
+                  onToggleSelect={onToggleSelect}
                 />
               </div>
             );

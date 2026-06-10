@@ -103,7 +103,7 @@ const NewNameDialog = ({
               maxLength={255}
               autoComplete="off"
               spellCheck={false}
-              className="bg-surface-primary"
+              className="bg-surface-primary text-text-primary placeholder:text-text-secondary"
             />
             {trimmed.startsWith('.') ? (
               <p className="mt-1.5 text-xs text-red-600">

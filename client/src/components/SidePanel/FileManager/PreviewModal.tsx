@@ -3,6 +3,8 @@ import {
   Download,
   Edit3,
   FileQuestion,
+  FolderInput,
+  Link as LinkIcon,
   Loader2,
   Trash2,
   Maximize2,
@@ -42,6 +44,8 @@ export type PreviewModalProps = {
   /** Optional hooks for additional actions rendered in the footer. */
   onEdit?: (node: WorkspaceNode) => void;
   onDelete?: (node: WorkspaceNode) => void;
+  onCopyPath?: (node: WorkspaceNode) => void;
+  onMove?: (node: WorkspaceNode) => void;
 };
 
 export function getLanguageFromFilename(name: string): string {
@@ -132,7 +136,7 @@ export function getLanguageFromFilename(name: string): string {
  * fullscreen mode and close the modal. Primary actions (Download, Edit,
  * Delete) live in the footer.
  */
-const PreviewModal = ({ node, open, onOpenChange, onEdit, onDelete }: PreviewModalProps) => {
+const PreviewModal = ({ node, open, onOpenChange, onEdit, onDelete, onCopyPath, onMove }: PreviewModalProps) => {
   const localize = useLocalize();
   const { showToast } = useToastContext();
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -229,6 +233,28 @@ const PreviewModal = ({ node, open, onOpenChange, onEdit, onDelete }: PreviewMod
                 >
                   <Trash2 className="mr-1.5 size-3.5" aria-hidden="true" />
                   {localize('com_fm_action_delete')}
+                </Button>
+              )}
+              {onCopyPath && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onCopyPath(node)}
+                  aria-label={localize('com_fm_action_copy_path')}
+                >
+                  <LinkIcon className="mr-1.5 size-3.5" aria-hidden="true" />
+                  {localize('com_fm_action_copy_path')}
+                </Button>
+              )}
+              {onMove && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onMove(node)}
+                  aria-label={localize('com_fm_action_move')}
+                >
+                  <FolderInput className="mr-1.5 size-3.5" aria-hidden="true" />
+                  {localize('com_fm_action_move')}
                 </Button>
               )}
             </DialogFooter>

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { matchSorter } from 'match-sorter';
 import {
   Ellipsis,
@@ -32,10 +32,13 @@ import {
 import { useLocalize, useUpdateFiles } from '~/hooks';
 import { useChatContext } from '~/Providers';
 import { useFileManagerPath } from './hooks/useFileManagerPath';
+import { mainTextareaId } from '~/common';
+import { insertTextAtCursor } from '~/utils/textarea';
 import {
   useCreateWorkspaceDirectory,
   useCreateWorkspaceFile,
   useDeleteWorkspaceNodes,
+  useMoveWorkspaceNode,
   useRenameWorkspaceNode,
   useUploadWorkspaceFile,
 } from '~/data-provider/Files/workspaceMutations';
@@ -47,6 +50,8 @@ import EditorModal from './EditorModal';
 import SearchResultsView from './SearchResultsView';
 import NewNameDialog from './dialogs/NewNameDialog';
 import DeleteConfirmDialog from './dialogs/DeleteConfirmDialog';
+import MoveDialog from './dialogs/MoveDialog';
+import BulkActionBar from './BulkActionBar';
 
 type DialogState =
   | { kind: 'none' }
@@ -55,7 +60,9 @@ type DialogState =
   | { kind: 'rename'; node: WorkspaceNode }
   | { kind: 'delete'; nodes: WorkspaceNode[] }
   | { kind: 'preview'; node: WorkspaceNode }
-  | { kind: 'edit'; node: WorkspaceNode };
+  | { kind: 'edit'; node: WorkspaceNode }
+  | { kind: 'move'; node: WorkspaceNode }
+  | { kind: 'move-bulk'; nodes: WorkspaceNode[] };
 
 /** Min chars before we switch from local filter to the recursive search. */
 const SEARCH_MIN_CHARS = 3;
@@ -91,6 +98,59 @@ const FileManagerPanel = () => {
     if (!trimmedFilter) return allNodes;
     return matchSorter(allNodes, trimmedFilter, { keys: ['name'] });
   }, [allNodes, trimmedFilter]);
+
+  /** Bulk-select state. Lives in this component (not Recoil) because it's
+   * scoped to the FileManager and clears on every mount, which is what
+   * the user wants when navigating between folders. */
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
+  /** Clear selection whenever the user navigates to a different folder. */
+  useEffect(() => {
+    setSelectedPaths(new Set());
+  }, [path]);
+  /** Leaving select mode also clears the selection. */
+  const exitSelectMode = useCallback(() => {
+    setSelectMode(false);
+    setSelectedPaths(new Set());
+  }, []);
+  const handleToggleSelect = useCallback((nodePath: string) => {
+    setSelectedPaths((prev) => {
+      const next = new Set(prev);
+      if (next.has(nodePath)) {
+        next.delete(nodePath);
+      } else {
+        next.add(nodePath);
+      }
+      return next;
+    });
+  }, []);
+  const handleToggleSelectAll = useCallback(() => {
+    setSelectedPaths((prev) => {
+      if (prev.size === visibleNodes.length && visibleNodes.length > 0) {
+        return new Set();
+      }
+      return new Set(visibleNodes.map((n) => n.path));
+    });
+  }, [visibleNodes]);
+  /** Resolve selected WorkspaceNode objects from the path set, dropping
+   * any that are no longer visible (e.g. after a filter change). */
+  const selectedNodes = useMemo<WorkspaceNode[]>(
+    () => visibleNodes.filter((n) => selectedPaths.has(n.path)),
+    [visibleNodes, selectedPaths],
+  );
+  const handleEnterSelectMode = useCallback((node: WorkspaceNode) => {
+    setSelectMode(true);
+    setSelectedPaths(new Set([node.path]));
+  }, []);
+
+  const handleBulkDelete = useCallback(() => {
+    if (selectedNodes.length === 0) return;
+    setDialog({ kind: 'delete', nodes: selectedNodes });
+  }, [selectedNodes]);
+  const handleBulkMove = useCallback(() => {
+    if (selectedNodes.length === 0) return;
+    setDialog({ kind: 'move-bulk', nodes: selectedNodes });
+  }, [selectedNodes]);
 
   const createDirectory = useCreateWorkspaceDirectory({
     onSuccess: (node) => {
@@ -152,6 +212,27 @@ const FileManagerPanel = () => {
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
         localize('com_fm_action_delete_failed');
+      showToast({ message, status: 'error' });
+    },
+  });
+
+  const moveNode = useMoveWorkspaceNode({
+    onSuccess: (node) => {
+      showToast({ message: localize('com_fm_action_moved'), status: 'success' });
+      setDialog({ kind: 'none' });
+      /** After moving into a folder, navigate there so the user sees the
+       * new location right away. The server echoes back the new path. */
+      if (dialog.kind === 'move') {
+        const parent = node.path.split('/').slice(0, -1).join('/');
+        if (parent) {
+          setPath(parent);
+        }
+      }
+    },
+    onError: (err) => {
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        localize('com_fm_action_move_failed');
       showToast({ message, status: 'error' });
     },
   });
@@ -324,6 +405,34 @@ const FileManagerPanel = () => {
     [addFile, files, dbFiles, conversation, localize, showToast, fileConfig],
   );
 
+  /**
+   * Insert the file/folder path as text into the main chat textarea (instead
+   * of attaching the file as a binary upload). The path appears at the cursor
+   * position, ready for the user to keep typing around it.
+   */
+  const handleCopyPath = useCallback(
+    (node: WorkspaceNode) => {
+      const textarea = document.getElementById(mainTextareaId) as HTMLTextAreaElement | null;
+      if (!textarea) {
+        showToast({
+          message: localize('com_fm_copy_path_no_input'),
+          status: 'error',
+        });
+        return;
+      }
+      /** Prefix with a leading space when the textarea is non-empty and the
+       * last character isn't whitespace — keeps adjacent words separated. */
+      const lastChar = textarea.value[textarea.value.length - 1] ?? '';
+      const prefix = textarea.value.length > 0 && !/\s/.test(lastChar) ? ' ' : '';
+      insertTextAtCursor(textarea, `${prefix}${node.path}`);
+      showToast({
+        message: localize('com_fm_copy_path_success', { name: node.name }),
+        status: 'success',
+      });
+    },
+    [localize, showToast],
+  );
+
   const handleGoUp = useCallback(() => {
     if (!path) return;
     const segments = path.split('/').filter(Boolean);
@@ -494,16 +603,33 @@ const FileManagerPanel = () => {
           onRename={(node) => setDialog({ kind: 'rename', node })}
           onDelete={(node) => setDialog({ kind: 'delete', nodes: [node] })}
           onAttach={handleAttach}
+          onCopyPath={handleCopyPath}
+          onMove={(node) => setDialog({ kind: 'move', node })}
+          onEnterSelectMode={handleEnterSelectMode}
+          selectMode={selectMode}
+          selectedPaths={selectedPaths}
+          onToggleSelect={handleToggleSelect}
         />
       )}
 
-      {workspacePath && !searchMode && (
+      {workspacePath && !searchMode && !selectMode && (
         <p
           className="mx-3 mt-1 truncate border-t border-border-light pt-2 font-mono text-[10px] text-text-secondary"
           title={workspacePath}
         >
           {workspacePath}
         </p>
+      )}
+
+      {selectMode && (
+        <BulkActionBar
+          selectedCount={selectedNodes.length}
+          totalCount={visibleNodes.length}
+          onSelectAll={handleToggleSelectAll}
+          onCancel={exitSelectMode}
+          onMove={handleBulkMove}
+          onDelete={handleBulkDelete}
+        />
       )}
 
       <PreviewModal
@@ -519,6 +645,11 @@ const FileManagerPanel = () => {
         onDelete={(node) => {
           setDialog({ kind: 'none' });
           setTimeout(() => setDialog({ kind: 'delete', nodes: [node] }), 0);
+        }}
+        onCopyPath={handleCopyPath}
+        onMove={(node) => {
+          setDialog({ kind: 'none' });
+          setTimeout(() => setDialog({ kind: 'move', node }), 0);
         }}
       />
 
@@ -575,6 +706,32 @@ const FileManagerPanel = () => {
           deleteNodes.mutate({ paths: dialog.nodes.map((n) => n.path) });
         }}
         isSubmitting={deleteNodes.isLoading}
+      />
+
+      <MoveDialog
+        open={dialog.kind === 'move' || dialog.kind === 'move-bulk'}
+        onOpenChange={(open) => {
+          if (!open) setDialog({ kind: 'none' });
+        }}
+        {...(dialog.kind === 'move' ? { node: dialog.node } : {})}
+        {...(dialog.kind === 'move-bulk' ? { nodes: dialog.nodes } : {})}
+        onSubmit={(toParent) => {
+          if (dialog.kind === 'move') {
+            moveNode.mutate({ from: dialog.node.path, toParent });
+          } else if (dialog.kind === 'move-bulk') {
+            /** Fire one move per selected node. The backend endpoint is
+             * single-node; we loop client-side and show the usual
+             * invalidation toast at the end. Per-item failures bubble
+             * up through each mutate's onError (already wired). */
+            dialog.nodes.forEach((n) => {
+              moveNode.mutate({ from: n.path, toParent });
+            });
+            /** Exit select mode so the user is dropped back to the
+             * regular tree once the moves are kicked off. */
+            exitSelectMode();
+          }
+        }}
+        isSubmitting={moveNode.isLoading}
       />
     </div>
   );
