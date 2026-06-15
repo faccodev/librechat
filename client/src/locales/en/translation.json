@@ -405,6 +405,7 @@
   "com_files_upload_sharepoint": "From SharePoint",
   "com_fm_breadcrumb_aria": "Workspace path",
   "com_fm_breadcrumb_root": "workspace",
+  "com_fm_breadcrumb_collapsed": "Show all folders",
   "com_fm_empty_description": "Drop files in {{path}} to get started.",
   "com_fm_empty_title": "Your workspace is empty",
   "com_fm_filter_placeholder": "Search workspace recursively...",

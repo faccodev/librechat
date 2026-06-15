@@ -576,7 +576,7 @@ const FileManagerPanel = () => {
           />
         </div>
 
-        <Breadcrumb path={path} onNavigate={setPath} />
+        <Breadcrumb path={path} onNavigate={setPath} isLoading={isFetching} />
       </div>
 
       {searchMode ? (
