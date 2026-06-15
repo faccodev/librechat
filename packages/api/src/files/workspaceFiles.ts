@@ -147,6 +147,33 @@ const DEFAULT_MAX_ENTRIES = 1000;
 const DEFAULT_MAX_SEARCH_RESULTS = 500;
 const MAX_SEARCH_DEPTH = 16;
 
+/** Caps on the filesystem sync scan. The sync used to run an unbounded
+ *  recursive `readdir` and would hang `GET /api/files` forever on a
+ *  workspace path containing `node_modules` (or any large tree). */
+const MAX_SCAN_DEPTH = 16;
+const MAX_SCAN_ENTRIES = 10_000;
+const SCAN_TIMEOUT_MS = 5_000;
+
+/** Directory basenames that should never be recursed into during a workspace
+ *  scan. They are universally huge, irrelevant to user-facing files, and
+ *  the main cause of past scans hanging the request thread. */
+const IGNORED_DIRNAMES = new Set([
+  'node_modules',
+  '.git',
+  '.next',
+  '.nuxt',
+  '.turbo',
+  '.cache',
+  '.parcel-cache',
+  '.venv',
+  'venv',
+  '__pycache__',
+  'dist',
+  'build',
+  '.gradle',
+  'target',
+]);
+
 /** POSIX-relative form of `relative` with any leading `./` stripped. */
 const toRelativePosix = (relative: string): string => {
   const normalized = relative.split(path.sep).join('/').replace(/^\.\/+/, '');
@@ -380,6 +407,145 @@ export async function searchWorkspaceTree({
   }
   matches.sort((a, b) => a.path.localeCompare(b.path, undefined, { sensitivity: 'base' }));
   return { query: trimmed, matches, total: matches.length, truncated };
+}
+
+/**
+ * One row in a workspace filesystem scan. Distinct from `WorkspaceNode`
+ * (which is shaped for the file-manager UI) because the only consumer of
+ * this scan is the legacy `GET /api/files` DB-sync routine.
+ */
+export type WorkspaceScanEntry = {
+  absolutePath: string;
+  relativePath: string;
+  name: string;
+};
+
+export type WorkspaceScanResult = {
+  entries: WorkspaceScanEntry[];
+  truncated: boolean;
+  timedOut: boolean;
+  scannedDirs: number;
+};
+
+export type ScanWorkspaceFilesOptions = {
+  appConfig: TCustomConfig;
+  user: { workspaceSubdir?: string | null } | null | undefined;
+  maxEntries?: number;
+  maxDepth?: number;
+  timeoutMs?: number;
+  /**
+   * Extra directory basenames to skip on top of the default
+   * `IGNORED_DIRNAMES`. Comparison is case-sensitive on POSIX and
+   * case-insensitive on Windows (mirrors `fs.readdir` on those platforms).
+   */
+  extraIgnoreDirnames?: string[];
+};
+
+/**
+ * Bounded BFS walk of a user's workspace directory. Used by the legacy
+ * `GET /api/files` handler to reconcile on-disk files with the `files`
+ * collection. Hard caps prevent a misconfigured `workspaceSubdir`
+ * (e.g. one pointing inside a `node_modules` tree or a slow NFS share)
+ * from hanging the request thread indefinitely.
+ *
+ * Caps and behavior:
+ *  - depth: capped at `maxDepth` (default `MAX_SCAN_DEPTH`)
+ *  - entries: capped at `maxEntries` (default `MAX_SCAN_ENTRIES`); once
+ *    reached, traversal stops and `truncated` is set
+ *  - timeout: hard wall-clock cap at `timeoutMs` (default
+ *    `SCAN_TIMEOUT_MS`); once hit, traversal stops and `timedOut` is set
+ *  - skips: `node_modules`, `.git`, and other heavy build/VCS directories
+ *    from `IGNORED_DIRNAMES` are never recursed into
+ *  - hidden entries (basename starts with `.`): skipped unless explicitly
+ *    allowed via `extraIgnoreDirnames`; matches `listWorkspaceTree`
+ *
+ * On any of those limits the function still returns whatever it already
+ * collected — partial results are better than a hung request.
+ */
+export async function scanWorkspaceFiles({
+  appConfig,
+  user,
+  maxEntries = MAX_SCAN_ENTRIES,
+  maxDepth = MAX_SCAN_DEPTH,
+  timeoutMs = SCAN_TIMEOUT_MS,
+  extraIgnoreDirnames = [],
+}: ScanWorkspaceFilesOptions): Promise<WorkspaceScanResult> {
+  const wsConfig = getWorkspaceConfig(appConfig);
+  const workspacePath = resolveWorkspacePath(user?.workspaceSubdir, wsConfig);
+  if (!workspacePath) {
+    return { entries: [], truncated: false, timedOut: false, scannedDirs: 0 };
+  }
+
+  const ignore = new Set(IGNORED_DIRNAMES);
+  for (const name of extraIgnoreDirnames) {
+    ignore.add(name);
+  }
+  const isCaseInsensitive = process.platform === 'win32';
+  const shouldSkip = (basename: string) => {
+    if (ignore.has(basename)) return true;
+    if (isCaseInsensitive && ignore.has(basename.toLowerCase())) return true;
+    return false;
+  };
+
+  const entries: WorkspaceScanEntry[] = [];
+  let truncated = false;
+  let timedOut = false;
+  let scannedDirs = 0;
+
+  const deadline = Date.now() + timeoutMs;
+  const queue: Array<{ abs: string; depth: number }> = [{ abs: workspacePath, depth: 0 }];
+
+  while (queue.length > 0) {
+    if (entries.length >= maxEntries) {
+      truncated = true;
+      break;
+    }
+    if (Date.now() >= deadline) {
+      timedOut = true;
+      break;
+    }
+
+    const { abs, depth } = queue.shift()!;
+    if (depth > maxDepth) continue;
+
+    let dirents: fs.Dirent[];
+    try {
+      dirents = await fs.promises.readdir(abs, { withFileTypes: true });
+    } catch (err) {
+      logger.warn(`[workspaceFiles] scan: failed to read ${abs}:`, err);
+      continue;
+    }
+    scannedDirs += 1;
+
+    for (const dirent of dirents) {
+      if (entries.length >= maxEntries) {
+        truncated = true;
+        break;
+      }
+      if (Date.now() >= deadline) {
+        timedOut = true;
+        break;
+      }
+      if (isHidden(dirent.name)) continue;
+      const childAbs = path.join(abs, dirent.name);
+      if (dirent.isDirectory()) {
+        if (depth + 1 > maxDepth) continue;
+        if (shouldSkip(dirent.name)) continue;
+        queue.push({ abs: childAbs, depth: depth + 1 });
+      } else if (dirent.isFile()) {
+        entries.push({
+          absolutePath: childAbs,
+          relativePath: path
+            .relative(workspacePath, childAbs)
+            .split(path.sep)
+            .join('/'),
+          name: dirent.name,
+        });
+      }
+    }
+  }
+
+  return { entries, truncated, timedOut, scannedDirs };
 }
 
 /** Re-exported for route-layer convenience so callers don't import from `../workspaces/config`. */

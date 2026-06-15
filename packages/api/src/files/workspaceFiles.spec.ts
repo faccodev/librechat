@@ -4,6 +4,7 @@ import path from 'path';
 import {
   listWorkspaceTree,
   searchWorkspaceTree,
+  scanWorkspaceFiles,
   createWorkspaceDirectory,
   createWorkspaceFile,
   writeWorkspaceFile,
@@ -556,6 +557,159 @@ describe('workspaceFiles', () => {
           content: 'x',
         }),
       ).rejects.toMatchObject({ status: 400 });
+    });
+  });
+
+  describe('scanWorkspaceFiles', () => {
+    test('returns an empty result for a non-existent workspace path', async () => {
+      const result = await scanWorkspaceFiles({
+        appConfig: makeAppConfig(path.join(workRoot, 'does-not-exist')),
+        user: makeUser(null),
+      });
+      expect(result.entries).toEqual([]);
+      expect(result.truncated).toBe(false);
+      expect(result.timedOut).toBe(false);
+      expect(result.scannedDirs).toBe(0);
+    });
+
+    test('collects files at multiple depths with workspace-relative POSIX paths', async () => {
+      await fs.promises.writeFile(path.join(workRoot, 'a.txt'), 'a');
+      await fs.promises.mkdir(path.join(workRoot, 'sub'));
+      await fs.promises.writeFile(path.join(workRoot, 'sub', 'b.txt'), 'b');
+      await fs.promises.mkdir(path.join(workRoot, 'sub', 'deep'));
+      await fs.promises.writeFile(path.join(workRoot, 'sub', 'deep', 'c.txt'), 'c');
+
+      const result = await scanWorkspaceFiles({
+        appConfig: makeAppConfig(workRoot),
+        user: makeUser(null),
+      });
+
+      const names = result.entries.map((e) => e.name).sort();
+      expect(names).toEqual(['a.txt', 'b.txt', 'c.txt']);
+      expect(result.entries.find((e) => e.name === 'c.txt')?.relativePath).toBe(
+        'sub/deep/c.txt',
+      );
+      expect(result.truncated).toBe(false);
+      expect(result.timedOut).toBe(false);
+    });
+
+    test('skips node_modules, .git, and other heavy build dirs', async () => {
+      await fs.promises.writeFile(path.join(workRoot, 'kept.txt'), 'keep');
+      await fs.promises.mkdir(path.join(workRoot, 'node_modules', 'lodash'), {
+        recursive: true,
+      });
+      await fs.promises.writeFile(
+        path.join(workRoot, 'node_modules', 'lodash', 'index.js'),
+        'module.exports = {};',
+      );
+      await fs.promises.mkdir(path.join(workRoot, '.git', 'objects'), { recursive: true });
+      await fs.promises.writeFile(path.join(workRoot, '.git', 'objects', 'abc'), 'blob');
+      await fs.promises.mkdir(path.join(workRoot, 'dist'), { recursive: true });
+      await fs.promises.writeFile(path.join(workRoot, 'dist', 'bundle.js'), 'minified');
+      await fs.promises.mkdir(path.join(workRoot, '.hidden-dir'), { recursive: true });
+      await fs.promises.writeFile(path.join(workRoot, '.hidden-dir', 'secret.txt'), 'no');
+
+      const result = await scanWorkspaceFiles({
+        appConfig: makeAppConfig(workRoot),
+        user: makeUser(null),
+      });
+
+      const paths = result.entries.map((e) => e.relativePath);
+      expect(paths).toEqual(['kept.txt']);
+    });
+
+    test('honors extraIgnoreDirnames in addition to the defaults', async () => {
+      await fs.promises.writeFile(path.join(workRoot, 'kept.txt'), 'keep');
+      await fs.promises.mkdir(path.join(workRoot, 'big-data'), { recursive: true });
+      await fs.promises.writeFile(path.join(workRoot, 'big-data', 'blob.bin'), 'x');
+
+      const result = await scanWorkspaceFiles({
+        appConfig: makeAppConfig(workRoot),
+        user: makeUser(null),
+        extraIgnoreDirnames: ['big-data'],
+      });
+
+      expect(result.entries.map((e) => e.relativePath)).toEqual(['kept.txt']);
+    });
+
+    test('truncates at maxEntries without ever going over the cap', async () => {
+      for (let i = 0; i < 25; i += 1) {
+        await fs.promises.writeFile(
+          path.join(workRoot, `f-${i.toString().padStart(2, '0')}.txt`),
+          'x',
+        );
+      }
+
+      const result = await scanWorkspaceFiles({
+        appConfig: makeAppConfig(workRoot),
+        user: makeUser(null),
+        maxEntries: 10,
+        maxDepth: 4,
+        timeoutMs: 5_000,
+      });
+
+      expect(result.entries.length).toBe(10);
+      expect(result.truncated).toBe(true);
+      expect(result.timedOut).toBe(false);
+    });
+
+    test('respects maxDepth and does not descend past it', async () => {
+      // depth 0: workRoot
+      // depth 1: d1
+      // depth 2: d1/d2
+      // depth 3: d1/d2/d3  (file here should be missed with maxDepth=2)
+      await fs.promises.mkdir(path.join(workRoot, 'd1', 'd2', 'd3'), { recursive: true });
+      await fs.promises.writeFile(path.join(workRoot, 'd1', 'd2', 'd3', 'leaf.txt'), 'l');
+      await fs.promises.writeFile(path.join(workRoot, 'd1', 'shallow.txt'), 's');
+
+      const result = await scanWorkspaceFiles({
+        appConfig: makeAppConfig(workRoot),
+        user: makeUser(null),
+        maxDepth: 2,
+      });
+
+      const names = result.entries.map((e) => e.name).sort();
+      expect(names).toEqual(['shallow.txt']);
+    });
+
+    test('honors timeoutMs and returns whatever was collected up to the deadline', async () => {
+      // Build a tree with enough files + depth that the scan cannot
+      // finish in 1ms on any reasonable host. Each call to `readdir`
+      // is async and we stack up many of them so the BFS has to
+      // yield a few times.
+      const sub = path.join(workRoot, 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h');
+      await fs.promises.mkdir(sub, { recursive: true });
+      for (let i = 0; i < 500; i += 1) {
+        await fs.promises.writeFile(path.join(workRoot, `file-${i.toString().padStart(3, '0')}.txt`), 'x');
+      }
+
+      const result = await scanWorkspaceFiles({
+        appConfig: makeAppConfig(workRoot),
+        user: makeUser(null),
+        timeoutMs: 1,
+        maxEntries: 10_000,
+        maxDepth: 16,
+      });
+
+      expect(result.timedOut).toBe(true);
+      // truncated stays false because we ran out of time, not of slots
+      expect(result.truncated).toBe(false);
+    });
+
+    test('uses the user.workspaceSubdir as the scan root when provided', async () => {
+      const sub = path.join(workRoot, 'alice');
+      await fs.promises.mkdir(sub);
+      await fs.promises.writeFile(path.join(sub, 'note.md'), 'hi');
+      // A file at the root must NOT be picked up — the scan is rooted
+      // at the user's subdir, not the container base path.
+      await fs.promises.writeFile(path.join(workRoot, 'root-leak.txt'), 'no');
+
+      const result = await scanWorkspaceFiles({
+        appConfig: makeAppConfig(workRoot),
+        user: makeUser('alice'),
+      });
+
+      expect(result.entries.map((e) => e.relativePath)).toEqual(['note.md']);
     });
   });
 });

@@ -44,89 +44,78 @@ router.get('/', async (req, res) => {
     // Sync workspace files if workspaces are enabled (falls back to root when user has no subdir)
     if (req.user) {
       try {
-        const { getWorkspaceConfig, resolveWorkspacePath } = require('@librechat/api');
+        const { getWorkspaceConfig, resolveWorkspacePath, scanWorkspaceFiles } = require('@librechat/api');
         const wsConfig = getWorkspaceConfig(appConfig);
         const workspacePath = resolveWorkspacePath(req.user.workspaceSubdir, wsConfig);
 
         if (workspacePath) {
+          // Bounded BFS scan: depth, entry count, and wall-clock timeout
+          // are all capped by `scanWorkspaceFiles`. Without these caps
+          // a misconfigured `workspaceSubdir` (e.g. one pointing inside
+          // a `node_modules` tree) used to hang this request forever.
+          const { entries: filesOnDisk, truncated, timedOut, scannedDirs } = await scanWorkspaceFiles({
+            appConfig,
+            user: req.user,
+          });
+
+          if (timedOut) {
+            logger.warn(
+              `[filesSync] Workspace scan for user ${req.user.id} hit the timeout; ` +
+                `returning partial results (${filesOnDisk.length} files, ${scannedDirs} dirs scanned).`,
+            );
+          } else if (truncated) {
+            logger.warn(
+              `[filesSync] Workspace scan for user ${req.user.id} truncated; ` +
+                `some files may be missing from this sync pass.`,
+            );
+          }
+
           const fs = require('fs').promises;
-          const path = require('path');
           const crypto = require('crypto');
           const mime = require('mime-types');
 
-          // Check if workspace dir exists
-          let dirExists = false;
-          try {
-            const stat = await fs.stat(workspacePath);
-            dirExists = stat.isDirectory();
-          } catch (e) {
-            // Dir doesn't exist yet
+          const dbFiles = await db.getFiles({ user: req.user.id });
+          const dbWorkspaceFiles = dbFiles.filter(
+            (f) => f.filepath && f.filepath.startsWith(workspacePath)
+          );
+
+          const dbFilePaths = new Map(dbWorkspaceFiles.map((f) => [f.filepath, f]));
+
+          // Add new files from disk to DB
+          for (const diskFile of filesOnDisk) {
+            if (!dbFilePaths.has(diskFile.absolutePath)) {
+              try {
+                const stats = await fs.stat(diskFile.absolutePath);
+                const fileType = mime.lookup(diskFile.absolutePath) || 'application/octet-stream';
+                await db.createFile({
+                  user: req.user.id,
+                  file_id: crypto.randomUUID(),
+                  bytes: stats.size,
+                  filepath: diskFile.absolutePath,
+                  filename: diskFile.relativePath,
+                  context: 'message_attachment',
+                  source: 'local',
+                  type: fileType,
+                  createdAt: stats.birthtime || new Date(),
+                  updatedAt: stats.mtime || new Date(),
+                }, true);
+              } catch (e) {
+                logger.warn(`Failed to sync disk file to DB: ${diskFile.absolutePath}`, e);
+              }
+            }
           }
 
-          if (dirExists) {
-            // Helper to scan directory recursively
-            const getFilesRecursively = async (dir, basePath = dir) => {
-              let results = [];
-              const list = await fs.readdir(dir, { withFileTypes: true });
-              for (const file of list) {
-                const resPath = path.join(dir, file.name);
-                if (file.isDirectory()) {
-                  results = results.concat(await getFilesRecursively(resPath, basePath));
-                } else {
-                  results.push({
-                    absolutePath: resPath,
-                    relativePath: path.relative(basePath, resPath).replace(/\\/g, '/'),
-                    name: file.name,
-                  });
-                }
-              }
-              return results;
-            };
-
-            const filesOnDisk = await getFilesRecursively(workspacePath);
-            const dbFiles = await db.getFiles({ user: req.user.id });
-            const dbWorkspaceFiles = dbFiles.filter(
-              (f) => f.filepath && f.filepath.startsWith(workspacePath)
-            );
-
-            const dbFilePaths = new Map(dbWorkspaceFiles.map((f) => [f.filepath, f]));
-
-            // Add new files from disk to DB
-            for (const diskFile of filesOnDisk) {
-              if (!dbFilePaths.has(diskFile.absolutePath)) {
-                try {
-                  const stats = await fs.stat(diskFile.absolutePath);
-                  const fileType = mime.lookup(diskFile.absolutePath) || 'application/octet-stream';
-                  await db.createFile({
-                    user: req.user.id,
-                    file_id: crypto.randomUUID(),
-                    bytes: stats.size,
-                    filepath: diskFile.absolutePath,
-                    filename: diskFile.relativePath,
-                    context: 'message_attachment',
-                    source: 'local',
-                    type: fileType,
-                    createdAt: stats.birthtime || new Date(),
-                    updatedAt: stats.mtime || new Date(),
-                  }, true);
-                } catch (e) {
-                  logger.warn(`Failed to sync disk file to DB: ${diskFile.absolutePath}`, e);
-                }
-              }
+          // Remove stale file records from DB
+          const diskPathsSet = new Set(filesOnDisk.map((f) => f.absolutePath));
+          const staleFileIds = [];
+          for (const dbFile of dbWorkspaceFiles) {
+            if (!diskPathsSet.has(dbFile.filepath)) {
+              staleFileIds.push(dbFile.file_id);
             }
+          }
 
-            // Remove stale file records from DB
-            const diskPathsSet = new Set(filesOnDisk.map((f) => f.absolutePath));
-            const staleFileIds = [];
-            for (const dbFile of dbWorkspaceFiles) {
-              if (!diskPathsSet.has(dbFile.filepath)) {
-                staleFileIds.push(dbFile.file_id);
-              }
-            }
-
-            if (staleFileIds.length > 0) {
-              await db.deleteFiles(staleFileIds);
-            }
+          if (staleFileIds.length > 0) {
+            await db.deleteFiles(staleFileIds);
           }
         }
       } catch (err) {
