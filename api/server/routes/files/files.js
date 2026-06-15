@@ -44,23 +44,33 @@ router.get('/', async (req, res) => {
     // Sync workspace files if workspaces are enabled (falls back to root when user has no subdir)
     if (req.user) {
       try {
-        const { getWorkspaceConfig, resolveWorkspacePath, scanWorkspaceFiles } = require('@librechat/api');
+        const { getWorkspaceConfig, resolveWorkspacePath } = require('@librechat/api');
+        const { scanWorkspaceFiles, SCAN_TIMEOUT_MS } = require('~/server/utils/scanWorkspace');
         const wsConfig = getWorkspaceConfig(appConfig);
         const workspacePath = resolveWorkspacePath(req.user.workspaceSubdir, wsConfig);
 
         if (workspacePath) {
-          // Bounded BFS scan: depth, entry count, and wall-clock timeout
-          // are all capped by `scanWorkspaceFiles`. Without these caps
-          // a misconfigured `workspaceSubdir` (e.g. one pointing inside
-          // a `node_modules` tree) used to hang this request forever.
-          const { entries: filesOnDisk, truncated, timedOut, scannedDirs } = await scanWorkspaceFiles({
-            appConfig,
-            user: req.user,
-          });
+          // Bounded BFS scan (timeout, depth, entry count, and an
+          // ignore list for `node_modules` etc.). The previous
+          // implementation recursed into every directory under
+          // `workspacePath` with no upper bound, which would hang
+          // `GET /api/files` indefinitely whenever a user's
+          // `workspaceSubdir` pointed at (or contained) a heavy tree
+          // like `node_modules`, a `.git/objects` pack, or a slow NFS
+          // mount. The legacy `/api/files` route runs on every page
+          // load (the frontend's `useGetFiles` query feeds the file
+          // picker), so a single hung request means every user-side
+          // F5 is broken.
+          const {
+            entries: filesOnDisk,
+            truncated,
+            timedOut,
+            scannedDirs,
+          } = await scanWorkspaceFiles({ workspacePath });
 
           if (timedOut) {
             logger.warn(
-              `[filesSync] Workspace scan for user ${req.user.id} hit the timeout; ` +
+              `[filesSync] Workspace scan for user ${req.user.id} hit the ${SCAN_TIMEOUT_MS}ms timeout; ` +
                 `returning partial results (${filesOnDisk.length} files, ${scannedDirs} dirs scanned).`,
             );
           } else if (truncated) {
