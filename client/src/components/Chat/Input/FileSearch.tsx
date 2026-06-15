@@ -1,14 +1,15 @@
 import { memo, useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { FileText } from 'lucide-react';
 import { AutoSizer, List } from 'react-virtualized';
-import { Spinner, useCombobox } from '@librechat/client';
+import { Spinner } from '@librechat/client';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
-import type { TFile } from 'librechat-data-provider';
-import type { ExtendedFile, FileSetter } from '~/common';
-import type { MentionOption } from '~/common';
+import type { WorkspaceSearchResult } from 'librechat-data-provider';
+import type { ExtendedFile, FileSetter, MentionOption } from '~/common';
 import useInitPopoverInput from '~/hooks/Input/useInitPopoverInput';
+import useDebounce from '~/hooks/Input/useDebounce';
 import { useLocalize } from '~/hooks';
-import { useGetFiles } from '~/data-provider';
+import { useWorkspaceSearch } from '~/data-provider';
+import { fuzzyRank } from '~/utils/fuzzyMatch';
 import { removeCharIfLast } from '~/utils';
 import MentionItem from './MentionItem';
 import store from '~/store';
@@ -16,6 +17,11 @@ import store from '~/store';
 const commandChar = '@';
 const ROW_HEIGHT = 44;
 const fileIcon = <FileText className="icon-md text-blue-500" />;
+const SEARCH_DEBOUNCE_MS = 300;
+/** Backend's `useWorkspaceSearch` already gates on `>= 3` chars; the
+ *  client-side threshold must match or the spinner shows on every
+ *  keystroke under 3 chars. */
+const MIN_QUERY_LENGTH = 3;
 
 const formatBytes = (bytes: number, decimals = 2) => {
   if (bytes === 0) {
@@ -40,36 +46,52 @@ function FileSearchContent({
   const localize = useLocalize();
   const setShowFileSearchPopover = useSetRecoilState(store.showFileSearchPopoverFamily(index));
 
-  const { data: files = [], isLoading, isError } = useGetFiles<TFile[]>();
+  const [rawQuery, setRawQuery] = useState('');
+  const debouncedQuery = useDebounce(rawQuery, SEARCH_DEBOUNCE_MS);
+  // The backend hook only fires when the debounced query hits the
+  // 3-char threshold. Below that threshold we treat the input as
+  // "no query" so the dropdown shows the empty-state hint instead of
+  // a previous query's stale results.
+  const effectiveQuery = debouncedQuery.trim().length >= MIN_QUERY_LENGTH ? debouncedQuery : '';
+  const {
+    data: searchResult,
+    isLoading,
+    isError,
+  } = useWorkspaceSearch<WorkspaceSearchResult>(effectiveQuery);
 
   const fileOptions: MentionOption[] = useMemo(() => {
-    const options: MentionOption[] = [];
-    for (const file of files) {
-      options.push({
-        label: file.filename,
-        value: file.file_id,
-        description: formatBytes(file.bytes),
-        type: 'mention',
-        icon: fileIcon,
-      });
-    }
-    return options;
-  }, [files]);
+    const nodes = searchResult?.matches ?? [];
+    // Re-rank the (already substring-filtered) backend hits with the
+    // local fuzzy scorer so that, e.g., `@olivchpro` floats
+    // `oliver-chatbot-prompt.md` to the top.
+    const ranked = fuzzyRank(effectiveQuery, nodes, (node) => node.name);
+    return ranked.map((node) => ({
+      label: node.name,
+      // The backend returns workspace-relative POSIX paths; the
+      // picker just needs a stable, unique value to identify the
+      // chosen entry.
+      value: node.path,
+      description:
+        node.type === 'file' && typeof node.size === 'number'
+          ? formatBytes(node.size)
+          : node.path,
+      type: 'mention',
+      icon: fileIcon,
+    }));
+  }, [searchResult, effectiveQuery]);
 
+  const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const { open, setOpen, searchValue, setSearchValue, matches } = useCombobox({
-    value: '',
-    options: fileOptions,
-  });
+  const matches = fileOptions;
 
   const initInputRef = useInitPopoverInput({
     inputRef,
     textAreaRef,
     commandChar,
-    setSearchValue,
+    setSearchValue: setRawQuery,
     setOpen,
   });
 
@@ -79,7 +101,7 @@ function FileSearchContent({
         return;
       }
 
-      setSearchValue('');
+      setRawQuery('');
       setOpen(false);
       setShowFileSearchPopover(false);
 
@@ -87,19 +109,25 @@ function FileSearchContent({
         removeCharIfLast(textAreaRef.current, commandChar);
       }
 
-      const selectedFile = files.find((f) => f.file_id === mention.value);
-      if (selectedFile) {
+      const nodes = searchResult?.matches ?? [];
+      const selectedNode = nodes.find((n) => n.path === mention.value);
+      if (selectedNode) {
+        // Map the workspace `WorkspaceNode` into the chat's
+        // `ExtendedFile` shape. Workspace files don't have a backing
+        // `file_id` from the messages DB, so we synthesize one from
+        // the path. The chat uses this id only as a local map key.
+        const syntheticFileId = `workspace:${selectedNode.path}`;
         const extendedFile: ExtendedFile = {
-          file_id: selectedFile.file_id,
+          file_id: syntheticFileId,
           file: undefined,
-          type: selectedFile.type,
+          type: selectedNode.mime ?? 'application/octet-stream',
           progress: 1,
-          size: selectedFile.bytes,
-          filename: selectedFile.filename,
-          filepath: selectedFile.filepath,
-          source: selectedFile.source,
-          embedded: selectedFile.embedded,
-          preview: selectedFile.preview,
+          size: selectedNode.size ?? 0,
+          filename: selectedNode.name,
+          filepath: selectedNode.path,
+          source: 'workspace',
+          embedded: undefined,
+          preview: undefined,
         };
 
         setFiles((prev) => {
@@ -111,7 +139,7 @@ function FileSearchContent({
 
       textAreaRef.current?.focus();
     },
-    [setSearchValue, setOpen, setShowFileSearchPopover, textAreaRef, files, setFiles],
+    [setOpen, setShowFileSearchPopover, textAreaRef, searchResult, setFiles],
   );
 
   useEffect(() => {
@@ -168,6 +196,16 @@ function FileSearchContent({
     );
   };
 
+  // States for the empty / loading region. Splitting them makes the
+  // UX predictable: the spinner only appears once a real query is in
+  // flight, not while the user is just opening the picker.
+  const hasQuery = effectiveQuery.length > 0;
+  const showInitialHint = !hasQuery;
+  const showLoading = hasQuery && isLoading && matches.length === 0;
+  const showError = hasQuery && !isLoading && isError;
+  const showEmpty = hasQuery && !isLoading && !isError && matches.length === 0;
+  const showResults = matches.length > 0;
+
   return (
     <div className="absolute bottom-28 z-10 w-full space-y-2">
       <div className="popover border-token-border-light rounded-2xl border bg-surface-tertiary-alt p-2 shadow-lg">
@@ -176,7 +214,7 @@ function FileSearchContent({
           placeholder={localize('com_files_filter')}
           className="mb-1 w-full border-0 bg-surface-tertiary-alt p-2 text-sm focus:outline-none dark:text-gray-200"
           autoComplete="off"
-          value={searchValue}
+          value={rawQuery}
           onKeyDown={(e) => {
             if (e.key === 'Escape') {
               setOpen(false);
@@ -206,13 +244,13 @@ function FileSearchContent({
               }
               e.preventDefault();
               handleSelect(matches[activeIndex] as MentionOption | undefined);
-            } else if (e.key === 'Backspace' && searchValue === '') {
+            } else if (e.key === 'Backspace' && rawQuery === '') {
               setOpen(false);
               setShowFileSearchPopover(false);
               textAreaRef.current?.focus();
             }
           }}
-          onChange={(e) => setSearchValue(e.target.value)}
+          onChange={(e) => setRawQuery(e.target.value)}
           onFocus={() => setOpen(true)}
           onBlur={() => {
             timeoutRef.current = setTimeout(() => {
@@ -221,37 +259,49 @@ function FileSearchContent({
             }, 150);
           }}
         />
-        {open && isLoading && matches.length === 0 && (
+        {open && showInitialHint && (
+          <div className="p-4 text-center text-sm text-text-secondary">
+            {localize('com_files_search_hint')}
+          </div>
+        )}
+        {open && showLoading && (
           <div className="flex h-32 items-center justify-center text-text-primary">
             <Spinner />
           </div>
         )}
-        {open && isError && (
+        {open && showError && (
           <div className="p-4 text-center text-sm text-text-secondary">
             {localize('com_files_download_failed')}
           </div>
         )}
-        {open && !isLoading && !isError && matches.length === 0 && (
+        {open && showEmpty && (
           <div className="p-4 text-center text-sm text-text-secondary">
             {localize('com_files_no_results')}
           </div>
         )}
-        {open && matches.length > 0 && (
-          <div className="max-h-40">
-            <AutoSizer disableHeight>
-              {({ width }) => (
-                <List
-                  width={width}
-                  overscanRowCount={5}
-                  rowHeight={ROW_HEIGHT}
-                  rowCount={matches.length}
-                  rowRenderer={rowRenderer}
-                  scrollToIndex={activeIndex}
-                  height={Math.min(matches.length * ROW_HEIGHT, 160)}
-                />
-              )}
-            </AutoSizer>
-          </div>
+        {open && showResults && (
+          <>
+            {searchResult?.truncated && (
+              <div className="px-2 pb-1 text-xs text-text-secondary">
+                {localize('com_files_search_truncated')}
+              </div>
+            )}
+            <div className="max-h-40">
+              <AutoSizer disableHeight>
+                {({ width }) => (
+                  <List
+                    width={width}
+                    overscanRowCount={5}
+                    rowHeight={ROW_HEIGHT}
+                    rowCount={matches.length}
+                    rowRenderer={rowRenderer}
+                    scrollToIndex={activeIndex}
+                    height={Math.min(matches.length * ROW_HEIGHT, 160)}
+                  />
+                )}
+              </AutoSizer>
+            </div>
+          </>
         )}
       </div>
     </div>
