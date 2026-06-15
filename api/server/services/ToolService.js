@@ -1,5 +1,6 @@
 const { logger } = require('@librechat/data-schemas');
 const { tool: toolFn, DynamicStructuredTool } = require('@librechat/agents/langchain/tools');
+const applyWorkspaceContextToTools = require('~/server/utils/applyWorkspaceContextToTools');
 const {
   sleep,
   StepTypes,
@@ -1017,7 +1018,7 @@ async function loadToolDefinitionsWrapper({ req, res, agent, streamId = null, to
     userMCPAuthMap,
     toolContextMap,
     dynamicToolContextMap,
-    toolDefinitions,
+    toolDefinitions: applyWorkspaceContextToTools(toolDefinitions, req),
     hasDeferredTools,
     actionsEnabled,
     primedCodeFiles,
