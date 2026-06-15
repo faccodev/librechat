@@ -200,7 +200,7 @@ export async function runCode(
         let exitCode = 0;
 
         if (error) {
-          exitCode = error.code ?? 1;
+          exitCode = typeof error.code === "number" ? error.code : 1;
           if (error.killed) {
             stderr += `\n[MCP Code Runner] Execution killed due to timeout (${finalTimeout}s)`;
           }
@@ -271,7 +271,7 @@ export async function runFile(
         let exitCode = 0;
 
         if (error) {
-          exitCode = error.code ?? 1;
+          exitCode = typeof error.code === "number" ? error.code : 1;
           if (error.killed) {
             stderr += `\n[MCP Code Runner] Execution killed due to timeout (${finalTimeout}s)`;
           }

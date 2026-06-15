@@ -1,4 +1,4 @@
-import { validateWorkspaceSubdir, getSafePaths } from "./runner";
+import { validateWorkspaceSubdir, getSafePaths } from "./runner.js";
 
 describe("validateWorkspaceSubdir", () => {
   it("accepts the empty subdir as the workspace root", () => {
