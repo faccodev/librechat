@@ -89,10 +89,17 @@ services:
     volumes:
       - ./librechat.yaml:/app/librechat.yaml
       - librechat_uploads:/app/uploads
+      # Image uploads (user avatars, agent avatars, assistant avatars,
+      # message attachments) land in `client/public/images/<userId>/`
+      # via `api/server/services/Files/Local/images.js`. Without a
+      # persistent volume, every redeploy wipes the directory and
+      # avatar URLs return 404. Bind-mount the named volume
+      # `librechat_images` at the same path the app writes to.
+      - librechat_images:/app/client/public/images
       # WORKSPACES_HOST_PATH must be an ABSOLUTE host path (e.g. /home/workspaces
       # on a Linux VPS) for the bind mount to work. Without the explicit
       # `:-/home/workspaces` fallback, an unset variable becomes the empty
-      # string and Docker silently creates a NAMED VOLUME called ``""`` — which
+      # string and Docker silently creates a NAMED VOLUME called `""` — which
       # is exactly the trap Coolify's "use a volume" preset triggers. Setting
       # a default here also means a fresh `docker compose up` on a Linux box
       # Just Works without the operator having to remember to edit the .env.
@@ -342,6 +349,7 @@ volumes:
   mongodb_data:
   meili_data:
   librechat_uploads:
+  librechat_images:
   faster_whisper_cache:
   browser_profile:
   search_uv_cache:
