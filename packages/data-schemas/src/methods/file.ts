@@ -35,6 +35,7 @@ export function createFileMethods(mongoose: typeof import('mongoose')) {
     filter: FilterQuery<IMongoFile>,
     _sortOptions?: Record<string, SortOrder> | null,
     selectFields?: SelectProjection | string | null,
+    options?: { skip?: number; limit?: number },
   ): Promise<IMongoFile[] | null> {
     const File = mongoose.models.File as Model<IMongoFile>;
     const sortOptions = { updatedAt: -1 as SortOrder, ..._sortOptions };
@@ -43,6 +44,12 @@ export function createFileMethods(mongoose: typeof import('mongoose')) {
       query.select(selectFields);
     } else {
       query.select({ text: 0 });
+    }
+    if (options?.skip != null) {
+      query.skip(options.skip);
+    }
+    if (options?.limit != null) {
+      query.limit(options.limit);
     }
     return await query.sort(sortOptions).lean<IMongoFile[]>();
   }
