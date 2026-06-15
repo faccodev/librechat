@@ -1,10 +1,28 @@
 import { CallToolRequest } from "@modelcontextprotocol/sdk/types.js";
 import { runCode, runFile } from "./runner.js";
 
+/**
+ * Description block appended to every code-runner tool. It tells the
+ * agent how paths work so it stops guessing: the `workspaceSubdir` is
+ * the per-user folder inside `/workspaces`, paths with spaces are
+ * fine (passed verbatim to the container), and the runner enforces
+ * sandboxing so the agent doesn't need to worry about quoting.
+ */
+const WORKSPACE_HINT =
+  "Paths: every argument is a path *relative to* the user's workspaceSubdir " +
+  "(which is mounted at /workspace inside the Docker container). " +
+  "Spaces, accented characters, CJK, and emoji in path segments are all supported " +
+  "and must be passed verbatim — do NOT url-encode, escape, or substitute them. " +
+  "Empty workspaceSubdir means the workspace root (/workspaces itself). " +
+  "Absolute paths and `..` traversal are rejected by the runner for safety.";
+
 export const TOOLS = [
   {
     name: "run_code",
-    description: "Executes a block of Node.js, Python, or Shell code inside an isolated Docker container scoped to the user's workspace directory.",
+    description:
+      "Executes a block of Node.js, Python, or Shell code inside an isolated Docker container " +
+      "scoped to the user's workspace directory. " +
+      WORKSPACE_HINT,
     inputSchema: {
       type: "object",
       properties: {
@@ -19,7 +37,10 @@ export const TOOLS = [
         },
         workspaceSubdir: {
           type: "string",
-          description: "The subdirectory of the workspace where the files should be accessed/written. Maps to user's workspaceSubdir. Empty string is allowed and means the workspace root."
+          description:
+            "The subdirectory of /workspaces where the code's file I/O will be scoped. " +
+            "Pass the same value the user has configured in their profile (or empty string for the " +
+            "workspace root). The runner mounts that folder at /workspace inside the container."
         },
         timeout: {
           type: "number",
@@ -33,17 +54,24 @@ export const TOOLS = [
   },
   {
     name: "run_file",
-    description: "Executes an existing script file in the user's workspace directory.",
+    description:
+      "Executes an existing script file in the user's workspace directory. " +
+      WORKSPACE_HINT,
     inputSchema: {
       type: "object",
       properties: {
         file: {
           type: "string",
-          description: "The path or name of the file to execute, relative to the workspace directory."
+          description:
+            "Path of the file to execute, relative to the workspaceSubdir. " +
+            "Nested paths like 'scripts/run.sh' or 'Minha Pasta/main.py' are supported verbatim."
         },
         workspaceSubdir: {
           type: "string",
-          description: "The subdirectory of the workspace where the file is located. Empty string is allowed and means the workspace root."
+          description:
+            "The subdirectory of /workspaces where the file is located. " +
+            "Pass the same value the user has configured in their profile (or empty string for the " +
+            "workspace root)."
         },
         language: {
           type: "string",
