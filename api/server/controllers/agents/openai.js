@@ -33,6 +33,7 @@ const {
   resolveAgentScopedSkillIds,
   createOpenAIContentAggregator,
   isChatCompletionValidationFailure,
+  runAgentWithPoolRetry,
 } = require('@librechat/api');
 const {
   buildSummarizationHandlers,
@@ -707,52 +708,93 @@ const OpenAIChatCompletionController = async (req, res) => {
 
     const runAgents = [primaryConfig, ...handoffAgentConfigs.values()];
 
-    const run = await createRun({
-      agents: runAgents,
-      messages: formattedMessages,
-      indexTokenCountMap,
-      initialSummary,
-      runId: responseId,
-      summarizationConfig,
-      appConfig,
+    /**
+     * Run the agent under round-robin pool retry. When the primary agent
+     * has a non-empty `models` array, a transient LLM failure (5xx, 429,
+     * 401, network error) advances the pool counter and recreates the
+     * run with the next (provider, model) tuple — the `res` is left
+     * open across attempts so the next `processStream` writes on top
+     * of any partial output from the failed attempt (silent retry).
+     * After the final attempt, the last error is thrown and handled by
+     * the catch block below as a normal error response.
+     *
+     * `effectiveEntry` (the entry that the successful attempt actually
+     * used) is passed down to `recordCollectedUsage` so the billing
+     * record reflects the model that produced the response, not the
+     * agent's primary `model_parameters.model` (which only matches
+     * when the pool is empty).
+     *
+     * `recordCollectedUsage` and `sendFinalChunk` are intentionally
+     * OUTSIDE the attempt callback: they must only run on the attempt
+     * that actually completed, so the final usage/billing reflects one
+     * run, not the sum of failed-then-succeeded attempts.
+     */
+    const { effectiveEntry } = await runAgentWithPoolRetry({
+      primaryAgent: agent,
       signal: abortController.signal,
-      customHandlers: handlers,
-      requestBody: {
-        messageId: responseId,
-        conversationId,
+      logTag: '[OpenAI API]',
+      logger: {
+        warn: (message, meta) => logger.warn(message, meta),
+        error: (message, meta) => logger.error(message, meta),
       },
-      user: { id: userId },
+      attempt: async () => {
+        const run = await createRun({
+          agents: runAgents,
+          messages: formattedMessages,
+          indexTokenCountMap,
+          initialSummary,
+          runId: responseId,
+          summarizationConfig,
+          appConfig,
+          signal: abortController.signal,
+          customHandlers: handlers,
+          requestBody: {
+            messageId: responseId,
+            conversationId,
+          },
+          user: { id: userId },
+        });
+
+        if (!run) {
+          throw new Error('Failed to create agent run');
+        }
+
+        const config = {
+          runName: 'AgentRun',
+          configurable: {
+            thread_id: conversationId,
+            user_id: userId,
+            user: createSafeUser(req.user),
+            requestBody: {
+              messageId: responseId,
+              conversationId,
+            },
+            ...(userMCPAuthMap != null && { userMCPAuthMap }),
+          },
+          recursionLimit: resolveRecursionLimit(agentsEConfig, agent),
+          signal: abortController.signal,
+          streamMode: 'values',
+          version: 'v2',
+        };
+
+        await run.processStream({ messages: formattedMessages }, config, {
+          callbacks: {
+            [Callback.TOOL_ERROR]: (graph, error, toolId) => {
+              logger.error(`[OpenAI API] Tool Error "${toolId}"`, error);
+            },
+          },
+        });
+      },
     });
 
-    if (!run) {
-      throw new Error('Failed to create agent run');
-    }
-
-    const config = {
-      runName: 'AgentRun',
-      configurable: {
-        thread_id: conversationId,
-        user_id: userId,
-        user: createSafeUser(req.user),
-        requestBody: {
-          messageId: responseId,
-          conversationId,
-        },
-        ...(userMCPAuthMap != null && { userMCPAuthMap }),
-      },
-      recursionLimit: resolveRecursionLimit(agentsEConfig, agent),
-      signal: abortController.signal,
-      streamMode: 'values',
-      version: 'v2',
-    };
-
-    await run.processStream({ messages: formattedMessages }, config, {
-      callbacks: {
-        [Callback.TOOL_ERROR]: (graph, error, toolId) => {
-          logger.error(`[OpenAI API] Tool Error "${toolId}"`, error);
-        },
-      },
-    });
+    /** Override the model used for usage recording when the pool picked
+     *  a different entry. `effectiveEntry` is `null` for legacy single-
+     *  model agents, in which case the controller's `primaryConfig.model`
+     *  (set during `initializeAgent`) is the canonical source. The agent
+     *  document's own `model_parameters.model` is a tertiary fallback for
+     *  callers that did not go through `initializeAgent`. */
+    const effectiveModel =
+      effectiveEntry?.model ?? primaryConfig.model ?? agent.model_parameters?.model;
 
     // Record token usage against balance
     const balanceConfig = getBalanceConfig(appConfig);
@@ -772,7 +814,12 @@ const OpenAIChatCompletionController = async (req, res) => {
         messageId: responseId,
         balance: balanceConfig,
         transactions: transactionsConfig,
-        model: primaryConfig.model || agent.model_parameters?.model,
+        /** `effectiveModel` reflects the pool entry that actually
+         *  produced the response (or the legacy single-model default
+         *  when no pool is configured). Without this override the
+         *  billing record would point at `agent.model_parameters.model`
+         *  even when the round-robin landed on a different tuple. */
+        model: effectiveModel,
       },
     ).catch((err) => {
       logger.error('[OpenAI API] Error recording usage:', err);

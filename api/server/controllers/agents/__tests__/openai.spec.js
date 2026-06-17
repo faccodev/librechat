@@ -138,6 +138,20 @@ jest.mock('@librechat/api', () => ({
     skippedAgentIds: new Set(),
     userMCPAuthMap: undefined,
   }),
+  /**
+   * The pool-retry wrapper is mocked as a single-shot pass-through so the
+   * existing controller tests don't need to model retry semantics — they
+   * just exercise the original happy/sad path. The real wrapper is
+   * covered separately in `packages/api/src/agents/pool.spec.ts`.
+   *
+   * The mock returns the new `{ result, effectiveEntry }` shape so the
+   * controller code that reads `effectiveEntry` doesn't have to special-
+   * case the test path.
+   */
+  runAgentWithPoolRetry: jest.fn().mockImplementation(async ({ attempt }) => {
+    const result = await attempt({ attempt: 1, total: 1, entry: null });
+    return { result, effectiveEntry: null };
+  }),
 }));
 
 jest.mock('~/server/controllers/ModelController', () => ({

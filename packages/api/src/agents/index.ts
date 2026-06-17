@@ -13,6 +13,7 @@ export * from './memory';
 export * from './orphans';
 export * from './migration';
 export * from './openai';
+export * from './pool';
 export * from './transactions';
 export * from './usage';
 export * from './resources';

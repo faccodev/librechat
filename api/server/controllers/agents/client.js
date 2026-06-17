@@ -38,6 +38,7 @@ const {
   buildAgentScopedContext,
   buildSkillPrimeContentParts,
   buildInitialToolSessions,
+  runAgentWithPoolRetry,
 } = require('@librechat/api');
 const {
   Callback,
@@ -1055,49 +1056,92 @@ class AgentClient extends BaseClient {
           );
         }
 
-        run = await createRun({
-          agents,
-          messages,
-          indexTokenCountMap,
-          initialSummary,
-          initialSessions,
-          calibrationRatio,
-          runId: this.responseMessageId,
+        /**
+         * Pool-aware retry wrapper — mirrors the same pattern used in
+         * `openai.js` and `responses.js`. Each `attempt` builds a fresh
+         * `Run` (advancing the pool counter inside `buildAgentInput`),
+         * then streams it. On a retryable LLM failure the next attempt
+         * lands on the next (provider, model). `this.run`,
+         * `this._resolveRun`, and `GenerationJobManager.setGraph` are
+         * intentionally OUTSIDE the loop so external observers (title
+         * generator, resumable stream) only see the final, successful
+         * run — never a failed mid-failover run.
+         */
+        const { result: finalRun, effectiveEntry } = await runAgentWithPoolRetry({
+          primaryAgent: this.options.agent,
           signal: abortController.signal,
-          customHandlers: this.options.eventHandlers,
-          requestBody: config.configurable.requestBody,
-          user: createSafeUser(this.options.req?.user),
-          summarizationConfig: appConfig?.summarization,
-          appConfig,
-          tokenCounter,
+          logTag: '[AgentClient]',
+          logger: {
+            warn: (message, meta) => logger.warn(message, meta),
+            error: (message, meta) => logger.error(message, meta),
+          },
+          attempt: async () => {
+            const attemptRun = await createRun({
+              agents,
+              messages,
+              indexTokenCountMap,
+              initialSummary,
+              initialSessions,
+              calibrationRatio,
+              runId: this.responseMessageId,
+              signal: abortController.signal,
+              customHandlers: this.options.eventHandlers,
+              requestBody: config.configurable.requestBody,
+              user: createSafeUser(this.options.req?.user),
+              summarizationConfig: appConfig?.summarization,
+              appConfig,
+              tokenCounter,
+            });
+
+            if (!attemptRun) {
+              throw new Error('Failed to create run');
+            }
+
+            if (userMCPAuthMap != null) {
+              config.configurable.userMCPAuthMap = userMCPAuthMap;
+            }
+
+            /** @deprecated Agent Chain */
+            config.configurable.last_agent_id = agents[agents.length - 1].id;
+            await attemptRun.processStream({ messages }, config, {
+              callbacks: {
+                [Callback.TOOL_ERROR]: logToolError,
+              },
+            });
+
+            return attemptRun;
+          },
         });
 
-        if (!run) {
-          throw new Error('Failed to create run');
-        }
-
+        run = finalRun;
         this.run = run;
         if (this._resolveRun) {
           this._resolveRun(run);
           this._resolveRun = null;
         }
 
+        /**
+         * Apply the pool entry that actually responded. The legacy
+         * `this.model` is set once in the constructor from
+         * `agent.model_parameters.model`; `this.options.agent` carries
+         * the same. Both are mutated here so the downstream
+         * `recordCollectedUsage` and any code reading `this.model`
+         * (e.g. the Claude-shorter-context heuristic at the bottom
+         * of this file) reflect the entry that produced the response.
+         * The agent document itself is NOT persisted with this
+         * override — only the in-memory request state changes.
+         */
+        if (effectiveEntry && effectiveEntry.model) {
+          this.model = effectiveEntry.model;
+          if (this.options.agent?.model_parameters) {
+            this.options.agent.model_parameters.model = effectiveEntry.model;
+          }
+        }
+
         const streamId = this.options.req?._resumableStreamId;
         if (streamId && run.Graph) {
           GenerationJobManager.setGraph(streamId, run.Graph);
         }
-
-        if (userMCPAuthMap != null) {
-          config.configurable.userMCPAuthMap = userMCPAuthMap;
-        }
-
-        /** @deprecated Agent Chain */
-        config.configurable.last_agent_id = agents[agents.length - 1].id;
-        await run.processStream({ messages }, config, {
-          callbacks: {
-            [Callback.TOOL_ERROR]: logToolError,
-          },
-        });
 
         config.signal = null;
       };

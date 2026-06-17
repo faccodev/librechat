@@ -143,6 +143,19 @@ jest.mock('@librechat/api', () => ({
     usage: { promptTokens: 100, completionTokens: 50 },
   }),
   sendResponsesErrorResponse: jest.fn(),
+  /**
+   * Single-shot pass-through — the real wrapper is covered in
+   * `packages/api/src/agents/pool.spec.ts`. Existing controller tests
+   * only care about the happy/sad path with one attempt.
+   *
+   * Returns the new `{ result, effectiveEntry }` shape so the
+   * controller code that reads `effectiveEntry` doesn't have to
+   * special-case the test path.
+   */
+  runAgentWithPoolRetry: jest.fn().mockImplementation(async ({ attempt }) => {
+    const result = await attempt({ attempt: 1, total: 1, entry: null });
+    return { result, effectiveEntry: null };
+  }),
   createResponsesEventHandlers: jest.fn().mockReturnValue({
     handlers: {
       on_message_delta: { handle: jest.fn() },

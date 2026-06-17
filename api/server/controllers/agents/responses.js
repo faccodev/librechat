@@ -41,6 +41,7 @@ const {
   sendResponsesErrorResponse,
   createResponsesEventHandlers,
   createAggregatorEventHandlers,
+  runAgentWithPoolRetry,
 } = require('@librechat/api');
 const {
   createResponsesToolEndCallback,
@@ -714,52 +715,73 @@ const createResponse = async (req, res) => {
       const userId = req.user?.id ?? 'api-user';
       const userMCPAuthMap = mergedMCPAuthMap;
 
-      const run = await createRun({
-        agents: runAgents,
-        messages: formattedMessages,
-        indexTokenCountMap,
-        initialSummary,
-        runId: responseId,
-        summarizationConfig,
-        appConfig,
+      /**
+       * Pool-aware retry wrapper — see `openai.js` for the same pattern.
+       * Each `attempt` rebuilds the run and re-streams; the pool counter
+       * inside `buildAgentInput` advances automatically so the next
+       * attempt lands on the next (provider, model) tuple. The `res`
+       * stays open across attempts for silent in-stream failover.
+       */
+      const { effectiveEntry: streamingEntry } = await runAgentWithPoolRetry({
+        primaryAgent: agent,
         signal: abortController.signal,
-        customHandlers: handlers,
-        requestBody: {
-          messageId: responseId,
-          conversationId,
+        logTag: '[Responses API]',
+        logger: {
+          warn: (message, meta) => logger.warn(message, meta),
+          error: (message, meta) => logger.error(message, meta),
         },
-        user: { id: userId },
+        attempt: async () => {
+          const run = await createRun({
+            agents: runAgents,
+            messages: formattedMessages,
+            indexTokenCountMap,
+            initialSummary,
+            runId: responseId,
+            summarizationConfig,
+            appConfig,
+            signal: abortController.signal,
+            customHandlers: handlers,
+            requestBody: {
+              messageId: responseId,
+              conversationId,
+            },
+            user: { id: userId },
+          });
+
+          if (!run) {
+            throw new Error('Failed to create agent run');
+          }
+
+          // Process the stream
+          const config = {
+            runName: 'AgentRun',
+            configurable: {
+              thread_id: conversationId,
+              user_id: userId,
+              user: createSafeUser(req.user),
+              requestBody: {
+                messageId: responseId,
+                conversationId,
+              },
+              ...(userMCPAuthMap != null && { userMCPAuthMap }),
+            },
+            signal: abortController.signal,
+            streamMode: 'values',
+            version: 'v2',
+          };
+
+          await run.processStream({ messages: formattedMessages }, config, {
+            callbacks: {
+              [Callback.TOOL_ERROR]: (graph, error, toolId) => {
+                logger.error(`[Responses API] Tool Error "${toolId}"`, error);
+              },
+            },
+          });
+        },
       });
 
-      if (!run) {
-        throw new Error('Failed to create agent run');
-      }
-
-      // Process the stream
-      const config = {
-        runName: 'AgentRun',
-        configurable: {
-          thread_id: conversationId,
-          user_id: userId,
-          user: createSafeUser(req.user),
-          requestBody: {
-            messageId: responseId,
-            conversationId,
-          },
-          ...(userMCPAuthMap != null && { userMCPAuthMap }),
-        },
-        signal: abortController.signal,
-        streamMode: 'values',
-        version: 'v2',
-      };
-
-      await run.processStream({ messages: formattedMessages }, config, {
-        callbacks: {
-          [Callback.TOOL_ERROR]: (graph, error, toolId) => {
-            logger.error(`[Responses API] Tool Error "${toolId}"`, error);
-          },
-        },
-      });
+      const streamingEffectiveModel =
+        streamingEntry?.model ?? primaryConfig.model ?? agent.model_parameters?.model;
 
       // Record token usage against balance
       const balanceConfig = getBalanceConfig(appConfig);
@@ -779,7 +801,7 @@ const createResponse = async (req, res) => {
           messageId: responseId,
           balance: balanceConfig,
           transactions: transactionsConfig,
-          model: primaryConfig.model || agent.model_parameters?.model,
+          model: streamingEffectiveModel,
         },
       ).catch((err) => {
         logger.error('[Responses API] Error recording usage:', err);
@@ -886,51 +908,68 @@ const createResponse = async (req, res) => {
       const userId = req.user?.id ?? 'api-user';
       const userMCPAuthMap = mergedMCPAuthMap;
 
-      const run = await createRun({
-        agents: runAgents,
-        messages: formattedMessages,
-        indexTokenCountMap,
-        initialSummary,
-        runId: responseId,
-        summarizationConfig,
-        appConfig,
+      /** Non-streaming path: same retry wrapper as the streaming path
+       *  above. `recordCollectedUsage` runs only after the helper
+       *  resolves (i.e. the last attempt succeeded). */
+      const { effectiveEntry: nonStreamingEntry } = await runAgentWithPoolRetry({
+        primaryAgent: agent,
         signal: abortController.signal,
-        customHandlers: handlers,
-        requestBody: {
-          messageId: responseId,
-          conversationId,
+        logTag: '[Responses API]',
+        logger: {
+          warn: (message, meta) => logger.warn(message, meta),
+          error: (message, meta) => logger.error(message, meta),
         },
-        user: { id: userId },
+        attempt: async () => {
+          const run = await createRun({
+            agents: runAgents,
+            messages: formattedMessages,
+            indexTokenCountMap,
+            initialSummary,
+            runId: responseId,
+            summarizationConfig,
+            appConfig,
+            signal: abortController.signal,
+            customHandlers: handlers,
+            requestBody: {
+              messageId: responseId,
+              conversationId,
+            },
+            user: { id: userId },
+          });
+
+          if (!run) {
+            throw new Error('Failed to create agent run');
+          }
+
+          const config = {
+            runName: 'AgentRun',
+            configurable: {
+              thread_id: conversationId,
+              user_id: userId,
+              user: createSafeUser(req.user),
+              requestBody: {
+                messageId: responseId,
+                conversationId,
+              },
+              ...(userMCPAuthMap != null && { userMCPAuthMap }),
+            },
+            signal: abortController.signal,
+            streamMode: 'values',
+            version: 'v2',
+          };
+
+          await run.processStream({ messages: formattedMessages }, config, {
+            callbacks: {
+              [Callback.TOOL_ERROR]: (graph, error, toolId) => {
+                logger.error(`[Responses API] Tool Error "${toolId}"`, error);
+              },
+            },
+          });
+        },
       });
 
-      if (!run) {
-        throw new Error('Failed to create agent run');
-      }
-
-      const config = {
-        runName: 'AgentRun',
-        configurable: {
-          thread_id: conversationId,
-          user_id: userId,
-          user: createSafeUser(req.user),
-          requestBody: {
-            messageId: responseId,
-            conversationId,
-          },
-          ...(userMCPAuthMap != null && { userMCPAuthMap }),
-        },
-        signal: abortController.signal,
-        streamMode: 'values',
-        version: 'v2',
-      };
-
-      await run.processStream({ messages: formattedMessages }, config, {
-        callbacks: {
-          [Callback.TOOL_ERROR]: (graph, error, toolId) => {
-            logger.error(`[Responses API] Tool Error "${toolId}"`, error);
-          },
-        },
-      });
+      const nonStreamingEffectiveModel =
+        nonStreamingEntry?.model ?? primaryConfig.model ?? agent.model_parameters?.model;
 
       // Record token usage against balance
       const balanceConfig = getBalanceConfig(appConfig);
@@ -950,7 +989,7 @@ const createResponse = async (req, res) => {
           messageId: responseId,
           balance: balanceConfig,
           transactions: transactionsConfig,
-          model: primaryConfig.model || agent.model_parameters?.model,
+          model: nonStreamingEffectiveModel,
         },
       ).catch((err) => {
         logger.error('[Responses API] Error recording usage:', err);
