@@ -13,6 +13,7 @@ import {
   AzureMinimalIcon,
   CustomMinimalIcon,
 } from '@librechat/client';
+import { useLocalize } from '~/hooks';
 import UnknownIcon from '~/hooks/Endpoint/UnknownIcon';
 import { IconProps } from '~/common';
 import { cn } from '~/utils';
@@ -58,6 +59,7 @@ function getGoogleModelName(model: string | null | undefined) {
 
 const MessageEndpointIcon: React.FC<IconProps> = (props) => {
   const { error, iconURL = '', endpoint, size = 30, model = '', assistantName, agentName } = props;
+  const localize = useLocalize();
 
   const assistantsIcon = {
     icon: iconURL ? (
@@ -178,13 +180,34 @@ const MessageEndpointIcon: React.FC<IconProps> = (props) => {
     ({ icon, bg, name } = endpointIcons[iconURL]);
   }
 
+  /**
+   * When the agent uses the round-robin model pool, the icon still
+   * shows the provider (Claude, ChatGPT, Gemini) — the `name` above is
+   * the tooltip text. The model id is appended as a suffix so the
+   * user can tell at a glance which entry of the pool produced this
+   * response (e.g. "Claude via claude-3-5-sonnet-20240620"). For
+   * agents without a pool the `message.model` is the same as the
+   * `agent.model`, so the suffix is redundant — the check below hides
+   * it in that case.
+   *
+   * The `model` prop comes from `MessageParts.tsx` (line 61) which
+   * passes `message?.model ?? conversation?.model`. After the
+   * `runAgentWithPoolRetry` fix, `message.model` reflects the entry
+   * the pool actually used, not the agent's primary model.
+   */
+  const showModelSuffix =
+    Boolean(model) && endpoint !== EModelEndpoint.agents;
+  const tooltipText = showModelSuffix
+    ? `${name ?? ''} ${localize('com_ui_model_via', { model })}`
+    : name ?? '';
+
   if (isAssistantsEndpoint(endpoint)) {
     return icon;
   }
 
   return (
     <div
-      title={name ?? ''}
+      title={tooltipText}
       style={{
         background: bg != null ? bg || 'transparent' : 'transparent',
         width: size,
