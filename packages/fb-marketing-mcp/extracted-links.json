@@ -1,0 +1,2802 @@
+[
+  {
+    "name": "API de Marketing",
+    "path": "/docs/marketing-api",
+    "link": "https://developers.facebook.com/docs/marketing-api"
+  },
+  {
+    "name": "Visão geral",
+    "path": "/docs/marketing-api/overview",
+    "link": "https://developers.facebook.com/docs/marketing-api/overview"
+  },
+  {
+    "name": "Começar",
+    "path": "/docs/marketing-api/get-started",
+    "link": "https://developers.facebook.com/docs/marketing-api/get-started"
+  },
+  {
+    "name": "Criativo do anúncio",
+    "path": "/docs/marketing-api/creative",
+    "link": "https://developers.facebook.com/docs/marketing-api/creative"
+  },
+  {
+    "name": "Vídeo e carrossel",
+    "path": "/docs/marketing-api/guides/videoads",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/videoads"
+  },
+  {
+    "name": "Experiências instantâneas",
+    "path": "/docs/marketing-api/guides/instant-experiences",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/instant-experiences"
+  },
+  {
+    "name": "Anúncios de coleção",
+    "path": "/docs/marketing-api/creative/collection-ads",
+    "link": "https://developers.facebook.com/docs/marketing-api/creative/collection-ads"
+  },
+  {
+    "name": "Anúncios no App",
+    "path": "/docs/marketing-api/mobile-app-ads",
+    "link": "https://developers.facebook.com/docs/marketing-api/mobile-app-ads"
+  },
+  {
+    "name": "Anúncios de lead",
+    "path": "/docs/marketing-api/guides/lead-ads",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/lead-ads"
+  },
+  {
+    "name": "API de Anúncios do Instagram",
+    "path": "/docs/marketing-api/guides/instagramads",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/instagramads"
+  },
+  {
+    "name": "Anúncios no Threads",
+    "path": "/docs/marketing-api/ad-creative/threads-ads",
+    "link": "https://developers.facebook.com/docs/marketing-api/ad-creative/threads-ads"
+  },
+  {
+    "name": "Anúncios de mensagem",
+    "path": "/docs/marketing-api/ad-creative/messaging-ads",
+    "link": "https://developers.facebook.com/docs/marketing-api/ad-creative/messaging-ads"
+  },
+  {
+    "name": "API de Anúncios em Parceria",
+    "path": "/docs/marketing-api/ad-creative/partnership-ads",
+    "link": "https://developers.facebook.com/docs/marketing-api/ad-creative/partnership-ads"
+  },
+  {
+    "name": "Anúncios locais e de evento",
+    "path": "/docs/marketing-api/guides/event-ads",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/event-ads"
+  },
+  {
+    "name": "Campanhas Advantage+",
+    "path": "/docs/marketing-api/advantage-campaigns",
+    "link": "https://developers.facebook.com/docs/marketing-api/advantage-campaigns"
+  },
+  {
+    "name": "API de campanha de compras Advantage+",
+    "path": "/docs/marketing-api/advantage-shopping-campaigns",
+    "link": "https://developers.facebook.com/docs/marketing-api/advantage-shopping-campaigns"
+  },
+  {
+    "name": "Anúncios de Lojas",
+    "path": "/docs/marketing-api/shops-ads",
+    "link": "https://developers.facebook.com/docs/marketing-api/shops-ads"
+  },
+  {
+    "name": "Conteúdo de marca",
+    "path": "/docs/marketing-api/guides/branded-content",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/branded-content"
+  },
+  {
+    "name": "Especificação do feed de ativos",
+    "path": "/docs/marketing-api/ad-creative/asset-feed-spec",
+    "link": "https://developers.facebook.com/docs/marketing-api/ad-creative/asset-feed-spec"
+  },
+  {
+    "name": "Opções do feed de ativos",
+    "path": "/docs/marketing-api/ad-creative/asset-feed-spec/options",
+    "link": "https://developers.facebook.com/docs/marketing-api/ad-creative/asset-feed-spec/options"
+  },
+  {
+    "name": "Criativo dinâmico",
+    "path": "/docs/marketing-api/ad-creative/asset-feed-spec/dynamic-creative",
+    "link": "https://developers.facebook.com/docs/marketing-api/ad-creative/asset-feed-spec/dynamic-creative"
+  },
+  {
+    "name": "Regras de personalização de ativo",
+    "path": "/docs/marketing-api/ad-creative/asset-feed-spec/asset-customization-rules",
+    "link": "https://developers.facebook.com/docs/marketing-api/ad-creative/asset-feed-spec/asset-customization-rules"
+  },
+  {
+    "name": "Insights",
+    "path": "/docs/marketing-api/ad-creative/asset-feed-spec/insights",
+    "link": "https://developers.facebook.com/docs/marketing-api/ad-creative/asset-feed-spec/insights"
+  },
+  {
+    "name": "Anúncios de Catálogo Advantage+",
+    "path": "/docs/marketing-api/advantage-catalog-ads",
+    "link": "https://developers.facebook.com/docs/marketing-api/advantage-catalog-ads"
+  },
+  {
+    "name": "Criativo Advantage+",
+    "path": "/docs/marketing-api/creative/advantage-creative",
+    "link": "https://developers.facebook.com/docs/marketing-api/creative/advantage-creative"
+  },
+  {
+    "name": "Anúncios omnichannel",
+    "path": "/docs/marketing-api/ad-creative/omnichannel-ads",
+    "link": "https://developers.facebook.com/docs/marketing-api/ad-creative/omnichannel-ads"
+  },
+  {
+    "name": "Recursos de IA generativa",
+    "path": "/docs/marketing-api/creative/generative-ai-features",
+    "link": "https://developers.facebook.com/docs/marketing-api/creative/generative-ai-features"
+  },
+  {
+    "name": "Anúncios Colaborativos",
+    "path": "/docs/marketing-api/collaborative-ads",
+    "link": "https://developers.facebook.com/docs/marketing-api/collaborative-ads"
+  },
+  {
+    "name": "Anúncios com vários anunciantes",
+    "path": "/docs/marketing-api/creative/multi-advertiser-ads",
+    "link": "https://developers.facebook.com/docs/marketing-api/creative/multi-advertiser-ads"
+  },
+  {
+    "name": "Anúncios do Reels",
+    "path": "/docs/marketing-api/creative/reels-ads",
+    "link": "https://developers.facebook.com/docs/marketing-api/creative/reels-ads"
+  },
+  {
+    "name": "Anúncios com ligação telefônica",
+    "path": "/docs/marketing-api/call-ads",
+    "link": "https://developers.facebook.com/docs/marketing-api/call-ads"
+  },
+  {
+    "name": "Formato de anúncio flexível",
+    "path": "/docs/marketing-api/flexible-ad-format",
+    "link": "https://developers.facebook.com/docs/marketing-api/flexible-ad-format"
+  },
+  {
+    "name": "Automação de formatos",
+    "path": "/docs/marketing-api/creative/format-automation",
+    "link": "https://developers.facebook.com/docs/marketing-api/creative/format-automation"
+  },
+  {
+    "name": "Bidding",
+    "path": "/docs/marketing-api/bidding",
+    "link": "https://developers.facebook.com/docs/marketing-api/bidding"
+  },
+  {
+    "name": "Mecanismo de regras de anúncios",
+    "path": "/docs/marketing-api/ad-rules",
+    "link": "https://developers.facebook.com/docs/marketing-api/ad-rules"
+  },
+  {
+    "name": "Públicos",
+    "path": "/docs/marketing-api/audiences",
+    "link": "https://developers.facebook.com/docs/marketing-api/audiences"
+  },
+  {
+    "name": "API de Insights",
+    "path": "/docs/marketing-api/insights",
+    "link": "https://developers.facebook.com/docs/marketing-api/insights"
+  },
+  {
+    "name": "Adequação e segurança para marcas",
+    "path": "/docs/marketing-api/brand-safety-and-suitability",
+    "link": "https://developers.facebook.com/docs/marketing-api/brand-safety-and-suitability"
+  },
+  {
+    "name": "Boas práticas",
+    "path": "/docs/marketing-api/best-practices",
+    "link": "https://developers.facebook.com/docs/marketing-api/best-practices"
+  },
+  {
+    "name": "Solução de problemas",
+    "path": "/docs/marketing-api/troubleshooting",
+    "link": "https://developers.facebook.com/docs/marketing-api/troubleshooting"
+  },
+  {
+    "name": "Referência da API",
+    "path": "/docs/marketing-api/reference",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference"
+  },
+  {
+    "name": "Registro de alterações",
+    "path": "/docs/marketing-api/marketing-api-changelog",
+    "link": "https://developers.facebook.com/docs/marketing-api/marketing-api-changelog"
+  },
+  {
+    "name": "API de Criativo Dinâmico",
+    "path": "/docs/marketing-api/ad-creative/asset-feed-spec/dynamic-creative/",
+    "link": "https://developers.facebook.com/docs/marketing-api/ad-creative/asset-feed-spec/dynamic-creative/"
+  },
+  {
+    "name": "Regras de personalização de ativo",
+    "path": "/docs/marketing-api/asset-customization-rules",
+    "link": "https://developers.facebook.com/docs/marketing-api/asset-customization-rules"
+  },
+  {
+    "name": "referência sobre a especificação do feed de ativos",
+    "path": "/docs/marketing-api/reference/ad-asset-feed-spec",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-asset-feed-spec"
+  },
+  {
+    "name": "asset_feed_spec",
+    "path": "/docs/marketing-api/reference/ad-asset-feed-spec/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-asset-feed-spec/"
+  },
+  {
+    "name": "opções disponíveis para a especificação do feed de ativos",
+    "path": "/docs/marketing-api/dynamic-creative/asset-feed-spec",
+    "link": "https://developers.facebook.com/docs/marketing-api/dynamic-creative/asset-feed-spec"
+  },
+  {
+    "name": "Clique para o Messenger",
+    "path": "/docs/marketing-api/ad-creative/messaging-ads/click-to-messenger",
+    "link": "https://developers.facebook.com/docs/marketing-api/ad-creative/messaging-ads/click-to-messenger"
+  },
+  {
+    "name": "Clique para o Instagram",
+    "path": "/docs/marketing-api/ad-creative/messaging-ads/click-to-instagram",
+    "link": "https://developers.facebook.com/docs/marketing-api/ad-creative/messaging-ads/click-to-instagram"
+  },
+  {
+    "name": "Clique para o WhatsApp",
+    "path": "/docs/marketing-api/ad-creative/messaging-ads/click-to-whatsapp",
+    "link": "https://developers.facebook.com/docs/marketing-api/ad-creative/messaging-ads/click-to-whatsapp"
+  },
+  {
+    "name": "Vários destinos",
+    "path": "/docs/marketing-api/ad-creative/messaging-ads/click-to-multidestination",
+    "link": "https://developers.facebook.com/docs/marketing-api/ad-creative/messaging-ads/click-to-multidestination"
+  },
+  {
+    "name": "clique aqui",
+    "path": "/docs/marketing-api/get-started/authorization#permissions-and-features",
+    "link": "https://developers.facebook.com/docs/marketing-api/get-started/authorization#permissions-and-features"
+  },
+  {
+    "name": "clique aqui",
+    "path": "/docs/marketing-api/business-asset-management/guides/ad-accounts/",
+    "link": "https://developers.facebook.com/docs/marketing-api/business-asset-management/guides/ad-accounts/"
+  },
+  {
+    "name": "clique aqui",
+    "path": "/docs/marketing-api/conversions-api/offline-events/#prerequisites",
+    "link": "https://developers.facebook.com/docs/marketing-api/conversions-api/offline-events/#prerequisites"
+  },
+  {
+    "name": "códigos de erro",
+    "path": "/docs/marketing-api/reference/ad-account/campaigns/#error-codes-2",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/campaigns/#error-codes-2"
+  },
+  {
+    "name": "códigos de erro",
+    "path": "/docs/marketing-api/reference/ad-account/adsets/#error-codes-2",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/adsets/#error-codes-2"
+  },
+  {
+    "name": "códigos de erro",
+    "path": "/docs/marketing-api/reference/ad-account/ads/#error-codes-2",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/ads/#error-codes-2"
+  },
+  {
+    "name": "Ad Account, Ad Campaigns",
+    "path": "/docs/marketing-api/reference/ad-account/campaigns/#Creating",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/campaigns/#Creating"
+  },
+  {
+    "name": "Ad Account Adsets",
+    "path": "/docs/marketing-api/reference/ad-account/adsets/#Creating",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/adsets/#Creating"
+  },
+  {
+    "name": "Ad Account Ads",
+    "path": "/docs/marketing-api/reference/ad-account/ads/#Creating",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/ads/#Creating"
+  },
+  {
+    "name": "Criativo do anúncio",
+    "path": "/docs/marketing-api/reference/ad-creative",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-creative"
+  },
+  {
+    "name": "Guia de configuração técnica omni: boas práticas e requisitos",
+    "path": "/docs/marketing-apis/guides/omni-optimal-setup-guide",
+    "link": "https://developers.facebook.com/docs/marketing-apis/guides/omni-optimal-setup-guide"
+  },
+  {
+    "name": "Ad Creative Features Spec",
+    "path": "/docs/marketing-api/reference/ad-creative-features-spec/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-creative-features-spec/"
+  },
+  {
+    "name": "Introdução aos anúncios de catálogo Advantage+",
+    "path": "/docs/marketing-api/advantage-catalog-ads/get-started",
+    "link": "https://developers.facebook.com/docs/marketing-api/advantage-catalog-ads/get-started"
+  },
+  {
+    "name": "Campanhas de compras Advantage+",
+    "path": "/docs/marketing-api/advantage-shopping-campaigns/",
+    "link": "https://developers.facebook.com/docs/marketing-api/advantage-shopping-campaigns/"
+  },
+  {
+    "name": "Post-Level Permissioning",
+    "path": "/docs/marketing-api/ad-creative/partnership-ads/post-level-permissioning",
+    "link": "https://developers.facebook.com/docs/marketing-api/ad-creative/partnership-ads/post-level-permissioning"
+  },
+  {
+    "name": "Account-Level Permissioning",
+    "path": "/docs/marketing-api/ad-creative/partnership-ads/account-level-permissioning",
+    "link": "https://developers.facebook.com/docs/marketing-api/ad-creative/partnership-ads/account-level-permissioning"
+  },
+  {
+    "name": "Criação de anúncios em parceria",
+    "path": "/docs/marketing-api/ad-creative/partnership-ads/ads-creation",
+    "link": "https://developers.facebook.com/docs/marketing-api/ad-creative/partnership-ads/ads-creation"
+  },
+  {
+    "name": "Criação de anúncios do Threads",
+    "path": "/docs/marketing-api/ad-creative/threads-ads/creation",
+    "link": "https://developers.facebook.com/docs/marketing-api/ad-creative/threads-ads/creation"
+  },
+  {
+    "name": "Insights sobre anúncios do Threads",
+    "path": "/docs/marketing-api/ad-creative/threads-ads/insights",
+    "link": "https://developers.facebook.com/docs/marketing-api/ad-creative/threads-ads/insights"
+  },
+  {
+    "name": "Voltar para Português (Brasil)",
+    "path": "/docs/marketing-api/ad-creative/threads-ads/?translation",
+    "link": "https://developers.facebook.com/docs/marketing-api/ad-creative/threads-ads/?translation"
+  },
+  {
+    "name": "Threads Carousel Ads",
+    "path": "/docs/marketing-api/ad-creative/threads-ads/creation/carousel-ads",
+    "link": "https://developers.facebook.com/docs/marketing-api/ad-creative/threads-ads/creation/carousel-ads"
+  },
+  {
+    "name": "Ad Account",
+    "path": "/docs/marketing-api/reference/ad-account",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account"
+  },
+  {
+    "name": "Ad Creative",
+    "path": "/docs/marketing-api/adcreative",
+    "link": "https://developers.facebook.com/docs/marketing-api/adcreative"
+  },
+  {
+    "name": "Ad Image",
+    "path": "/docs/marketing-api/reference/ad-image",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-image"
+  },
+  {
+    "name": "Prévias do anúncio",
+    "path": "/docs/marketing-api/generatepreview",
+    "link": "https://developers.facebook.com/docs/marketing-api/generatepreview"
+  },
+  {
+    "name": "Plugin de prévia do anúncio",
+    "path": "/docs/marketing-api/ad-preview-plugin",
+    "link": "https://developers.facebook.com/docs/marketing-api/ad-preview-plugin"
+  },
+  {
+    "name": "Business",
+    "path": "/docs/marketing-api/reference/business",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business"
+  },
+  {
+    "name": "Business Role Request",
+    "path": "/docs/marketing-api/reference/business-role-request",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business-role-request"
+  },
+  {
+    "name": "Business User",
+    "path": "/docs/marketing-api/reference/business-user",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business-user"
+  },
+  {
+    "name": "Moedas",
+    "path": "/docs/marketing-api/currencies",
+    "link": "https://developers.facebook.com/docs/marketing-api/currencies"
+  },
+  {
+    "name": "Período de alta demanda",
+    "path": "/docs/marketing-api/reference/high-demand-period",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/high-demand-period"
+  },
+  {
+    "name": "Corte de imagem",
+    "path": "/docs/marketing-api/image-crops",
+    "link": "https://developers.facebook.com/docs/marketing-api/image-crops"
+  },
+  {
+    "name": "Product Catalog",
+    "path": "/docs/marketing-api/reference/product-catalog",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/product-catalog"
+  },
+  {
+    "name": "System User",
+    "path": "/docs/marketing-api/reference/system-user",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/system-user"
+  },
+  {
+    "name": "Especificações de regras de anúncios",
+    "path": "/docs/marketing-api/ad-rules/ad-rules-specs",
+    "link": "https://developers.facebook.com/docs/marketing-api/ad-rules/ad-rules-specs"
+  },
+  {
+    "name": "Regras baseadas em gatilho",
+    "path": "/docs/marketing-api/ad-rules/guides/trigger-based-rules",
+    "link": "https://developers.facebook.com/docs/marketing-api/ad-rules/guides/trigger-based-rules"
+  },
+  {
+    "name": "Regras baseadas em cronograma",
+    "path": "/docs/marketing-api/ad-rules/guides/scheduled-based-rules",
+    "link": "https://developers.facebook.com/docs/marketing-api/ad-rules/guides/scheduled-based-rules"
+  },
+  {
+    "name": "Programação avançada",
+    "path": "/docs/marketing-api/ad-rules/guides/advanced-scheduling",
+    "link": "https://developers.facebook.com/docs/marketing-api/ad-rules/guides/advanced-scheduling"
+  },
+  {
+    "name": "Filtros de especificações de avaliação",
+    "path": "/docs/marketing-api/ad-rules/guides/evaluation-spec-filters",
+    "link": "https://developers.facebook.com/docs/marketing-api/ad-rules/guides/evaluation-spec-filters"
+  },
+  {
+    "name": "Reequilibrar o orçamento",
+    "path": "/docs/marketing-api/ad-rules/guides/rebalance-budget",
+    "link": "https://developers.facebook.com/docs/marketing-api/ad-rules/guides/rebalance-budget"
+  },
+  {
+    "name": "Regras de anúncio de ROAS",
+    "path": "/docs/marketing-api/ad-rules/guides/roas-ad-rules",
+    "link": "https://developers.facebook.com/docs/marketing-api/ad-rules/guides/roas-ad-rules"
+  },
+  {
+    "name": "Chamadas de API",
+    "path": "/docs/marketing-api/ad-rules/guides/api-calls",
+    "link": "https://developers.facebook.com/docs/marketing-api/ad-rules/guides/api-calls"
+  },
+  {
+    "name": "regras baseadas em cronograma",
+    "path": "/docs/marketing-api/ad-rules/scheduled-based-rules",
+    "link": "https://developers.facebook.com/docs/marketing-api/ad-rules/scheduled-based-rules"
+  },
+  {
+    "name": "regras baseadas em gatilho",
+    "path": "/docs/marketing-api/ad-rules/trigger-based-rules",
+    "link": "https://developers.facebook.com/docs/marketing-api/ad-rules/trigger-based-rules"
+  },
+  {
+    "name": "evaluation_spec",
+    "path": "/docs/marketing-api/ad-rules/evaluation-spec",
+    "link": "https://developers.facebook.com/docs/marketing-api/ad-rules/evaluation-spec"
+  },
+  {
+    "name": "execution_spec",
+    "path": "/docs/marketing-api/ad-rules/execution-spec",
+    "link": "https://developers.facebook.com/docs/marketing-api/ad-rules/execution-spec"
+  },
+  {
+    "name": "Insights sobre Anúncios",
+    "path": "/docs/marketing-api/reference/adgroup/insights",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/adgroup/insights"
+  },
+  {
+    "name": "special_ad_categories",
+    "path": "/docs/marketing-api/audiences/special-ad-category",
+    "link": "https://developers.facebook.com/docs/marketing-api/audiences/special-ad-category"
+  },
+  {
+    "name": "Learn more about the requirements.",
+    "path": "/docs/marketing-api/audiences/special-ad-category/#issues-elections-politics",
+    "link": "https://developers.facebook.com/docs/marketing-api/audiences/special-ad-category/#issues-elections-politics"
+  },
+  {
+    "name": "Placement",
+    "path": "/docs/marketing-api/creative/#placements",
+    "link": "https://developers.facebook.com/docs/marketing-api/creative/#placements"
+  },
+  {
+    "name": "ads",
+    "path": "/docs/marketing-api/adgroup/",
+    "link": "https://developers.facebook.com/docs/marketing-api/adgroup/"
+  },
+  {
+    "name": "Ad Labels",
+    "path": "/docs/marketing-api/reference/ad-label",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-label"
+  },
+  {
+    "name": "Dynamic Ads",
+    "path": "/docs/marketing-api/dynamic-product-ads/ads-management",
+    "link": "https://developers.facebook.com/docs/marketing-api/dynamic-product-ads/ads-management"
+  },
+  {
+    "name": "Dynamic Creative",
+    "path": "/docs/marketing-api/dynamic-creative/dynamic-creative-optimization",
+    "link": "https://developers.facebook.com/docs/marketing-api/dynamic-creative/dynamic-creative-optimization"
+  },
+  {
+    "name": "Dynamic Ad's",
+    "path": "/docs/marketing-api/dynamic-product-ads",
+    "link": "https://developers.facebook.com/docs/marketing-api/dynamic-product-ads"
+  },
+  {
+    "name": "campaign objectives",
+    "path": "/docs/marketing-api/adcampaign/",
+    "link": "https://developers.facebook.com/docs/marketing-api/adcampaign/"
+  },
+  {
+    "name": "Store Traffic Objective inside Dynamic Ads",
+    "path": "/docs/marketing-api/guides/dynamic-ad/store-visits",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/dynamic-ad/store-visits"
+  },
+  {
+    "name": "image crop reference",
+    "path": "/docs/marketing-api/image-crops/",
+    "link": "https://developers.facebook.com/docs/marketing-api/image-crops/"
+  },
+  {
+    "name": "image library",
+    "path": "/docs/marketing-api/adimage/",
+    "link": "https://developers.facebook.com/docs/marketing-api/adimage/"
+  },
+  {
+    "name": "promoted\\_object",
+    "path": "/docs/marketing-api/reference/ad-campaign/promoted-object",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-campaign/promoted-object"
+  },
+  {
+    "name": "image library",
+    "path": "/docs/marketing-api/adimage",
+    "link": "https://developers.facebook.com/docs/marketing-api/adimage"
+  },
+  {
+    "name": "Local Awareness guide",
+    "path": "/docs/marketing-api/guides/local-awareness",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/local-awareness"
+  },
+  {
+    "name": "placements",
+    "path": "/docs/marketing-api/targeting-specs/#placement",
+    "link": "https://developers.facebook.com/docs/marketing-api/targeting-specs/#placement"
+  },
+  {
+    "name": "Dynamic Ads, Click Tracking and Templates",
+    "path": "/docs/marketing-api/dynamic-product-ads/ads-management#adtemplate",
+    "link": "https://developers.facebook.com/docs/marketing-api/dynamic-product-ads/ads-management#adtemplate"
+  },
+  {
+    "name": "See example",
+    "path": "/docs/marketing-api/reference/ad-creative#thumbnail-example",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-creative#thumbnail-example"
+  },
+  {
+    "name": "previews",
+    "path": "/docs/marketing-api/reference/ad-creative/previews/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-creative/previews/"
+  },
+  {
+    "name": "AdCreative",
+    "path": "/docs/marketing-api/reference/ad-creative/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-creative/"
+  },
+  {
+    "name": "Storing and Retrieving Ad Objects",
+    "path": "/docs/marketing-api/best-practices/storing_adobjects",
+    "link": "https://developers.facebook.com/docs/marketing-api/best-practices/storing_adobjects"
+  },
+  {
+    "name": "público Advantage+",
+    "path": "/docs/marketing-api/audiences/reference/targeting-expansion/advantage-audience",
+    "link": "https://developers.facebook.com/docs/marketing-api/audiences/reference/targeting-expansion/advantage-audience"
+  },
+  {
+    "name": "orçamento de campanha Advantage+",
+    "path": "/docs/marketing-api/bidding/guides/advantage-campaign-budget",
+    "link": "https://developers.facebook.com/docs/marketing-api/bidding/guides/advantage-campaign-budget"
+  },
+  {
+    "name": "criar uma campanha de anúncios",
+    "path": "/docs/marketing-api/get-started/basic-ad-creation/create-an-ad-campaign",
+    "link": "https://developers.facebook.com/docs/marketing-api/get-started/basic-ad-creation/create-an-ad-campaign"
+  },
+  {
+    "name": "direcionamentos de posicionamento",
+    "path": "/docs/marketing-api/audiences/reference/placement-targeting",
+    "link": "https://developers.facebook.com/docs/marketing-api/audiences/reference/placement-targeting"
+  },
+  {
+    "name": "geo_locations",
+    "path": "/docs/marketing-api/audiences/reference/basic-targeting/#location",
+    "link": "https://developers.facebook.com/docs/marketing-api/audiences/reference/basic-targeting/#location"
+  },
+  {
+    "name": "Público semelhante Advantage",
+    "path": "/docs/marketing-api/audiences/reference/targeting-expansion/advantage-lookalike",
+    "link": "https://developers.facebook.com/docs/marketing-api/audiences/reference/targeting-expansion/advantage-lookalike"
+  },
+  {
+    "name": "Público personalizado Advantage",
+    "path": "/docs/marketing-api/audiences/reference/targeting-expansion/advantage-custom-audience",
+    "link": "https://developers.facebook.com/docs/marketing-api/audiences/reference/targeting-expansion/advantage-custom-audience"
+  },
+  {
+    "name": "Direcionamento detalhado Advantage",
+    "path": "/docs/marketing-api/audiences/reference/targeting-expansion/advantage-detailed-targeting",
+    "link": "https://developers.facebook.com/docs/marketing-api/audiences/reference/targeting-expansion/advantage-detailed-targeting"
+  },
+  {
+    "name": "Direcionamento avançado: Habilitar sugestões de idade e gênero",
+    "path": "/docs/marketing-api/audiences/reference/advanced-targeting/#enable-age-and-gender-suggestions",
+    "link": "https://developers.facebook.com/docs/marketing-api/audiences/reference/advanced-targeting/#enable-age-and-gender-suggestions"
+  },
+  {
+    "name": "mesmas configurações de criativo",
+    "path": "/docs/marketing-api/get-started/basic-ad-creation/create-an-ad-creative",
+    "link": "https://developers.facebook.com/docs/marketing-api/get-started/basic-ad-creation/create-an-ad-creative"
+  },
+  {
+    "name": "criar seu anúncio",
+    "path": "/docs/marketing-api/get-started/basic-ad-creation/create-an-ad",
+    "link": "https://developers.facebook.com/docs/marketing-api/get-started/basic-ad-creation/create-an-ad"
+  },
+  {
+    "name": "Manual Ads (non-Catalog Ads)",
+    "path": "/docs/marketing-api/reference/adgroup",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/adgroup"
+  },
+  {
+    "name": "Catálogos localizados (ou anúncios de catálogo Advantage+ para vários idiomas ou países)",
+    "path": "/docs/marketing-api/catalog/guides/localized-catalog",
+    "link": "https://developers.facebook.com/docs/marketing-api/catalog/guides/localized-catalog"
+  },
+  {
+    "name": "exclusão de público personalizado",
+    "path": "/docs/marketing-api/audiences/reference/advanced-targeting/#custom_audiences",
+    "link": "https://developers.facebook.com/docs/marketing-api/audiences/reference/advanced-targeting/#custom_audiences"
+  },
+  {
+    "name": "ponto de extremidade /adcopies",
+    "path": "/docs/marketing-api/reference/ad-campaign/copies/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-campaign/copies/"
+  },
+  {
+    "name": "Anúncios de Catálogo Advantage+ para celular",
+    "path": "/docs/marketing-api/advantage-catalog-ads/mobile-apps",
+    "link": "https://developers.facebook.com/docs/marketing-api/advantage-catalog-ads/mobile-apps"
+  },
+  {
+    "name": "\n            \n            Campanhas de app Advantage+",
+    "path": "/docs/marketing-api/advantage-catalog-ads/advantage-app-campaigns",
+    "link": "https://developers.facebook.com/docs/marketing-api/advantage-catalog-ads/advantage-app-campaigns"
+  },
+  {
+    "name": "Mídia dinâmica",
+    "path": "/docs/marketing-api/advantage-catalog-ads/dynamic-media",
+    "link": "https://developers.facebook.com/docs/marketing-api/advantage-catalog-ads/dynamic-media"
+  },
+  {
+    "name": "Imagens com taxa de várias proporções",
+    "path": "/docs/marketing-api/advantage-catalog-ads/multi-ratio-images",
+    "link": "https://developers.facebook.com/docs/marketing-api/advantage-catalog-ads/multi-ratio-images"
+  },
+  {
+    "name": "Criativo Advantage+ para catálogo",
+    "path": "/docs/marketing-api/advantage-creative-for-catalog",
+    "link": "https://developers.facebook.com/docs/marketing-api/advantage-creative-for-catalog"
+  },
+  {
+    "name": "Anúncios de imóveis",
+    "path": "/docs/marketing-api/real-estate-ads",
+    "link": "https://developers.facebook.com/docs/marketing-api/real-estate-ads"
+  },
+  {
+    "name": "Anúncios de viagem",
+    "path": "/docs/marketing-api/travel-ads",
+    "link": "https://developers.facebook.com/docs/marketing-api/travel-ads"
+  },
+  {
+    "name": "Anúncios de automóveis",
+    "path": "/docs/marketing-api/auto-ads",
+    "link": "https://developers.facebook.com/docs/marketing-api/auto-ads"
+  },
+  {
+    "name": "Anúncios de catálogo Advantage+ com destino no Facebook",
+    "path": "/docs/marketing-api/advantage-catalog-ads/on-facebook-destination",
+    "link": "https://developers.facebook.com/docs/marketing-api/advantage-catalog-ads/on-facebook-destination"
+  },
+  {
+    "name": "Perguntas frequentes",
+    "path": "/docs/marketing-api/advantage-catalog-ads/faq",
+    "link": "https://developers.facebook.com/docs/marketing-api/advantage-catalog-ads/faq"
+  },
+  {
+    "name": "Criação de um feed para o catálogo",
+    "path": "/docs/marketing-api/catalog",
+    "link": "https://developers.facebook.com/docs/marketing-api/catalog"
+  },
+  {
+    "name": "públicos-alvo",
+    "path": "/docs/marketing-api/audiences/guides/dynamic-product-audiences",
+    "link": "https://developers.facebook.com/docs/marketing-api/audiences/guides/dynamic-product-audiences"
+  },
+  {
+    "name": "Criação e veiculação de anúncios com base no seu catálogo",
+    "path": "/docs/marketing-api/dynamic-ads/get-started",
+    "link": "https://developers.facebook.com/docs/marketing-api/dynamic-ads/get-started"
+  },
+  {
+    "name": "interagindo com os anúncios",
+    "path": "/docs/marketing-api/reference/adgroup/insights/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/adgroup/insights/"
+  },
+  {
+    "name": "ferramentas de depuração",
+    "path": "/docs/marketing-api/dynamic-product-ads/debugging-tools",
+    "link": "https://developers.facebook.com/docs/marketing-api/dynamic-product-ads/debugging-tools"
+  },
+  {
+    "name": "Otimização para conversão entre canais",
+    "path": "/docs/marketing-api/advantage-shopping-campaigns/cross-channel-conversion",
+    "link": "https://developers.facebook.com/docs/marketing-api/advantage-shopping-campaigns/cross-channel-conversion"
+  },
+  {
+    "name": "Parâmetros de URL do tipo de público",
+    "path": "/docs/marketing-api/advantage-shopping-campaigns/audience-type-url-parameters",
+    "link": "https://developers.facebook.com/docs/marketing-api/advantage-shopping-campaigns/audience-type-url-parameters"
+  },
+  {
+    "name": "otimização para conversão entre canais em campanhas de compras Advantage+",
+    "path": "/docs/marketing-api/guides/advantage-shopping-campaigns/cross-channel-conversion",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/advantage-shopping-campaigns/cross-channel-conversion"
+  },
+  {
+    "name": "esta página",
+    "path": "/docs/marketing-api/reference/custom-audience",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/custom-audience"
+  },
+  {
+    "name": "parâmetros de URL de tipo de público",
+    "path": "/docs/marketing-api/guides/advantage-shopping-campaigns/audience-type-url-parameters",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/advantage-shopping-campaigns/audience-type-url-parameters"
+  },
+  {
+    "name": "campanha de anúncios",
+    "path": "/docs/marketing-api/reference/ad-campaign-group/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-campaign-group/"
+  },
+  {
+    "name": "recomendação",
+    "path": "/docs/marketing-api/reference/ad-recommendation",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-recommendation"
+  },
+  {
+    "name": "Ad Set",
+    "path": "/docs/marketing-api/reference/ad-campaign/#fields",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-campaign/#fields"
+  },
+  {
+    "name": "lances de retorno mínimo sobre o investimento em anúncios",
+    "path": "/docs/marketing-api/bidding/overview/bid-strategy#min-roas-bidding",
+    "link": "https://developers.facebook.com/docs/marketing-api/bidding/overview/bid-strategy#min-roas-bidding"
+  },
+  {
+    "name": "limite de custo",
+    "path": "/docs/marketing-api/bidding/overview/bid-strategy#cap",
+    "link": "https://developers.facebook.com/docs/marketing-api/bidding/overview/bid-strategy#cap"
+  },
+  {
+    "name": "conjunto de anúncios",
+    "path": "/docs/marketing-api/reference/ad-campaign/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-campaign/"
+  },
+  {
+    "name": "clique aqui",
+    "path": "/docs/marketing-api/reference/ad-creative#overview",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-creative#overview"
+  },
+  {
+    "name": "AdCreativeObjectStorySpec",
+    "path": "/docs/marketing-api/reference/ad-creative-object-story-spec/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-creative-object-story-spec/"
+  },
+  {
+    "name": "anúncio",
+    "path": "/docs/marketing-api/reference/adgroup/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/adgroup/"
+  },
+  {
+    "name": "Visão geral",
+    "path": "/docs/marketing-api/audiences/overview",
+    "link": "https://developers.facebook.com/docs/marketing-api/audiences/overview"
+  },
+  {
+    "name": "Públicos personalizados de arquivos de clientes",
+    "path": "/docs/marketing-api/audiences/guides/custom-audiences",
+    "link": "https://developers.facebook.com/docs/marketing-api/audiences/guides/custom-audiences"
+  },
+  {
+    "name": "Regras de público",
+    "path": "/docs/marketing-api/audiences/guides/audience-rules",
+    "link": "https://developers.facebook.com/docs/marketing-api/audiences/guides/audience-rules"
+  },
+  {
+    "name": "Públicos Semelhantes",
+    "path": "/docs/marketing-api/audiences/guides/lookalike-audiences",
+    "link": "https://developers.facebook.com/docs/marketing-api/audiences/guides/lookalike-audiences"
+  },
+  {
+    "name": "Semelhantes com base em valor",
+    "path": "/docs/marketing-api/audiences/guides/value-based-lookalike-audiences",
+    "link": "https://developers.facebook.com/docs/marketing-api/audiences/guides/value-based-lookalike-audiences"
+  },
+  {
+    "name": "Públicos personalizados de engajamento",
+    "path": "/docs/marketing-api/audiences/guides/engagement-custom-audiences",
+    "link": "https://developers.facebook.com/docs/marketing-api/audiences/guides/engagement-custom-audiences"
+  },
+  {
+    "name": "Públicos Personalizados do aplicativo móvel",
+    "path": "/docs/marketing-api/audiences/guides/mobile-app-custom-audiences",
+    "link": "https://developers.facebook.com/docs/marketing-api/audiences/guides/mobile-app-custom-audiences"
+  },
+  {
+    "name": "Públicos personalizados do site",
+    "path": "/docs/marketing-api/audiences/guides/website-custom-audiences",
+    "link": "https://developers.facebook.com/docs/marketing-api/audiences/guides/website-custom-audiences"
+  },
+  {
+    "name": "Públicos Personalizados offline",
+    "path": "/docs/marketing-api/audiences/guides/offline-custom-audiences",
+    "link": "https://developers.facebook.com/docs/marketing-api/audiences/guides/offline-custom-audiences"
+  },
+  {
+    "name": "Anúncios no Audience Network",
+    "path": "/docs/marketing-api/audience-network",
+    "link": "https://developers.facebook.com/docs/marketing-api/audience-network"
+  },
+  {
+    "name": "API de Estimativa de Alcance",
+    "path": "/docs/marketing-api/audiences/guides/reach-estimate",
+    "link": "https://developers.facebook.com/docs/marketing-api/audiences/guides/reach-estimate"
+  },
+  {
+    "name": "Referência",
+    "path": "/docs/marketing-api/audiences/reference",
+    "link": "https://developers.facebook.com/docs/marketing-api/audiences/reference"
+  },
+  {
+    "name": "**Públicos semelhantes**",
+    "path": "/docs/marketing-api/lookalike-audience-targeting",
+    "link": "https://developers.facebook.com/docs/marketing-api/lookalike-audience-targeting"
+  },
+  {
+    "name": "**app para celular**",
+    "path": "/docs/marketing-api/audiences-api/mobile-apps",
+    "link": "https://developers.facebook.com/docs/marketing-api/audiences-api/mobile-apps"
+  },
+  {
+    "name": "**site**",
+    "path": "/docs/marketing-api/audiences-api/websites",
+    "link": "https://developers.facebook.com/docs/marketing-api/audiences-api/websites"
+  },
+  {
+    "name": "**CRM**",
+    "path": "/docs/marketing-api/audiences-api",
+    "link": "https://developers.facebook.com/docs/marketing-api/audiences-api"
+  },
+  {
+    "name": "**sinais de engajamento**",
+    "path": "/docs/marketing-api/audiences-api/engagement",
+    "link": "https://developers.facebook.com/docs/marketing-api/audiences-api/engagement"
+  },
+  {
+    "name": "**conversões offline**",
+    "path": "/docs/marketing-api/audiences-api/offline",
+    "link": "https://developers.facebook.com/docs/marketing-api/audiences-api/offline"
+  },
+  {
+    "name": "**Públicos dinâmicos**",
+    "path": "/docs/marketing-api/dynamic-product-ads/product-audiences",
+    "link": "https://developers.facebook.com/docs/marketing-api/dynamic-product-ads/product-audiences"
+  },
+  {
+    "name": "**Opções de direcionamento**",
+    "path": "/docs/marketing-api/buying-api/targeting",
+    "link": "https://developers.facebook.com/docs/marketing-api/buying-api/targeting"
+  },
+  {
+    "name": "**direcionamento avançado**",
+    "path": "/docs/marketing-api/targeting-specs",
+    "link": "https://developers.facebook.com/docs/marketing-api/targeting-specs"
+  },
+  {
+    "name": "Guias",
+    "path": "/docs/marketing-api/audiences/guides",
+    "link": "https://developers.facebook.com/docs/marketing-api/audiences/guides"
+  },
+  {
+    "name": "Recomendações de desempenho",
+    "path": "/docs/marketing-api/overview/performance-recommendations",
+    "link": "https://developers.facebook.com/docs/marketing-api/overview/performance-recommendations"
+  },
+  {
+    "name": "Guia de configuração omni ideal",
+    "path": "/docs/marketing-api/best-practices/omni-optimal-setup-guide",
+    "link": "https://developers.facebook.com/docs/marketing-api/best-practices/omni-optimal-setup-guide"
+  },
+  {
+    "name": "Gerenciar o status do seu objeto de anúncio",
+    "path": "/docs/marketing-api/best-practices/manage-your-ad-object-status",
+    "link": "https://developers.facebook.com/docs/marketing-api/best-practices/manage-your-ad-object-status"
+  },
+  {
+    "name": "Solicitações em lote e assíncronas",
+    "path": "/docs/marketing-api/asyncrequests",
+    "link": "https://developers.facebook.com/docs/marketing-api/asyncrequests"
+  },
+  {
+    "name": "Pós-processamento para criação de anúncios",
+    "path": "/docs/marketing-api/using-the-api/post-processing",
+    "link": "https://developers.facebook.com/docs/marketing-api/using-the-api/post-processing"
+  },
+  {
+    "name": "Visão geral",
+    "path": "/docs/marketing-api/bidding/overview",
+    "link": "https://developers.facebook.com/docs/marketing-api/bidding/overview"
+  },
+  {
+    "name": "Guias",
+    "path": "/docs/marketing-api/bidding/guides",
+    "link": "https://developers.facebook.com/docs/marketing-api/bidding/guides"
+  },
+  {
+    "name": "Regras de valor",
+    "path": "/docs/marketing-api/bidding/value-rules",
+    "link": "https://developers.facebook.com/docs/marketing-api/bidding/value-rules"
+  },
+  {
+    "name": "**Estratégias de lance**",
+    "path": "/docs/marketing-api/bidding/overview/bid-strategy",
+    "link": "https://developers.facebook.com/docs/marketing-api/bidding/overview/bid-strategy"
+  },
+  {
+    "name": "**Metas de otimização**",
+    "path": "/docs/marketing-api/bidding-and-optimization#opt",
+    "link": "https://developers.facebook.com/docs/marketing-api/bidding-and-optimization#opt"
+  },
+  {
+    "name": "**Orçamentos**",
+    "path": "/docs/marketing-api/bidding/overview/budgets",
+    "link": "https://developers.facebook.com/docs/marketing-api/bidding/overview/budgets"
+  },
+  {
+    "name": "**Regularidade e programação**",
+    "path": "/docs/marketing-api/pacing",
+    "link": "https://developers.facebook.com/docs/marketing-api/pacing"
+  },
+  {
+    "name": "**Eventos de cobrança**",
+    "path": "/docs/marketing-api/bidding-and-optimization/billing-events",
+    "link": "https://developers.facebook.com/docs/marketing-api/bidding-and-optimization/billing-events"
+  },
+  {
+    "name": "**Otimização do orçamento da campanha**",
+    "path": "/docs/marketing-api/bidding-and-optimization/campaign-budget-optimization",
+    "link": "https://developers.facebook.com/docs/marketing-api/bidding-and-optimization/campaign-budget-optimization"
+  },
+  {
+    "name": "**Anúncios de custo por mil otimizado**",
+    "path": "/docs/marketing-api/bidding/optimized-cost-per-mille",
+    "link": "https://developers.facebook.com/docs/marketing-api/bidding/optimized-cost-per-mille"
+  },
+  {
+    "name": "**Anúncios de custo por ação**",
+    "path": "/docs/marketing-api/cost-per-action-ads",
+    "link": "https://developers.facebook.com/docs/marketing-api/cost-per-action-ads"
+  },
+  {
+    "name": "**Alcance e frequência**",
+    "path": "/docs/marketing-api/reachandfrequency",
+    "link": "https://developers.facebook.com/docs/marketing-api/reachandfrequency"
+  },
+  {
+    "name": "**Multiplicadores de lances**",
+    "path": "/docs/marketing-api/bidding-and-optimization/bid-multiplier",
+    "link": "https://developers.facebook.com/docs/marketing-api/bidding-and-optimization/bid-multiplier"
+  },
+  {
+    "name": "Visão geral",
+    "path": "/docs/marketing-api/bidding-and-optimization",
+    "link": "https://developers.facebook.com/docs/marketing-api/bidding-and-optimization"
+  },
+  {
+    "name": "**orçamentos**",
+    "path": "/docs/marketing-api/bidding/overview/budgetsg",
+    "link": "https://developers.facebook.com/docs/marketing-api/bidding/overview/budgetsg"
+  },
+  {
+    "name": "Suporte",
+    "path": "/docs/marketing-api/support",
+    "link": "https://developers.facebook.com/docs/marketing-api/support"
+  },
+  {
+    "name": "Configuração da integração",
+    "path": "/docs/marketing-api/brand-safety-and-suitability/brand-safety-partners",
+    "link": "https://developers.facebook.com/docs/marketing-api/brand-safety-and-suitability/brand-safety-partners"
+  },
+  {
+    "name": "API de Listas de Bloqueio",
+    "path": "/docs/marketing-api/brand-safety-and-suitability/block-list",
+    "link": "https://developers.facebook.com/docs/marketing-api/brand-safety-and-suitability/block-list"
+  },
+  {
+    "name": "API de Listas de Permissão de Conteúdo",
+    "path": "/docs/marketing-api/brand-safety-and-suitability/content-allow-lists",
+    "link": "https://developers.facebook.com/docs/marketing-api/brand-safety-and-suitability/content-allow-lists"
+  },
+  {
+    "name": "API de Relatórios de Veiculação de Conteúdo",
+    "path": "/docs/marketing-api/brand-safety-and-suitability/content-delivery-report",
+    "link": "https://developers.facebook.com/docs/marketing-api/brand-safety-and-suitability/content-delivery-report"
+  },
+  {
+    "name": "API de Verificação do Feed",
+    "path": "/docs/marketing-api/brand-safety-and-suitability/feed-verification",
+    "link": "https://developers.facebook.com/docs/marketing-api/brand-safety-and-suitability/feed-verification"
+  },
+  {
+    "name": "API de Relatórios de Veiculação de Publishers",
+    "path": "/docs/marketing-api/brand-safety-and-suitability/publisher-delivery-report",
+    "link": "https://developers.facebook.com/docs/marketing-api/brand-safety-and-suitability/publisher-delivery-report"
+  },
+  {
+    "name": "API de Passback",
+    "path": "/docs/marketing-api/brand-safety-and-suitability/passback-api",
+    "link": "https://developers.facebook.com/docs/marketing-api/brand-safety-and-suitability/passback-api"
+  },
+  {
+    "name": "API de Listas de Publishers Parceiros",
+    "path": "/docs/marketing-api/brand-safety-and-suitability/publisher-list",
+    "link": "https://developers.facebook.com/docs/marketing-api/brand-safety-and-suitability/publisher-list"
+  },
+  {
+    "name": "Recurso de retorno de ligação",
+    "path": "/docs/marketing-api/call-ads/callback-feature",
+    "link": "https://developers.facebook.com/docs/marketing-api/call-ads/callback-feature"
+  },
+  {
+    "name": "Primeiros passos",
+    "path": "/docs/marketing-apis/get-started#book-ad",
+    "link": "https://developers.facebook.com/docs/marketing-apis/get-started#book-ad"
+  },
+  {
+    "name": "Visão geral",
+    "path": "/docs/marketing-api/catalog/overview",
+    "link": "https://developers.facebook.com/docs/marketing-api/catalog/overview"
+  },
+  {
+    "name": "Introdução",
+    "path": "/docs/marketing-api/catalog/get-started",
+    "link": "https://developers.facebook.com/docs/marketing-api/catalog/get-started"
+  },
+  {
+    "name": "Guias",
+    "path": "/docs/marketing-api/catalog/guides",
+    "link": "https://developers.facebook.com/docs/marketing-api/catalog/guides"
+  },
+  {
+    "name": "Referência",
+    "path": "/docs/marketing-api/catalog/reference",
+    "link": "https://developers.facebook.com/docs/marketing-api/catalog/reference"
+  },
+  {
+    "name": "Boas práticas",
+    "path": "/docs/marketing-api/catalog/best-practices",
+    "link": "https://developers.facebook.com/docs/marketing-api/catalog/best-practices"
+  },
+  {
+    "name": "Suporte",
+    "path": "/docs/marketing-api/catalog/support",
+    "link": "https://developers.facebook.com/docs/marketing-api/catalog/support"
+  },
+  {
+    "name": "Voltar para Português (Brasil)",
+    "path": "/docs/marketing-api/catalog/?translation",
+    "link": "https://developers.facebook.com/docs/marketing-api/catalog/?translation"
+  },
+  {
+    "name": "Get Started",
+    "path": "/docs/marketing-api/catalog/getting-started",
+    "link": "https://developers.facebook.com/docs/marketing-api/catalog/getting-started"
+  },
+  {
+    "name": "Catalog Batch API",
+    "path": "/docs/marketing-api/catalog-batch",
+    "link": "https://developers.facebook.com/docs/marketing-api/catalog-batch"
+  },
+  {
+    "name": "Anúncios de parceiros gerenciados",
+    "path": "/docs/marketing-api/collaborative-ads/managed-partner-ads",
+    "link": "https://developers.facebook.com/docs/marketing-api/collaborative-ads/managed-partner-ads"
+  },
+  {
+    "name": "Opções Premium do parceiro",
+    "path": "/docs/marketing-api/collaborative-ads/partner-premium-options",
+    "link": "https://developers.facebook.com/docs/marketing-api/collaborative-ads/partner-premium-options"
+  },
+  {
+    "name": "anúncios de catálogo Advantage+",
+    "path": "/docs/marketing-api/dynamic-ads",
+    "link": "https://developers.facebook.com/docs/marketing-api/dynamic-ads"
+  },
+  {
+    "name": "borda owned_product_catalogs",
+    "path": "/docs/marketing-api/reference/business/owned_product_catalogs/#Creating",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/owned_product_catalogs/#Creating"
+  },
+  {
+    "name": "GET {business-id}?fields=collaborative_ads_suggested_partners",
+    "path": "/docs/marketing-api/reference/business/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/"
+  },
+  {
+    "name": "/{product-catalog-id}/assigned_users",
+    "path": "/docs/marketing-api/reference/product-catalog/assigned_users/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/product-catalog/assigned_users/"
+  },
+  {
+    "name": "anúncios de catálogo Advantage+",
+    "path": "/docs/marketing-api/dynamic-product-ads/ads-management#adgroup",
+    "link": "https://developers.facebook.com/docs/marketing-api/dynamic-product-ads/ads-management#adgroup"
+  },
+  {
+    "name": "especificações de rastreamento personalizadas",
+    "path": "/docs/marketing-api/tracking-specs",
+    "link": "https://developers.facebook.com/docs/marketing-api/tracking-specs"
+  },
+  {
+    "name": "Conta de anúncios",
+    "path": "/docs/marketing-api/reference/ad-account/insights",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/insights"
+  },
+  {
+    "name": "Campanha de anúncios",
+    "path": "/docs/marketing-api/reference/ad-campaign-group/insights/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-campaign-group/insights/"
+  },
+  {
+    "name": "Conjunto de anúncios",
+    "path": "/docs/marketing-api/reference/ad-campaign/insights",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-campaign/insights"
+  },
+  {
+    "name": "métricas de insights estimadas e em desenvolvimento",
+    "path": "/docs/marketing-api/insights/estimated-in-development#collaborative-ads",
+    "link": "https://developers.facebook.com/docs/marketing-api/insights/estimated-in-development#collaborative-ads"
+  },
+  {
+    "name": "/{product-item-id}",
+    "path": "/docs/marketing-api/reference/product-item/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/product-item/"
+  },
+  {
+    "name": "Detalhamentos",
+    "path": "/docs/marketing-api/insights/breakdowns",
+    "link": "https://developers.facebook.com/docs/marketing-api/insights/breakdowns"
+  },
+  {
+    "name": "\n\nAPI de Conversões\n\n",
+    "path": "/docs/marketing-api/conversions-api",
+    "link": "https://developers.facebook.com/docs/marketing-api/conversions-api"
+  },
+  {
+    "name": "Primeiros passos",
+    "path": "/docs/marketing-api/conversions-api/get-started",
+    "link": "https://developers.facebook.com/docs/marketing-api/conversions-api/get-started"
+  },
+  {
+    "name": "Como usar a API",
+    "path": "/docs/marketing-api/conversions-api/using-the-api",
+    "link": "https://developers.facebook.com/docs/marketing-api/conversions-api/using-the-api"
+  },
+  {
+    "name": "Como verificar a configuração",
+    "path": "/docs/marketing-api/conversions-api/verifying-setup",
+    "link": "https://developers.facebook.com/docs/marketing-api/conversions-api/verifying-setup"
+  },
+  {
+    "name": "Parâmetros",
+    "path": "/docs/marketing-api/conversions-api/parameters",
+    "link": "https://developers.facebook.com/docs/marketing-api/conversions-api/parameters"
+  },
+  {
+    "name": "Biblioteca do Configurador de Parâmetros",
+    "path": "/docs/marketing-api/conversions-api/parameter-builder-feature-library",
+    "link": "https://developers.facebook.com/docs/marketing-api/conversions-api/parameter-builder-feature-library"
+  },
+  {
+    "name": "API de Conversões para eventos do app",
+    "path": "/docs/marketing-api/conversions-api/app-events",
+    "link": "https://developers.facebook.com/docs/marketing-api/conversions-api/app-events"
+  },
+  {
+    "name": "API de Conversões para eventos offline",
+    "path": "/docs/marketing-api/conversions-api/offline-events",
+    "link": "https://developers.facebook.com/docs/marketing-api/conversions-api/offline-events"
+  },
+  {
+    "name": "API de Conversões para Business Messaging",
+    "path": "/docs/marketing-api/conversions-api/business-messaging",
+    "link": "https://developers.facebook.com/docs/marketing-api/conversions-api/business-messaging"
+  },
+  {
+    "name": "Integração de leads de conversão",
+    "path": "/docs/marketing-api/conversions-api/conversion-leads-integration",
+    "link": "https://developers.facebook.com/docs/marketing-api/conversions-api/conversion-leads-integration"
+  },
+  {
+    "name": "Dataset Quality API",
+    "path": "/docs/marketing-api/conversions-api/dataset-quality-api",
+    "link": "https://developers.facebook.com/docs/marketing-api/conversions-api/dataset-quality-api"
+  },
+  {
+    "name": "Como gerenciar eventos duplicados",
+    "path": "/docs/marketing-api/conversions-api/deduplicate-pixel-and-server-events",
+    "link": "https://developers.facebook.com/docs/marketing-api/conversions-api/deduplicate-pixel-and-server-events"
+  },
+  {
+    "name": "Guias",
+    "path": "/docs/marketing-api/conversions-api/guides",
+    "link": "https://developers.facebook.com/docs/marketing-api/conversions-api/guides"
+  },
+  {
+    "name": "Auxiliar de carga",
+    "path": "/docs/marketing-api/conversions-api/payload-helper",
+    "link": "https://developers.facebook.com/docs/marketing-api/conversions-api/payload-helper"
+  },
+  {
+    "name": "Boas práticas",
+    "path": "/docs/marketing-api/conversions-api/best-practices",
+    "link": "https://developers.facebook.com/docs/marketing-api/conversions-api/best-practices"
+  },
+  {
+    "name": "Solução de problemas",
+    "path": "/docs/marketing-api/conversions-api/support",
+    "link": "https://developers.facebook.com/docs/marketing-api/conversions-api/support"
+  },
+  {
+    "name": "Opções de processamento de dados para usuários da Califórnia",
+    "path": "/docs/marketing-apis/data-processing-options",
+    "link": "https://developers.facebook.com/docs/marketing-apis/data-processing-options"
+  },
+  {
+    "name": "Introdução",
+    "path": "/docs/marketing-api/creative/advantage-creative/get-started",
+    "link": "https://developers.facebook.com/docs/marketing-api/creative/advantage-creative/get-started"
+  },
+  {
+    "name": "Adicionar links de site",
+    "path": "/docs/marketing-api/creative/advantage-creative/add-site-links",
+    "link": "https://developers.facebook.com/docs/marketing-api/creative/advantage-creative/add-site-links"
+  },
+  {
+    "name": "Extensões de produto",
+    "path": "/docs/marketing-api/advantage-catalog-ads/product-extensions",
+    "link": "https://developers.facebook.com/docs/marketing-api/advantage-catalog-ads/product-extensions"
+  },
+  {
+    "name": "Aprimoramentos padrão",
+    "path": "/docs/marketing-api/advantage-catalog-ads/standard-enhancements",
+    "link": "https://developers.facebook.com/docs/marketing-api/advantage-catalog-ads/standard-enhancements"
+  },
+  {
+    "name": "Prévia dos aprimoramentos padrão",
+    "path": "/docs/marketing-api/advantage-catalog-ads/creative-preview",
+    "link": "https://developers.facebook.com/docs/marketing-api/advantage-catalog-ads/creative-preview"
+  },
+  {
+    "name": "Feed do Instagram",
+    "path": "/docs/marketing-api/guides/instant-experiences#instant-experiences-and-instagram-ads",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/instant-experiences#instant-experiences-and-instagram-ads"
+  },
+  {
+    "name": "modelo",
+    "path": "/docs/marketing-api/guides/instant-experiences#templates",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/instant-experiences#templates"
+  },
+  {
+    "name": "campos obrigatórios",
+    "path": "/docs/marketing-api/reference/ad-creative-link-data-image-overlay-spec",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-creative-link-data-image-overlay-spec"
+  },
+  {
+    "name": "diálogo de experiências instantâneas",
+    "path": "/docs/marketing-api/guides/instant-experiences#canvas-ads-dialog",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/instant-experiences#canvas-ads-dialog"
+  },
+  {
+    "name": "diálogo de prévia das experiências instantâneas",
+    "path": "/docs/marketing-api/guides/instant-experiences#preview-an-instant-experience",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/instant-experiences#preview-an-instant-experience"
+  },
+  {
+    "name": "publicar",
+    "path": "/docs/marketing-api/guides/instant-experiences#publish",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/instant-experiences#publish"
+  },
+  {
+    "name": "todas as experiências instantâneas pertencentes a uma Página",
+    "path": "/docs/marketing-api/guides/instant-experiences#get-an-existing-instant-experiences",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/instant-experiences#get-an-existing-instant-experiences"
+  },
+  {
+    "name": "Catálogo de destinos",
+    "path": "/docs/marketing-api/destination-ads/catalog",
+    "link": "https://developers.facebook.com/docs/marketing-api/destination-ads/catalog"
+  },
+  {
+    "name": "Criar públicos para experiências instantâneas",
+    "path": "/docs/marketing-api/guides/instant-experiences#create-audiences-for-instant-experiences",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/instant-experiences#create-audiences-for-instant-experiences"
+  },
+  {
+    "name": "Anúncios de coleção",
+    "path": "/docs/marketing-api/guides/collection",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/collection"
+  },
+  {
+    "name": "Ad Creative",
+    "path": "/docs/marketing-api/reference/ad-creative#create_example",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-creative#create_example"
+  },
+  {
+    "name": "Ad Creative Features Details",
+    "path": "/docs/marketing-api/reference/ad-creative-feature-details/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-creative-feature-details/"
+  },
+  {
+    "name": "Ad Creative",
+    "path": "/docs/marketing-api/reference/ad-creative#fields",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-creative#fields"
+  },
+  {
+    "name": "Ad Account Ads",
+    "path": "/docs/marketing-api/reference/ad-account/ads/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/ads/"
+  },
+  {
+    "name": "campanha",
+    "path": "/docs/marketing-api/reference/ad-campaign-group",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-campaign-group"
+  },
+  {
+    "name": "previews",
+    "path": "/docs/marketing-api/reference/adgroup/previews",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/adgroup/previews"
+  },
+  {
+    "name": "previews",
+    "path": "/docs/marketing-api/reference/ad-creative/previews",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-creative/previews"
+  },
+  {
+    "name": "/act_<AD_ACCOUNT_ID>/generatepreviews",
+    "path": "/docs/marketing-api/reference/ad-account/generatepreviews/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/generatepreviews/"
+  },
+  {
+    "name": "Advantage+ Catalog Ads, Preview",
+    "path": "/docs/marketing-api/dynamic-product-ads/ads-management#dynamicpreview",
+    "link": "https://developers.facebook.com/docs/marketing-api/dynamic-product-ads/ads-management#dynamicpreview"
+  },
+  {
+    "name": "objeto de prévia do anúncio",
+    "path": "/docs/marketing-api/reference/ad-preview/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-preview/"
+  },
+  {
+    "name": "Autorização",
+    "path": "/docs/marketing-api/get-started/authorization",
+    "link": "https://developers.facebook.com/docs/marketing-api/get-started/authorization"
+  },
+  {
+    "name": "Autenticação",
+    "path": "/docs/marketing-api/get-started/authentication",
+    "link": "https://developers.facebook.com/docs/marketing-api/get-started/authentication"
+  },
+  {
+    "name": "Criação básica de anúncios",
+    "path": "/docs/marketing-api/get-started/basic-ad-creation",
+    "link": "https://developers.facebook.com/docs/marketing-api/get-started/basic-ad-creation"
+  },
+  {
+    "name": "Gerenciar campanhas",
+    "path": "/docs/marketing-api/get-started/manage-campaigns",
+    "link": "https://developers.facebook.com/docs/marketing-api/get-started/manage-campaigns"
+  },
+  {
+    "name": "Noções básicas sobre otimização de anúncios",
+    "path": "/docs/marketing-api/get-started/ad-optimization-basics",
+    "link": "https://developers.facebook.com/docs/marketing-api/get-started/ad-optimization-basics"
+  },
+  {
+    "name": "Monitoramento e análises",
+    "path": "/docs/marketing-api/get-started/ad-optimization-basics/monitoring-and-analytics",
+    "link": "https://developers.facebook.com/docs/marketing-api/get-started/ad-optimization-basics/monitoring-and-analytics"
+  },
+  {
+    "name": "Dicas para otimização",
+    "path": "/docs/marketing-api/get-started/ad-optimization-basics/optimization-tips",
+    "link": "https://developers.facebook.com/docs/marketing-api/get-started/ad-optimization-basics/optimization-tips"
+  },
+  {
+    "name": "ponto de extremidade customaudiences",
+    "path": "/docs/marketing-api/reference/ad-account/customaudiences",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/customaudiences"
+  },
+  {
+    "name": "Voltar para Português (Brasil)",
+    "path": "/docs/marketing-api/get-started/authentication/?translation",
+    "link": "https://developers.facebook.com/docs/marketing-api/get-started/authentication/?translation"
+  },
+  {
+    "name": "Usuários do sistema",
+    "path": "/docs/marketing-api/system-users",
+    "link": "https://developers.facebook.com/docs/marketing-api/system-users"
+  },
+  {
+    "name": "token de acesso de usuário do sistema",
+    "path": "/docs/marketing-api/system-users/install-apps-and-generate-tokens",
+    "link": "https://developers.facebook.com/docs/marketing-api/system-users/install-apps-and-generate-tokens"
+  },
+  {
+    "name": "Volumes ligeiramente limitados",
+    "path": "/docs/marketing-apis/rate-limiting",
+    "link": "https://developers.facebook.com/docs/marketing-apis/rate-limiting"
+  },
+  {
+    "name": "Criar um conjunto de anúncios",
+    "path": "/docs/marketing-api/get-started/basic-ad-creation/create-an-ad-set",
+    "link": "https://developers.facebook.com/docs/marketing-api/get-started/basic-ad-creation/create-an-ad-set"
+  },
+  {
+    "name": "ponto de extremidade campaigns",
+    "path": "/docs/marketing-api/reference/ad-account/campaigns",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/campaigns"
+  },
+  {
+    "name": "ponto de extremidade adsets",
+    "path": "/docs/marketing-api/reference/ad-account/adsets",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/adsets"
+  },
+  {
+    "name": "ponto de extremidade ads",
+    "path": "/docs/marketing-api/reference/ad-account/ads",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/ads"
+  },
+  {
+    "name": "Gerenciar o status do seu objeto de anúncio",
+    "path": "/docs/marketing-apis/guides/manage-your-ad-object-status",
+    "link": "https://developers.facebook.com/docs/marketing-apis/guides/manage-your-ad-object-status"
+  },
+  {
+    "name": "Autorização",
+    "path": "/docs/marketing-api/overview/authorization",
+    "link": "https://developers.facebook.com/docs/marketing-api/overview/authorization"
+  },
+  {
+    "name": "targeting_specs",
+    "path": "/docs/marketing-api/targeting-specs/#location",
+    "link": "https://developers.facebook.com/docs/marketing-api/targeting-specs/#location"
+  },
+  {
+    "name": "API de Pesquisa de Direcionamento",
+    "path": "/docs/marketing-api/targeting-search/#radius",
+    "link": "https://developers.facebook.com/docs/marketing-api/targeting-search/#radius"
+  },
+  {
+    "name": "opções de direcionamento móvel",
+    "path": "/docs/marketing-api/audiences/reference/advanced-targeting#mobile",
+    "link": "https://developers.facebook.com/docs/marketing-api/audiences/reference/advanced-targeting#mobile"
+  },
+  {
+    "name": "Conjunto de anúncios",
+    "path": "/docs/marketing-api/reference/ad-campaign",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-campaign"
+  },
+  {
+    "name": "Especificações de direcionamento",
+    "path": "/docs/marketing-api/audiences/reference/advanced-targeting#location",
+    "link": "https://developers.facebook.com/docs/marketing-api/audiences/reference/advanced-targeting#location"
+  },
+  {
+    "name": "link_data",
+    "path": "/docs/marketing-api/reference/ad-creative-link-data/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-creative-link-data/"
+  },
+  {
+    "name": "Introdução",
+    "path": "/docs/marketing-api/guides/instagramads/get-started",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/instagramads/get-started"
+  },
+  {
+    "name": "Introdução",
+    "path": "/docs/marketing-api/guides/instagramads/ads_management",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/instagramads/ads_management"
+  },
+  {
+    "name": "Formulários",
+    "path": "/docs/marketing-api/guides/lead-ads/create",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/lead-ads/create"
+  },
+  {
+    "name": "Recuperação",
+    "path": "/docs/marketing-api/guides/lead-ads/retrieving",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/lead-ads/retrieving"
+  },
+  {
+    "name": "Teste e solução de problemas",
+    "path": "/docs/marketing-api/guides/lead-ads/testing-troubleshooting",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/lead-ads/testing-troubleshooting"
+  },
+  {
+    "name": "Anúncios de catálogo Advantage+ para geração de leads",
+    "path": "/docs/marketing-api/advantage-catalog-ads-for-leadgen",
+    "link": "https://developers.facebook.com/docs/marketing-api/advantage-catalog-ads-for-leadgen"
+  },
+  {
+    "name": "Integração de CRM",
+    "path": "/docs/marketing-api/guides/lead-ads/quickstart/webhooks-integration",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/lead-ads/quickstart/webhooks-integration"
+  },
+  {
+    "name": "API de Marketing",
+    "path": "/docs/marketing-apis",
+    "link": "https://developers.facebook.com/docs/marketing-apis"
+  },
+  {
+    "name": "Crie um formulário",
+    "path": "/docs/marketing-api/guides/lead-ads/forms-questions",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/lead-ads/forms-questions"
+  },
+  {
+    "name": "documentação sobre webhooks de anúncios de lead",
+    "path": "/docs/marketing-api/guides/lead-ads/retrieving#webhooks",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/lead-ads/retrieving#webhooks"
+  },
+  {
+    "name": "Como recuperar leads: Leitura em massa",
+    "path": "/docs/marketing-api/guides/lead-ads/retrieving#bulk-read",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/lead-ads/retrieving#bulk-read"
+  },
+  {
+    "name": "Anúncios em vídeo do Facebook",
+    "path": "/docs/marketing-api/guides/videoads/fbvideoads",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/videoads/fbvideoads"
+  },
+  {
+    "name": "referência Anúncio",
+    "path": "/docs/marketing-api/adgroup",
+    "link": "https://developers.facebook.com/docs/marketing-api/adgroup"
+  },
+  {
+    "name": "LEAD_GENERATION",
+    "path": "/docs/marketing-api/guides/lead-ads/create#video",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/lead-ads/create#video"
+  },
+  {
+    "name": "APP_INSTALLS",
+    "path": "/docs/marketing-api/mobile-app-ads/#create_video",
+    "link": "https://developers.facebook.com/docs/marketing-api/mobile-app-ads/#create_video"
+  },
+  {
+    "name": "API de Insights sobre Anúncios",
+    "path": "/docs/marketing-api/insights-api",
+    "link": "https://developers.facebook.com/docs/marketing-api/insights-api"
+  },
+  {
+    "name": "resposta",
+    "path": "/docs/marketing-api/reference/ads-insights/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ads-insights/"
+  },
+  {
+    "name": "API de Insights",
+    "path": "/docs/marketing-api/insights-api/getting-started",
+    "link": "https://developers.facebook.com/docs/marketing-api/insights-api/getting-started"
+  },
+  {
+    "name": "Chamada para ação",
+    "path": "/docs/marketing-api/unpublished-page-posts/#cta-spec",
+    "link": "https://developers.facebook.com/docs/marketing-api/unpublished-page-posts/#cta-spec"
+  },
+  {
+    "name": "vídeo do anúncio",
+    "path": "/docs/marketing-api/reference/ad-account/advideos",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/advideos"
+  },
+  {
+    "name": "Anúncios em carrossel do Instagram",
+    "path": "/docs/marketing-api/guides/instagramads/#carousel",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/instagramads/#carousel"
+  },
+  {
+    "name": "Ads Image Crops",
+    "path": "/docs/marketing-api/reference/ads-image-crops",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ads-image-crops"
+  },
+  {
+    "name": "estrutura da campanha de anúncios da Meta",
+    "path": "/docs/marketing-apis/overview#how-it-works",
+    "link": "https://developers.facebook.com/docs/marketing-apis/overview#how-it-works"
+  },
+  {
+    "name": "Alterações fora de ciclo",
+    "path": "/docs/marketing-api/out-of-cycle-changes",
+    "link": "https://developers.facebook.com/docs/marketing-api/out-of-cycle-changes"
+  },
+  {
+    "name": "Limites e boas práticas",
+    "path": "/docs/marketing-api/insights/best-practices",
+    "link": "https://developers.facebook.com/docs/marketing-api/insights/best-practices"
+  },
+  {
+    "name": "Marketing mix modeling",
+    "path": "/docs/marketing-api/insights/marketing-mix-modeling",
+    "link": "https://developers.facebook.com/docs/marketing-api/insights/marketing-mix-modeling"
+  },
+  {
+    "name": "Mensuração de Conversion Lift",
+    "path": "/docs/marketing-api/guides/lift-studies",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/lift-studies"
+  },
+  {
+    "name": "Teste A/B",
+    "path": "/docs/marketing-api/guides/split-testing",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/split-testing"
+  },
+  {
+    "name": "Volume de anúncios",
+    "path": "/docs/marketing-api/insights-api/ads-volume",
+    "link": "https://developers.facebook.com/docs/marketing-api/insights-api/ads-volume"
+  },
+  {
+    "name": "API de Eventos do App",
+    "path": "/docs/marketing-api/app-event-api",
+    "link": "https://developers.facebook.com/docs/marketing-api/app-event-api"
+  },
+  {
+    "name": "Códigos de erro",
+    "path": "/docs/marketing-api/insights/error-codes",
+    "link": "https://developers.facebook.com/docs/marketing-api/insights/error-codes"
+  },
+  {
+    "name": "Voltar para Português (Brasil)",
+    "path": "/docs/marketing-api/insights/?translation",
+    "link": "https://developers.facebook.com/docs/marketing-api/insights/?translation"
+  },
+  {
+    "name": "Detalhamentos de ação",
+    "path": "/docs/marketing-api/insights/action-breakdowns",
+    "link": "https://developers.facebook.com/docs/marketing-api/insights/action-breakdowns"
+  },
+  {
+    "name": "Trabalhos assíncronos",
+    "path": "/docs/marketing-api/insights/async",
+    "link": "https://developers.facebook.com/docs/marketing-api/insights/async"
+  },
+  {
+    "name": "Limites e melhores práticas",
+    "path": "/docs/marketing-api/insights/best-practices/",
+    "link": "https://developers.facebook.com/docs/marketing-api/insights/best-practices/"
+  },
+  {
+    "name": "Pixel da Meta",
+    "path": "/docs/marketing-api/audiences-api/pixel",
+    "link": "https://developers.facebook.com/docs/marketing-api/audiences-api/pixel"
+  },
+  {
+    "name": "<CAMPAIGN_ID>/insights",
+    "path": "/docs/marketing-api/reference/ad-campaign-group/insights",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-campaign-group/insights"
+  },
+  {
+    "name": "Versões",
+    "path": "/docs/marketing-api/marketing-api-changelog/versions",
+    "link": "https://developers.facebook.com/docs/marketing-api/marketing-api-changelog/versions"
+  },
+  {
+    "name": "v24.0",
+    "path": "/docs/marketing-api/marketing-api-changelog/version24.0",
+    "link": "https://developers.facebook.com/docs/marketing-api/marketing-api-changelog/version24.0"
+  },
+  {
+    "name": "v23.0",
+    "path": "/docs/marketing-api/marketing-api-changelog/version23.0",
+    "link": "https://developers.facebook.com/docs/marketing-api/marketing-api-changelog/version23.0"
+  },
+  {
+    "name": "v22.0",
+    "path": "/docs/marketing-api/marketing-api-changelog/version22.0",
+    "link": "https://developers.facebook.com/docs/marketing-api/marketing-api-changelog/version22.0"
+  },
+  {
+    "name": "carrossel",
+    "path": "/docs/marketing-api/guides/multi-product-ads",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/multi-product-ads"
+  },
+  {
+    "name": "campanha",
+    "path": "/docs/marketing-api/adcampaign",
+    "link": "https://developers.facebook.com/docs/marketing-api/adcampaign"
+  },
+  {
+    "name": "objeto promovido do conjunto de anúncios",
+    "path": "/docs/marketing-api/adset/#promoted_object",
+    "link": "https://developers.facebook.com/docs/marketing-api/adset/#promoted_object"
+  },
+  {
+    "name": "object_story_spec de um criativo do anúncio",
+    "path": "/docs/marketing-api/adcreative/#object_story_spec",
+    "link": "https://developers.facebook.com/docs/marketing-api/adcreative/#object_story_spec"
+  },
+  {
+    "name": "biblioteca de vídeos da conta de anúncios",
+    "path": "/docs/marketing-api/advideo",
+    "link": "https://developers.facebook.com/docs/marketing-api/advideo"
+  },
+  {
+    "name": "anúncios de catálogo Advantage+",
+    "path": "/docs/marketing-api/dynamic-product-ads/",
+    "link": "https://developers.facebook.com/docs/marketing-api/dynamic-product-ads/"
+  },
+  {
+    "name": "2025",
+    "path": "/docs/marketing-api/out-of-cycle-changes/occ-2025",
+    "link": "https://developers.facebook.com/docs/marketing-api/out-of-cycle-changes/occ-2025"
+  },
+  {
+    "name": "2024",
+    "path": "/docs/marketing-api/out-of-cycle-changes/occ-2024",
+    "link": "https://developers.facebook.com/docs/marketing-api/out-of-cycle-changes/occ-2024"
+  },
+  {
+    "name": "2023",
+    "path": "/docs/marketing-api/out-of-cycle-changes/occ-2023",
+    "link": "https://developers.facebook.com/docs/marketing-api/out-of-cycle-changes/occ-2023"
+  },
+  {
+    "name": "January 14, 2025",
+    "path": "/docs/marketing-api/out-of-cycle-changes/occ-2025#january-14--2025",
+    "link": "https://developers.facebook.com/docs/marketing-api/out-of-cycle-changes/occ-2025#january-14--2025"
+  },
+  {
+    "name": "March 10, 2025",
+    "path": "/docs/marketing-api/out-of-cycle-changes/occ-2025#march-10--2025",
+    "link": "https://developers.facebook.com/docs/marketing-api/out-of-cycle-changes/occ-2025#march-10--2025"
+  },
+  {
+    "name": "March 31, 2025",
+    "path": "/docs/marketing-api/out-of-cycle-changes/occ-2025#march-31--2025",
+    "link": "https://developers.facebook.com/docs/marketing-api/out-of-cycle-changes/occ-2025#march-31--2025"
+  },
+  {
+    "name": "May 1, 2025",
+    "path": "/docs/marketing-api/out-of-cycle-changes/occ-2025#may-1--2025",
+    "link": "https://developers.facebook.com/docs/marketing-api/out-of-cycle-changes/occ-2025#may-1--2025"
+  },
+  {
+    "name": "August 15, 2025",
+    "path": "/docs/marketing-api/out-of-cycle-changes/occ-2025#august-15--2025",
+    "link": "https://developers.facebook.com/docs/marketing-api/out-of-cycle-changes/occ-2025#august-15--2025"
+  },
+  {
+    "name": "August 18, 2025",
+    "path": "/docs/marketing-api/out-of-cycle-changes/occ-2025#august-18--2025",
+    "link": "https://developers.facebook.com/docs/marketing-api/out-of-cycle-changes/occ-2025#august-18--2025"
+  },
+  {
+    "name": "August 19, 2025",
+    "path": "/docs/marketing-api/out-of-cycle-changes/occ-2025#august-19--2025",
+    "link": "https://developers.facebook.com/docs/marketing-api/out-of-cycle-changes/occ-2025#august-19--2025"
+  },
+  {
+    "name": "September 18, 2025",
+    "path": "/docs/marketing-api/out-of-cycle-changes/occ-2025#september-18--2025",
+    "link": "https://developers.facebook.com/docs/marketing-api/out-of-cycle-changes/occ-2025#september-18--2025"
+  },
+  {
+    "name": "October 6, 2025",
+    "path": "/docs/marketing-api/out-of-cycle-changes/occ-2025#october-6--2025",
+    "link": "https://developers.facebook.com/docs/marketing-api/out-of-cycle-changes/occ-2025#october-6--2025"
+  },
+  {
+    "name": "October 9, 2025",
+    "path": "/docs/marketing-api/out-of-cycle-changes/occ-2025#october-9--2025",
+    "link": "https://developers.facebook.com/docs/marketing-api/out-of-cycle-changes/occ-2025#october-9--2025"
+  },
+  {
+    "name": "October 13, 2025",
+    "path": "/docs/marketing-api/out-of-cycle-changes/occ-2025#october-13--2025",
+    "link": "https://developers.facebook.com/docs/marketing-api/out-of-cycle-changes/occ-2025#october-13--2025"
+  },
+  {
+    "name": "October 28, 2025",
+    "path": "/docs/marketing-api/out-of-cycle-changes/occ-2025#october-28--2025",
+    "link": "https://developers.facebook.com/docs/marketing-api/out-of-cycle-changes/occ-2025#october-28--2025"
+  },
+  {
+    "name": "December 8, 2025",
+    "path": "/docs/marketing-api/out-of-cycle-changes/occ-2025#december-8--2025",
+    "link": "https://developers.facebook.com/docs/marketing-api/out-of-cycle-changes/occ-2025#december-8--2025"
+  },
+  {
+    "name": "March 11, 2024",
+    "path": "/docs/marketing-api/out-of-cycle-changes/occ-2024#march-11--2024",
+    "link": "https://developers.facebook.com/docs/marketing-api/out-of-cycle-changes/occ-2024#march-11--2024"
+  },
+  {
+    "name": "June 24, 2024",
+    "path": "/docs/marketing-api/out-of-cycle-changes/occ-2024#june-24--2024",
+    "link": "https://developers.facebook.com/docs/marketing-api/out-of-cycle-changes/occ-2024#june-24--2024"
+  },
+  {
+    "name": "August 1, 2024",
+    "path": "/docs/marketing-api/out-of-cycle-changes/occ-2024#august-1--2024",
+    "link": "https://developers.facebook.com/docs/marketing-api/out-of-cycle-changes/occ-2024#august-1--2024"
+  },
+  {
+    "name": "October 7, 2024",
+    "path": "/docs/marketing-api/out-of-cycle-changes/occ-2024#october-7--2024",
+    "link": "https://developers.facebook.com/docs/marketing-api/out-of-cycle-changes/occ-2024#october-7--2024"
+  },
+  {
+    "name": "November 12, 2024",
+    "path": "/docs/marketing-api/out-of-cycle-changes/occ-2024#november-12--2024",
+    "link": "https://developers.facebook.com/docs/marketing-api/out-of-cycle-changes/occ-2024#november-12--2024"
+  },
+  {
+    "name": "December 13, 2024",
+    "path": "/docs/marketing-api/out-of-cycle-changes/occ-2024#december-13--2024",
+    "link": "https://developers.facebook.com/docs/marketing-api/out-of-cycle-changes/occ-2024#december-13--2024"
+  },
+  {
+    "name": "September 29, 2023",
+    "path": "/docs/marketing-api/out-of-cycle-changes/occ-2023#september-29--2023",
+    "link": "https://developers.facebook.com/docs/marketing-api/out-of-cycle-changes/occ-2023#september-29--2023"
+  },
+  {
+    "name": "October 13, 2023",
+    "path": "/docs/marketing-api/out-of-cycle-changes/occ-2023#october-13--2023",
+    "link": "https://developers.facebook.com/docs/marketing-api/out-of-cycle-changes/occ-2023#october-13--2023"
+  },
+  {
+    "name": "November 3, 2023",
+    "path": "/docs/marketing-api/out-of-cycle-changes/occ-2023#november-3--2023",
+    "link": "https://developers.facebook.com/docs/marketing-api/out-of-cycle-changes/occ-2023#november-3--2023"
+  },
+  {
+    "name": "November 30, 2023",
+    "path": "/docs/marketing-api/out-of-cycle-changes/occ-2023#november-30--2023",
+    "link": "https://developers.facebook.com/docs/marketing-api/out-of-cycle-changes/occ-2023#november-30--2023"
+  },
+  {
+    "name": "Controle de versões",
+    "path": "/docs/marketing-api/overview/versioning",
+    "link": "https://developers.facebook.com/docs/marketing-api/overview/versioning"
+  },
+  {
+    "name": "Limitação de volume",
+    "path": "/docs/marketing-api/overview/rate-limiting",
+    "link": "https://developers.facebook.com/docs/marketing-api/overview/rate-limiting"
+  },
+  {
+    "name": "Opções de processamento de dados",
+    "path": "/docs/marketing-api/overview/data-processing-options",
+    "link": "https://developers.facebook.com/docs/marketing-api/overview/data-processing-options"
+  },
+  {
+    "name": "Referência",
+    "path": "/docs/marketing-apis/data-processing-options#reference",
+    "link": "https://developers.facebook.com/docs/marketing-apis/data-processing-options#reference"
+  },
+  {
+    "name": "API de Conversões",
+    "path": "/docs/marketing-api/server-side-api",
+    "link": "https://developers.facebook.com/docs/marketing-api/server-side-api"
+  },
+  {
+    "name": "API de Conversões Offline",
+    "path": "/docs/marketing-api/offline-conversions",
+    "link": "https://developers.facebook.com/docs/marketing-api/offline-conversions"
+  },
+  {
+    "name": "parâmetro de dados",
+    "path": "/docs/marketing-api/server-side-api/parameters/main-body#data",
+    "link": "https://developers.facebook.com/docs/marketing-api/server-side-api/parameters/main-body#data"
+  },
+  {
+    "name": "análise do app",
+    "path": "/docs/marketing-api/overview/authorization/",
+    "link": "https://developers.facebook.com/docs/marketing-api/overview/authorization/"
+  },
+  {
+    "name": "X-FB-Ads-Insights-Throttle",
+    "path": "/docs/marketing-api/insights/best-practices/#insightscallload",
+    "link": "https://developers.facebook.com/docs/marketing-api/insights/best-practices/#insightscallload"
+  },
+  {
+    "name": "Level Parameters",
+    "path": "/docs/marketing-api/insights/parameters/v2.7",
+    "link": "https://developers.facebook.com/docs/marketing-api/insights/parameters/v2.7"
+  },
+  {
+    "name": "registro de alterações da v18.0",
+    "path": "/docs/marketing-api/marketing-api-changelog/version18.0",
+    "link": "https://developers.facebook.com/docs/marketing-api/marketing-api-changelog/version18.0"
+  },
+  {
+    "name": "Account Controls",
+    "path": "/docs/marketing-api/reference/ad-account/account_controls/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/account_controls/"
+  },
+  {
+    "name": "Activities",
+    "path": "/docs/marketing-api/reference/ad-account/activities/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/activities/"
+  },
+  {
+    "name": "Ad Place Page Sets",
+    "path": "/docs/marketing-api/reference/ad-account/ad_place_page_sets/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/ad_place_page_sets/"
+  },
+  {
+    "name": "Adcreatives",
+    "path": "/docs/marketing-api/reference/ad-account/adcreatives/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/adcreatives/"
+  },
+  {
+    "name": "Adimages",
+    "path": "/docs/marketing-api/reference/ad-account/adimages/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/adimages/"
+  },
+  {
+    "name": "Adlabels",
+    "path": "/docs/marketing-api/reference/ad-account/adlabels/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/adlabels/"
+  },
+  {
+    "name": "Adplayables",
+    "path": "/docs/marketing-api/reference/ad-account/adplayables/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/adplayables/"
+  },
+  {
+    "name": "Adrules Library",
+    "path": "/docs/marketing-api/reference/ad-account/adrules_library/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/adrules_library/"
+  },
+  {
+    "name": "Ads Reporting Mmm Reports",
+    "path": "/docs/marketing-api/reference/ad-account/ads_reporting_mmm_reports/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/ads_reporting_mmm_reports/"
+  },
+  {
+    "name": "Ads Reporting Mmm Schedulers",
+    "path": "/docs/marketing-api/reference/ad-account/ads_reporting_mmm_schedulers/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/ads_reporting_mmm_schedulers/"
+  },
+  {
+    "name": "Adsets",
+    "path": "/docs/marketing-api/reference/ad-account/adsets/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/adsets/"
+  },
+  {
+    "name": "Adspixels",
+    "path": "/docs/marketing-api/reference/ad-account/adspixels/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/adspixels/"
+  },
+  {
+    "name": "Advertisable Applications",
+    "path": "/docs/marketing-api/reference/ad-account/advertisable_applications/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/advertisable_applications/"
+  },
+  {
+    "name": "Advideos",
+    "path": "/docs/marketing-api/reference/ad-account/advideos/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/advideos/"
+  },
+  {
+    "name": "Agencies",
+    "path": "/docs/marketing-api/reference/ad-account/agencies/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/agencies/"
+  },
+  {
+    "name": "Applications",
+    "path": "/docs/marketing-api/reference/ad-account/applications/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/applications/"
+  },
+  {
+    "name": "Assigned Users",
+    "path": "/docs/marketing-api/reference/ad-account/assigned_users/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/assigned_users/"
+  },
+  {
+    "name": "Async Batch Requests",
+    "path": "/docs/marketing-api/reference/ad-account/async_batch_requests/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/async_batch_requests/"
+  },
+  {
+    "name": "Asyncadcreatives",
+    "path": "/docs/marketing-api/reference/ad-account/asyncadcreatives/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/asyncadcreatives/"
+  },
+  {
+    "name": "Asyncadrequestsets",
+    "path": "/docs/marketing-api/reference/ad-account/asyncadrequestsets/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/asyncadrequestsets/"
+  },
+  {
+    "name": "Broadtargetingcategories",
+    "path": "/docs/marketing-api/reference/ad-account/broadtargetingcategories/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/broadtargetingcategories/"
+  },
+  {
+    "name": "Campaigns",
+    "path": "/docs/marketing-api/reference/ad-account/campaigns/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/campaigns/"
+  },
+  {
+    "name": "Custom Audiences",
+    "path": "/docs/marketing-api/reference/ad-account/custom_audiences/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/custom_audiences/"
+  },
+  {
+    "name": "Customaudiences",
+    "path": "/docs/marketing-api/reference/ad-account/customaudiences/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/customaudiences/"
+  },
+  {
+    "name": "Customaudiencestos",
+    "path": "/docs/marketing-api/reference/ad-account/customaudiencestos/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/customaudiencestos/"
+  },
+  {
+    "name": "Customconversions",
+    "path": "/docs/marketing-api/reference/ad-account/customconversions/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/customconversions/"
+  },
+  {
+    "name": "Delivery Estimate",
+    "path": "/docs/marketing-api/reference/ad-account/delivery_estimate/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/delivery_estimate/"
+  },
+  {
+    "name": "Deprecatedtargetingadsets",
+    "path": "/docs/marketing-api/reference/ad-account/deprecatedtargetingadsets/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/deprecatedtargetingadsets/"
+  },
+  {
+    "name": "Dsa Recommendations",
+    "path": "/docs/marketing-api/reference/ad-account/dsa_recommendations/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/dsa_recommendations/"
+  },
+  {
+    "name": "Impacting Ad Studies",
+    "path": "/docs/marketing-api/reference/ad-account/impacting_ad_studies/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/impacting_ad_studies/"
+  },
+  {
+    "name": "Insights",
+    "path": "/docs/marketing-api/reference/ad-account/insights/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/insights/"
+  },
+  {
+    "name": "Instagram Accounts",
+    "path": "/docs/marketing-api/reference/ad-account/instagram_accounts/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/instagram_accounts/"
+  },
+  {
+    "name": "Mcmeconversions",
+    "path": "/docs/marketing-api/reference/ad-account/mcmeconversions/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/mcmeconversions/"
+  },
+  {
+    "name": "Minimum Budgets",
+    "path": "/docs/marketing-api/reference/ad-account/minimum_budgets/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/minimum_budgets/"
+  },
+  {
+    "name": "Product Audiences",
+    "path": "/docs/marketing-api/reference/ad-account/product_audiences/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/product_audiences/"
+  },
+  {
+    "name": "Promote Pages",
+    "path": "/docs/marketing-api/reference/ad-account/promote_pages/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/promote_pages/"
+  },
+  {
+    "name": "Publisher Block Lists",
+    "path": "/docs/marketing-api/reference/ad-account/publisher_block_lists/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/publisher_block_lists/"
+  },
+  {
+    "name": "Reachestimate",
+    "path": "/docs/marketing-api/reference/ad-account/reachestimate/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/reachestimate/"
+  },
+  {
+    "name": "Reachfrequencypredictions",
+    "path": "/docs/marketing-api/reference/ad-account/reachfrequencypredictions/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/reachfrequencypredictions/"
+  },
+  {
+    "name": "Saved Audiences",
+    "path": "/docs/marketing-api/reference/ad-account/saved_audiences/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/saved_audiences/"
+  },
+  {
+    "name": "Subscribed Apps",
+    "path": "/docs/marketing-api/reference/ad-account/subscribed_apps/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/subscribed_apps/"
+  },
+  {
+    "name": "Targetingbrowse",
+    "path": "/docs/marketing-api/reference/ad-account/targetingbrowse/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/targetingbrowse/"
+  },
+  {
+    "name": "Targetingsearch",
+    "path": "/docs/marketing-api/reference/ad-account/targetingsearch/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/targetingsearch/"
+  },
+  {
+    "name": "Targetingsuggestions",
+    "path": "/docs/marketing-api/reference/ad-account/targetingsuggestions/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/targetingsuggestions/"
+  },
+  {
+    "name": "Targetingvalidation",
+    "path": "/docs/marketing-api/reference/ad-account/targetingvalidation/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/targetingvalidation/"
+  },
+  {
+    "name": "Tracking",
+    "path": "/docs/marketing-api/reference/ad-account/tracking/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/tracking/"
+  },
+  {
+    "name": "Business Manager API",
+    "path": "/docs/marketing-api/business-manager-api",
+    "link": "https://developers.facebook.com/docs/marketing-api/business-manager-api"
+  },
+  {
+    "name": "Breakdown by Actors",
+    "path": "/docs/marketing-api/insights-api/ads-volume#breakdown-by-actors",
+    "link": "https://developers.facebook.com/docs/marketing-api/insights-api/ads-volume#breakdown-by-actors"
+  },
+  {
+    "name": "Business Manager",
+    "path": "/docs/marketing-api/businessmanager",
+    "link": "https://developers.facebook.com/docs/marketing-api/businessmanager"
+  },
+  {
+    "name": "capabilities",
+    "path": "/docs/marketing-api/reference/ad-account/capabilities",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/capabilities"
+  },
+  {
+    "name": "timezone ID",
+    "path": "/docs/marketing-api/reference/ad-account/timezone-ids",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/timezone-ids"
+  },
+  {
+    "name": "system users",
+    "path": "/docs/marketing-api/businessmanager/systemuser",
+    "link": "https://developers.facebook.com/docs/marketing-api/businessmanager/systemuser"
+  },
+  {
+    "name": "here",
+    "path": "/docs/marketing-api/reference/business/adaccount/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/adaccount/"
+  },
+  {
+    "name": "AdAccount",
+    "path": "/docs/marketing-api/reference/ad-account/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account/"
+  },
+  {
+    "name": "/{custom_audience_id}/ad_accounts",
+    "path": "/docs/marketing-api/reference/custom-audience/ad_accounts/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/custom-audience/ad_accounts/"
+  },
+  {
+    "name": "/{business_id}/owned_ad_accounts",
+    "path": "/docs/marketing-api/reference/business/owned_ad_accounts/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/owned_ad_accounts/"
+  },
+  {
+    "name": "payment method",
+    "path": "/docs/marketing-api/businessmanager/#invoice-funding",
+    "link": "https://developers.facebook.com/docs/marketing-api/businessmanager/#invoice-funding"
+  },
+  {
+    "name": "AdsPixel",
+    "path": "/docs/marketing-api/reference/ads-pixel/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ads-pixel/"
+  },
+  {
+    "name": "/{ads_pixel_id}/shared_accounts",
+    "path": "/docs/marketing-api/reference/ads-pixel/shared_accounts/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ads-pixel/shared_accounts/"
+  },
+  {
+    "name": "CustomAudience",
+    "path": "/docs/marketing-api/reference/custom-audience/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/custom-audience/"
+  },
+  {
+    "name": "ad creative",
+    "path": "/docs/marketing-api/adcreative/",
+    "link": "https://developers.facebook.com/docs/marketing-api/adcreative/"
+  },
+  {
+    "name": "AdImage",
+    "path": "/docs/marketing-api/reference/ad-image/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-image/"
+  },
+  {
+    "name": "BusinessRoleRequest",
+    "path": "/docs/marketing-api/reference/business-role-request/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business-role-request/"
+  },
+  {
+    "name": "Assigned Business Asset Groups",
+    "path": "/docs/marketing-api/reference/business-user/assigned_business_asset_groups/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business-user/assigned_business_asset_groups/"
+  },
+  {
+    "name": "Assigned Pages",
+    "path": "/docs/marketing-api/reference/business-user/assigned_pages/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business-user/assigned_pages/"
+  },
+  {
+    "name": "Assigned Product Catalogs",
+    "path": "/docs/marketing-api/reference/business-user/assigned_product_catalogs/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business-user/assigned_product_catalogs/"
+  },
+  {
+    "name": "Assigned Whatsapp Business Accounts",
+    "path": "/docs/marketing-api/reference/business-user/assigned_whatsapp_business_accounts/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business-user/assigned_whatsapp_business_accounts/"
+  },
+  {
+    "name": "/{business_id}/business_users",
+    "path": "/docs/marketing-api/reference/business/business_users/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/business_users/"
+  },
+  {
+    "name": "BusinessUser",
+    "path": "/docs/marketing-api/reference/business-user/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business-user/"
+  },
+  {
+    "name": "Ad Accounts",
+    "path": "/docs/marketing-api/reference/business/ad_accounts/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/ad_accounts/"
+  },
+  {
+    "name": "Ad Studies",
+    "path": "/docs/marketing-api/reference/business/ad_studies/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/ad_studies/"
+  },
+  {
+    "name": "Adnetworkanalytics",
+    "path": "/docs/marketing-api/reference/business/adnetworkanalytics/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/adnetworkanalytics/"
+  },
+  {
+    "name": "Adnetworkanalytics Results",
+    "path": "/docs/marketing-api/reference/business/adnetworkanalytics_results/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/adnetworkanalytics_results/"
+  },
+  {
+    "name": "Ads Reporting Mmm Reports",
+    "path": "/docs/marketing-api/reference/business/ads_reporting_mmm_reports/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/ads_reporting_mmm_reports/"
+  },
+  {
+    "name": "Ads Reporting Mmm Schedulers",
+    "path": "/docs/marketing-api/reference/business/ads_reporting_mmm_schedulers/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/ads_reporting_mmm_schedulers/"
+  },
+  {
+    "name": "Adspixels",
+    "path": "/docs/marketing-api/reference/business/adspixels/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/adspixels/"
+  },
+  {
+    "name": "Agencies",
+    "path": "/docs/marketing-api/reference/business/agencies/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/agencies/"
+  },
+  {
+    "name": "An Placements",
+    "path": "/docs/marketing-api/reference/business/an_placements/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/an_placements/"
+  },
+  {
+    "name": "Business Asset Groups",
+    "path": "/docs/marketing-api/reference/business/business_asset_groups/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/business_asset_groups/"
+  },
+  {
+    "name": "Business Invoices",
+    "path": "/docs/marketing-api/reference/business/business_invoices/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/business_invoices/"
+  },
+  {
+    "name": "China Business Onboarding Attributions",
+    "path": "/docs/marketing-api/reference/business/china_business_onboarding_attributions/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/china_business_onboarding_attributions/"
+  },
+  {
+    "name": "Claim Custom Conversions",
+    "path": "/docs/marketing-api/reference/business/claim_custom_conversions/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/claim_custom_conversions/"
+  },
+  {
+    "name": "Client Apps",
+    "path": "/docs/marketing-api/reference/business/client_apps/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/client_apps/"
+  },
+  {
+    "name": "Client Instagram Assets",
+    "path": "/docs/marketing-api/reference/business/client_instagram_assets/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/client_instagram_assets/"
+  },
+  {
+    "name": "Client Offsite Signal Container Business Objects",
+    "path": "/docs/marketing-api/reference/business/client_offsite_signal_container_business_objects/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/client_offsite_signal_container_business_objects/"
+  },
+  {
+    "name": "Client Pages",
+    "path": "/docs/marketing-api/reference/business/client_pages/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/client_pages/"
+  },
+  {
+    "name": "Client Pixels",
+    "path": "/docs/marketing-api/reference/business/client_pixels/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/client_pixels/"
+  },
+  {
+    "name": "Client Product Catalogs",
+    "path": "/docs/marketing-api/reference/business/client_product_catalogs/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/client_product_catalogs/"
+  },
+  {
+    "name": "Client Whatsapp Business Accounts",
+    "path": "/docs/marketing-api/reference/business/client_whatsapp_business_accounts/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/client_whatsapp_business_accounts/"
+  },
+  {
+    "name": "Clients",
+    "path": "/docs/marketing-api/reference/business/clients/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/clients/"
+  },
+  {
+    "name": "Collaborative Ads Collaboration Requests",
+    "path": "/docs/marketing-api/reference/business/collaborative_ads_collaboration_requests/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/collaborative_ads_collaboration_requests/"
+  },
+  {
+    "name": "Collaborative Ads Suggested Partners",
+    "path": "/docs/marketing-api/reference/business/collaborative_ads_suggested_partners/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/collaborative_ads_suggested_partners/"
+  },
+  {
+    "name": "Commerce Merchant Settings",
+    "path": "/docs/marketing-api/reference/business/commerce_merchant_settings/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/commerce_merchant_settings/"
+  },
+  {
+    "name": "Event Source Groups",
+    "path": "/docs/marketing-api/reference/business/event_source_groups/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/event_source_groups/"
+  },
+  {
+    "name": "Extendedcredits",
+    "path": "/docs/marketing-api/reference/business/extendedcredits/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/extendedcredits/"
+  },
+  {
+    "name": "Initiated Audience Sharing Requests",
+    "path": "/docs/marketing-api/reference/business/initiated_audience_sharing_requests/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/initiated_audience_sharing_requests/"
+  },
+  {
+    "name": "Instagram Accounts",
+    "path": "/docs/marketing-api/reference/business/instagram_accounts/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/instagram_accounts/"
+  },
+  {
+    "name": "Managed Businesses",
+    "path": "/docs/marketing-api/reference/business/managed_businesses/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/managed_businesses/"
+  },
+  {
+    "name": "Managed Partner Ads Funding Source Details",
+    "path": "/docs/marketing-api/reference/business/managed_partner_ads_funding_source_details/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/managed_partner_ads_funding_source_details/"
+  },
+  {
+    "name": "Managed Partner Businesses",
+    "path": "/docs/marketing-api/reference/business/managed_partner_businesses/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/managed_partner_businesses/"
+  },
+  {
+    "name": "Openbridge Configurations",
+    "path": "/docs/marketing-api/reference/business/openbridge_configurations/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/openbridge_configurations/"
+  },
+  {
+    "name": "Owned Apps",
+    "path": "/docs/marketing-api/reference/business/owned_apps/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/owned_apps/"
+  },
+  {
+    "name": "Owned Businesses",
+    "path": "/docs/marketing-api/reference/business/owned_businesses/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/owned_businesses/"
+  },
+  {
+    "name": "Owned Instagram Accounts",
+    "path": "/docs/marketing-api/reference/business/owned_instagram_accounts/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/owned_instagram_accounts/"
+  },
+  {
+    "name": "Owned Instagram Assets",
+    "path": "/docs/marketing-api/reference/business/owned_instagram_assets/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/owned_instagram_assets/"
+  },
+  {
+    "name": "Owned Offsite Signal Container Business Objects",
+    "path": "/docs/marketing-api/reference/business/owned_offsite_signal_container_business_objects/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/owned_offsite_signal_container_business_objects/"
+  },
+  {
+    "name": "Owned Pages",
+    "path": "/docs/marketing-api/reference/business/owned_pages/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/owned_pages/"
+  },
+  {
+    "name": "Owned Pixels",
+    "path": "/docs/marketing-api/reference/business/owned_pixels/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/owned_pixels/"
+  },
+  {
+    "name": "Owned Product Catalogs",
+    "path": "/docs/marketing-api/reference/business/owned_product_catalogs/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/owned_product_catalogs/"
+  },
+  {
+    "name": "Owned Whatsapp Business Accounts",
+    "path": "/docs/marketing-api/reference/business/owned_whatsapp_business_accounts/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/owned_whatsapp_business_accounts/"
+  },
+  {
+    "name": "Pages",
+    "path": "/docs/marketing-api/reference/business/pages/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/pages/"
+  },
+  {
+    "name": "Pending Client Ad Accounts",
+    "path": "/docs/marketing-api/reference/business/pending_client_ad_accounts/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/pending_client_ad_accounts/"
+  },
+  {
+    "name": "Pending Client Apps",
+    "path": "/docs/marketing-api/reference/business/pending_client_apps/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/pending_client_apps/"
+  },
+  {
+    "name": "Pending Client Pages",
+    "path": "/docs/marketing-api/reference/business/pending_client_pages/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/pending_client_pages/"
+  },
+  {
+    "name": "Pending Owned Ad Accounts",
+    "path": "/docs/marketing-api/reference/business/pending_owned_ad_accounts/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/pending_owned_ad_accounts/"
+  },
+  {
+    "name": "Pending Owned Pages",
+    "path": "/docs/marketing-api/reference/business/pending_owned_pages/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/pending_owned_pages/"
+  },
+  {
+    "name": "Pending Shared Offsite Signal Container Business Objects",
+    "path": "/docs/marketing-api/reference/business/pending_shared_offsite_signal_container_business_objects/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/pending_shared_offsite_signal_container_business_objects/"
+  },
+  {
+    "name": "Pending Users",
+    "path": "/docs/marketing-api/reference/business/pending_users/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/pending_users/"
+  },
+  {
+    "name": "Preverified Numbers",
+    "path": "/docs/marketing-api/reference/business/preverified_numbers/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/preverified_numbers/"
+  },
+  {
+    "name": "Received Audience Sharing Requests",
+    "path": "/docs/marketing-api/reference/business/received_audience_sharing_requests/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/received_audience_sharing_requests/"
+  },
+  {
+    "name": "Reseller Guidances",
+    "path": "/docs/marketing-api/reference/business/reseller_guidances/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/reseller_guidances/"
+  },
+  {
+    "name": "Self Certified Whatsapp Business Submissions",
+    "path": "/docs/marketing-api/reference/business/self_certified_whatsapp_business_submissions/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/self_certified_whatsapp_business_submissions/"
+  },
+  {
+    "name": "System User Access Tokens",
+    "path": "/docs/marketing-api/reference/business/system_user_access_tokens/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/system_user_access_tokens/"
+  },
+  {
+    "name": "System Users",
+    "path": "/docs/marketing-api/reference/business/system_users/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/business/system_users/"
+  },
+  {
+    "name": "Collaborative Ads",
+    "path": "/docs/marketing-api/collaborative-ads#collaborative-ads",
+    "link": "https://developers.facebook.com/docs/marketing-api/collaborative-ads#collaborative-ads"
+  },
+  {
+    "name": "Agencies",
+    "path": "/docs/marketing-api/reference/product-catalog/agencies/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/product-catalog/agencies/"
+  },
+  {
+    "name": "Automotive Models",
+    "path": "/docs/marketing-api/reference/product-catalog/automotive_models/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/product-catalog/automotive_models/"
+  },
+  {
+    "name": "Batch",
+    "path": "/docs/marketing-api/reference/product-catalog/batch/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/product-catalog/batch/"
+  },
+  {
+    "name": "Catalog Store",
+    "path": "/docs/marketing-api/reference/product-catalog/catalog_store/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/product-catalog/catalog_store/"
+  },
+  {
+    "name": "Categories",
+    "path": "/docs/marketing-api/reference/product-catalog/categories/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/product-catalog/categories/"
+  },
+  {
+    "name": "Check Batch Request Status",
+    "path": "/docs/marketing-api/reference/product-catalog/check_batch_request_status/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/product-catalog/check_batch_request_status/"
+  },
+  {
+    "name": "Check Marketplace Partner Sellers Status",
+    "path": "/docs/marketing-api/reference/product-catalog/check_marketplace_partner_sellers_status/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/product-catalog/check_marketplace_partner_sellers_status/"
+  },
+  {
+    "name": "Collaborative Ads Share Settings",
+    "path": "/docs/marketing-api/reference/product-catalog/collaborative_ads_share_settings/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/product-catalog/collaborative_ads_share_settings/"
+  },
+  {
+    "name": "Data Sources",
+    "path": "/docs/marketing-api/reference/product-catalog/data_sources/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/product-catalog/data_sources/"
+  },
+  {
+    "name": "Destinations",
+    "path": "/docs/marketing-api/reference/product-catalog/destinations/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/product-catalog/destinations/"
+  },
+  {
+    "name": "Diagnostics",
+    "path": "/docs/marketing-api/reference/product-catalog/diagnostics/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/product-catalog/diagnostics/"
+  },
+  {
+    "name": "Event Stats",
+    "path": "/docs/marketing-api/reference/product-catalog/event_stats/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/product-catalog/event_stats/"
+  },
+  {
+    "name": "External Event Sources",
+    "path": "/docs/marketing-api/reference/product-catalog/external_event_sources/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/product-catalog/external_event_sources/"
+  },
+  {
+    "name": "Flights",
+    "path": "/docs/marketing-api/reference/product-catalog/flights/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/product-catalog/flights/"
+  },
+  {
+    "name": "Home Listings",
+    "path": "/docs/marketing-api/reference/product-catalog/home_listings/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/product-catalog/home_listings/"
+  },
+  {
+    "name": "Hotel Rooms Batch",
+    "path": "/docs/marketing-api/reference/product-catalog/hotel_rooms_batch/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/product-catalog/hotel_rooms_batch/"
+  },
+  {
+    "name": "Hotels",
+    "path": "/docs/marketing-api/reference/product-catalog/hotels/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/product-catalog/hotels/"
+  },
+  {
+    "name": "Items Batch",
+    "path": "/docs/marketing-api/reference/product-catalog/items_batch/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/product-catalog/items_batch/"
+  },
+  {
+    "name": "Localized Items Batch",
+    "path": "/docs/marketing-api/reference/product-catalog/localized_items_batch/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/product-catalog/localized_items_batch/"
+  },
+  {
+    "name": "Marketplace Partner Signals",
+    "path": "/docs/marketing-api/reference/product-catalog/marketplace_partner_signals/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/product-catalog/marketplace_partner_signals/"
+  },
+  {
+    "name": "Pricing Variables Batch",
+    "path": "/docs/marketing-api/reference/product-catalog/pricing_variables_batch/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/product-catalog/pricing_variables_batch/"
+  },
+  {
+    "name": "Product Feeds",
+    "path": "/docs/marketing-api/reference/product-catalog/product_feeds/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/product-catalog/product_feeds/"
+  },
+  {
+    "name": "Product Groups",
+    "path": "/docs/marketing-api/reference/product-catalog/product_groups/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/product-catalog/product_groups/"
+  },
+  {
+    "name": "Product Sets",
+    "path": "/docs/marketing-api/reference/product-catalog/product_sets/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/product-catalog/product_sets/"
+  },
+  {
+    "name": "Product Sets Batch",
+    "path": "/docs/marketing-api/reference/product-catalog/product_sets_batch/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/product-catalog/product_sets_batch/"
+  },
+  {
+    "name": "Products",
+    "path": "/docs/marketing-api/reference/product-catalog/products/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/product-catalog/products/"
+  },
+  {
+    "name": "Vehicle Offers",
+    "path": "/docs/marketing-api/reference/product-catalog/vehicle_offers/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/product-catalog/vehicle_offers/"
+  },
+  {
+    "name": "Vehicles",
+    "path": "/docs/marketing-api/reference/product-catalog/vehicles/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/product-catalog/vehicles/"
+  },
+  {
+    "name": "dynamic ads",
+    "path": "/docs/marketing-api/dynamic-ad",
+    "link": "https://developers.facebook.com/docs/marketing-api/dynamic-ad"
+  },
+  {
+    "name": "Marketing API Access Level",
+    "path": "/docs/marketing-api/access#limits",
+    "link": "https://developers.facebook.com/docs/marketing-api/access#limits"
+  },
+  {
+    "name": "ProductCatalog",
+    "path": "/docs/marketing-api/reference/product-catalog/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/product-catalog/"
+  },
+  {
+    "name": "Assigned Business Asset Groups",
+    "path": "/docs/marketing-api/reference/system-user/assigned_business_asset_groups/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/system-user/assigned_business_asset_groups/"
+  },
+  {
+    "name": "Assigned Pages",
+    "path": "/docs/marketing-api/reference/system-user/assigned_pages/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/system-user/assigned_pages/"
+  },
+  {
+    "name": "Assigned Product Catalogs",
+    "path": "/docs/marketing-api/reference/system-user/assigned_product_catalogs/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/system-user/assigned_product_catalogs/"
+  },
+  {
+    "name": "Assigned Whatsapp Business Accounts",
+    "path": "/docs/marketing-api/reference/system-user/assigned_whatsapp_business_accounts/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/system-user/assigned_whatsapp_business_accounts/"
+  },
+  {
+    "name": "SystemUser",
+    "path": "/docs/marketing-api/reference/system-user/",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/system-user/"
+  },
+  {
+    "name": "/{AD_ACCOUNT_USER_ID}",
+    "path": "/docs/marketing-api/reference/ad-account-user",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-account-user"
+  },
+  {
+    "name": "referência de bordas do criativo do anúncio",
+    "path": "/docs/marketing-api/reference/ad-creative#edges",
+    "link": "https://developers.facebook.com/docs/marketing-api/reference/ad-creative#edges"
+  },
+  {
+    "name": "Voltar para Português (Brasil)",
+    "path": "/docs/marketing-api/shops-ads/?translation",
+    "link": "https://developers.facebook.com/docs/marketing-api/shops-ads/?translation"
+  },
+  {
+    "name": "Instant Experiences",
+    "path": "/docs/marketing-api/guides/instant-experiences#create-an-ad-creative",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/instant-experiences#create-an-ad-creative"
+  },
+  {
+    "name": "carousel ad",
+    "path": "/docs/marketing-api/guides/videoads#carousel",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/videoads#carousel"
+  },
+  {
+    "name": "video",
+    "path": "/docs/marketing-api/guides/videoads#video_create",
+    "link": "https://developers.facebook.com/docs/marketing-api/guides/videoads#video_create"
+  },
+  {
+    "name": "Get Started with Advantage+ Catalog Ads - Step 3: Provide an Ad Creative",
+    "path": "/docs/marketing-api/advantage-catalog-ads/get-started#step-3",
+    "link": "https://developers.facebook.com/docs/marketing-api/advantage-catalog-ads/get-started#step-3"
+  },
+  {
+    "name": "Advantage+ Creative for Catalog - Step 3: Provide Ad Creative",
+    "path": "/docs/marketing-api/advantage-creative-for-catalog#provide-creative",
+    "link": "https://developers.facebook.com/docs/marketing-api/advantage-creative-for-catalog#provide-creative"
+  },
+  {
+    "name": "Códigos de erro",
+    "path": "/docs/marketing-api/error-reference",
+    "link": "https://developers.facebook.com/docs/marketing-api/error-reference"
+  },
+  {
+    "name": "Perguntas frequentes",
+    "path": "/docs/marketing-api/using-the-api/faq",
+    "link": "https://developers.facebook.com/docs/marketing-api/using-the-api/faq"
+  }
+]

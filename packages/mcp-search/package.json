@@ -1,0 +1,10 @@
+{
+  "name": "mcp-search",
+  "version": "0.0.0",
+  "private": true,
+  "description": "DuckDuckGo search MCP (nickclyde/duckduckgo-mcp-server) with a launcher wrapper that disables FastMCP's DNS-rebinding protection. The compose inlines the launcher as a heredoc; the files in this directory are dev/inspection scripts. This package.json exists only to satisfy the root npm workspaces glob (packages/*).",
+  "scripts": {
+    "build": "echo 'Python MCP — no npm build; container built from python:3.12-slim at compose up'",
+    "start": "echo 'Run via docker compose: docker compose up mcp-search'"
+  }
+}

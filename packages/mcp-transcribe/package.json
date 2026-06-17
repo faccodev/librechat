@@ -1,0 +1,10 @@
+{
+  "name": "mcp-transcribe",
+  "version": "0.0.0",
+  "private": true,
+  "description": "MCP wrapper around mcp-faster-whisper — exposes transcribe_file, transcribe_url, list_models. Source is Python; this package.json exists only to satisfy the root npm workspaces glob (packages/*).",
+  "scripts": {
+    "build": "echo 'Python MCP — no npm build; built at docker build time via Dockerfile'",
+    "start": "echo 'Run via docker compose: docker compose up mcp-transcribe'"
+  }
+}

@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: fb-mcp-postgres
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: mcp
+      POSTGRES_PASSWORD: mcp_dev_2026
+      POSTGRES_DB: fb_marketing_mcp
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mcp -d fb_marketing_mcp"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # mcp:
+  #   build: .
+  #   container_name: fb-mcp-server
+  #   restart: unless-stopped
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   environment:
+  #     PORT: 3000
+  #     DATABASE_URL: postgresql://mcp:mcp_dev_2026@postgres:5432/fb_marketing_mcp
+  #     TOKEN_ENCRYPTION_KEY: ${TOKEN_ENCRYPTION_KEY:-dev-encryption-key-change-in-production}
+  #     MCP_BASE_URL: ${MCP_BASE_URL:-http://localhost:3000}
+
+volumes:
+  pgdata:

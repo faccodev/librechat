@@ -1,0 +1,92 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  name         String?
+  passwordHash String?  @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  metaTokens         MetaToken[]
+  authorizationCodes AuthorizationCode[]
+  oauthAccessTokens  OAuthAccessToken[]
+
+  @@map("users")
+}
+
+model MetaToken {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  accessToken String    @map("access_token")
+  tokenType   String    @default("user") @map("token_type")
+  adAccountId String?   @map("ad_account_id")
+  expiresAt   DateTime? @map("expires_at")
+  scopes      String?
+  metaUserId  String?   @map("meta_user_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("meta_tokens")
+}
+
+model OAuthClient {
+  id           String   @id @default(uuid())
+  clientSecret String   @map("client_secret")
+  clientName   String   @map("client_name")
+  redirectUris String[] @map("redirect_uris")
+  grantTypes   String[] @map("grant_types")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  authorizationCodes AuthorizationCode[]
+  accessTokens       OAuthAccessToken[]
+
+  @@map("oauth_clients")
+}
+
+model AuthorizationCode {
+  code                String   @id
+  clientId            String   @map("client_id")
+  userId              String   @map("user_id")
+  redirectUri         String   @map("redirect_uri")
+  scope               String   @default("")
+  codeChallenge       String   @map("code_challenge")
+  codeChallengeMethod String   @default("S256") @map("code_challenge_method")
+  expiresAt           DateTime @map("expires_at")
+  used                Boolean  @default(false)
+
+  client OAuthClient @relation(fields: [clientId], references: [id])
+  user   User        @relation(fields: [userId], references: [id])
+
+  @@index([clientId])
+  @@index([userId])
+  @@map("authorization_codes")
+}
+
+model OAuthAccessToken {
+  token        String   @id
+  clientId     String   @map("client_id")
+  userId       String   @map("user_id")
+  scope        String   @default("")
+  expiresAt    DateTime @map("expires_at")
+  refreshToken String?  @unique @map("refresh_token")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  client OAuthClient @relation(fields: [clientId], references: [id])
+  user   User        @relation(fields: [userId], references: [id])
+
+  @@index([clientId])
+  @@index([userId])
+  @@index([refreshToken])
+  @@map("oauth_access_tokens")
+}

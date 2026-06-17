@@ -327,7 +327,7 @@ services:
   # ---------------------------------------------------------------------------
   mcp-transcribe:
     build:
-      context: ./mcp-transcribe
+      context: ./packages/mcp-transcribe
     restart: always
     init: true
     environment:
@@ -345,6 +345,60 @@ services:
     ports:
       - "8934:8934"
 
+  # ---------------------------------------------------------------------------
+  # fb-marketing-mcp — self-hosted Meta Ads MCP. Replaces the old remote
+  # https://mcp.facebook.com/ads (which used hardcoded OAuth credentials
+  # in librechat.yaml). yvfl/faceads-mcp: 30+ tools (campaigns, adsets,
+  # ads, insights, audiences, custom API calls) and 713 docs bundled.
+  # Single-tenant auth via META_ACCESS_TOKEN (set in host .env). Multi-
+  # tenant OAuth is supported upstream but disabled here until a public
+  # callback URL is needed. Streamable-http on port 8935 (matches the
+  # 8931-8934 convention of the other MCP services in this compose).
+  # ---------------------------------------------------------------------------
+  fb-marketing-mcp-postgres:
+    image: postgres:16-alpine
+    restart: always
+    init: true
+    environment:
+      - POSTGRES_USER=mcp
+      - POSTGRES_PASSWORD=${FB_MARKETING_MCP_DB_PASSWORD:-mcp_dev_2026}
+      - POSTGRES_DB=fb_marketing_mcp
+    volumes:
+      - fb_marketing_mcp_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mcp -d fb_marketing_mcp"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  fb-marketing-mcp:
+    build:
+      context: ./packages/fb-marketing-mcp
+    restart: always
+    init: true
+    env_file:
+      - .env
+    depends_on:
+      fb-marketing-mcp-postgres:
+        condition: service_healthy
+    environment:
+      # Pin PORT to 8935 — do NOT inherit PORT=3080 from .env (that's the
+      # API's port). The MCP defaults to 3000; 8935 follows our convention.
+      - PORT=8935
+      - DATABASE_URL=postgresql://mcp:${FB_MARKETING_MCP_DB_PASSWORD:-mcp_dev_2026}@fb-marketing-mcp-postgres:5432/fb_marketing_mcp
+      - MCP_ENCRYPTION_KEY=${MCP_ENCRYPTION_KEY}
+      # META_ACCESS_TOKEN is loaded from .env via env_file above. Don't
+      # duplicate it here. MCP_BASE_URL is intentionally omitted — it is
+      # only required for OAuth callbacks, which we are not using.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8935/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      # Override Dockerfile's 15s start_period — Prisma migrate deploy +
+      # client generate on first run can take 30-60s.
+      start_period: 60s
+
 volumes:
   mongodb_data:
   meili_data:
@@ -353,3 +407,4 @@ volumes:
   faster_whisper_cache:
   browser_profile:
   search_uv_cache:
+  fb_marketing_mcp_pgdata:

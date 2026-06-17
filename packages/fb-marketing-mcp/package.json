@@ -1,0 +1,57 @@
+{
+  "name": "fb-marketing-mcp",
+  "version": "1.0.0",
+  "description": "MCP Server para Facebook Marketing API - Documentação e Execução",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "fb-marketing-mcp": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "docs",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "start:http": "node dist/index.js --http --port 3000",
+    "dev": "tsc --watch",
+    "scrape": "node scripts/scrape-docs.js",
+    "scrape:resume": "node scripts/scrape-docs.js --resume",
+    "retry-errors": "node scripts/retry-errors.js",
+    "discover": "node scripts/discover-urls.js",
+    "extract-links": "node scripts/extract-links.js"
+  },
+  "keywords": [
+    "mcp",
+    "facebook",
+    "meta",
+    "marketing-api",
+    "ads",
+    "documentation"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "@prisma/adapter-pg": "7.4.0",
+    "@prisma/client": "7.4.0",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.2.1",
+    "pg": "^8.18.0",
+    "prisma": "7.4.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^20.0.0",
+    "@types/pg": "^8.16.0",
+    "puppeteer": "^24.0.0",
+    "turndown": "^7.2.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
