@@ -4,6 +4,12 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprot
 import express from "express";
 import { randomUUID } from "crypto";
 import { TOOLS, handleCallTool } from "./tools.js";
+import {
+  parseProjectContextHeader,
+  getProjectContextHeaderName,
+  InvalidProjectContextError,
+} from "./projectContext.js";
+import { requestContextStore, type RequestContext } from "./context.js";
 
 const PORT = process.env.PORT || 8932;
 
@@ -43,6 +49,34 @@ app.get("/health", (_req, res) => {
 });
 
 app.all("*", async (req, res) => {
+  /**
+   * Parse `X-Project-Context` (or whatever `RUNNER_PROJECT_CONTEXT_HEADER`
+   * is set to) before the transport dispatches so the tool handler
+   * reads it from `AsyncLocalStorage`. A malformed header is logged
+   * and dropped to `null` — better to run the call without a project
+   * workspace than to 500 every request from a misconfigured caller.
+   * The `parseProjectContextHeader` strictness lives in
+   * `projectContext.ts`; the layer-3 re-validation against
+   * `WORKSPACE_ROOTS` happens later in `getSafePaths` so an invalid
+   * path is still rejected before any docker mount.
+   */
+  const headerName = getProjectContextHeaderName();
+  const rawHeader = req.headers[headerName.toLowerCase()];
+  const rawHeaderValue = Array.isArray(rawHeader) ? rawHeader[0] : rawHeader;
+  let projectContext: RequestContext["projectContext"] = null;
+  try {
+    projectContext = parseProjectContextHeader(rawHeaderValue);
+  } catch (err) {
+    if (err instanceof InvalidProjectContextError) {
+      console.warn(
+        `[mcp-code-runner] Dropping malformed ${headerName} header: ${err.message}`,
+      );
+    } else {
+      throw err;
+    }
+  }
+  const requestContext: RequestContext = { projectContext };
+
   const sid = req.headers["mcp-session-id"] as string | undefined;
   let session = sid ? sessions.get(sid) : undefined;
 
@@ -57,8 +91,17 @@ app.all("*", async (req, res) => {
     };
   }
 
+  /**
+   * Wrap `transport.handleRequest` in `requestContextStore.run(...)` so
+   * every async task spawned during the dispatch — including the
+   * tool handler — reads the same per-request context. The handler
+   * chain survives through `await` and `Promise.then` because
+   * AsyncLocalStorage tracks async context propagation natively.
+   */
   try {
-    await session.transport.handleRequest(req, res);
+    await requestContextStore.run(requestContext, async () => {
+      await session!.transport.handleRequest(req, res);
+    });
 
     const newSid = session.transport.sessionId;
     if (newSid && !sessions.has(newSid)) {

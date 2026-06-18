@@ -2,6 +2,11 @@ import { execFile } from "child_process";
 import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";
+import {
+  getWorkspaceRoots,
+  validateWorkspacePathAgainstRoots,
+} from "./projectContext.js";
+import { getCurrentProjectContext, type ProjectContext } from "./context.js";
 
 const CONTAINER_WORKSPACES_BASE = process.env.WORKSPACES_BASE || "/workspaces";
 const HOST_WORKSPACES_BASE = process.env.HOST_WORKSPACES_BASE || "/workspaces";
@@ -58,7 +63,55 @@ export function validateWorkspaceSubdir(subdir: string): boolean {
   return true;
 }
 
-export function getSafePaths(subdir: string) {
+/**
+ * Resolve the workspace subdir (or, when a project context supplies an
+ * explicit canonical path, that path) into the (container, host) pair
+ * the runner mounts. `explicitWorkspacePath` is the layer-3 input
+ * from the server-validated `X-Project-Context.workspacePath` — when
+ * present, it bypasses the per-user `workspaceSubdir` entirely so the
+ * runner operates on the project root the admin approved, not on a
+ * subdir picked by the agent at call time.
+ *
+ * Defence in depth (AD-2 layer 3): the explicit path is re-validated
+ * against the current `WORKSPACE_ROOTS` here, in the runner process,
+ * not just on the API server. The two layers can disagree if the admin
+ * narrows the allowlist mid-conversation — the runner's view wins
+ * because that's the host path the docker `--rm` mount is about to
+ * bind.
+ *
+ * Asynchronous because `validateWorkspacePathAgainstRoots` calls
+ * `fs.realpath` (kills symlink escape). The previous sync version of
+ * this function was already a one-shot call per `run_code`, so the
+ * added `await` does not change the throughput profile.
+ */
+export async function getSafePaths(
+  subdir: string,
+  explicitWorkspacePath?: string,
+): Promise<{ containerPath: string; hostPath: string }> {
+  if (explicitWorkspacePath) {
+    const canonical = await validateWorkspacePathAgainstRoots(
+      explicitWorkspacePath,
+      getWorkspaceRoots(),
+    );
+
+    // CONTAINER side — the docker container is always Linux, so use
+    // POSIX-style composition regardless of the host OS. Convert
+    // backslashes from a Windows host so the comparison stays clean.
+    const containerWorkspacePath = canonical.replace(/\\/g, "/");
+
+    // HOST side — also convert to forward slashes for docker-mount
+    // compatibility. Without this, a Windows host would emit a
+    // `docker -v C:\path\:/workspace` flag and Docker Desktop
+    // (which expects forward slashes) would fail to bind. Keeping
+    // both sides identical also makes downstream code (label
+    // matching, log formatting) simpler — callers can compare
+    // `containerPath === hostPath` to detect a "no override"
+    // situation.
+    const hostWorkspacePath = canonical.replace(/\\/g, "/");
+
+    return { containerPath: containerWorkspacePath, hostPath: hostWorkspacePath };
+  }
+
   if (!validateWorkspaceSubdir(subdir)) {
     throw new Error("Invalid or unsafe workspace subdirectory name");
   }
@@ -113,6 +166,16 @@ function posixNormalizeTrailingSlash(p: string): string {
  * is the canonical form the runner will actually use — different from
  * the old "replace leading `..` then check for `..` anywhere" two-step
  * which let some Unicode-normalized paths slip through.
+ *
+ * Cross-platform note: `workspaceContainerPath` may arrive in POSIX
+ * form (when the `explicitWorkspacePath` branch in `getSafePaths`
+ * composes the container-side path with forward slashes regardless
+ * of host OS) while `path.resolve` on Windows returns the host's
+ * native backslash form. Normalise both to a single separator
+ * before the startsWith check so the comparison survives a
+ * `/workspaces/foo` (POSIX) vs `\workspaces\foo` (Windows) pair
+ * — otherwise a host-Windows runner rejects every file inside a
+ * project-bound workspace.
  */
 function resolveSafeFilePath(workspaceContainerPath: string, fileName: string): string {
   if (typeof fileName !== "string" || fileName.length === 0) {
@@ -128,10 +191,12 @@ function resolveSafeFilePath(workspaceContainerPath: string, fileName: string): 
     throw new Error("Absolute paths are not allowed; use a path relative to the workspace");
   }
   const resolved = path.resolve(workspaceContainerPath, fileName);
-  const normBase = workspaceContainerPath.endsWith(path.sep)
-    ? workspaceContainerPath
-    : workspaceContainerPath + path.sep;
-  const normResolved = resolved.endsWith(path.sep) ? resolved : resolved + path.sep;
+  const baseForCompare = workspaceContainerPath.replace(/[\\/]+/g, "/");
+  const resolvedForCompare = resolved.replace(/[\\/]+/g, "/");
+  const normBase = baseForCompare.endsWith("/") ? baseForCompare : baseForCompare + "/";
+  const normResolved = resolvedForCompare.endsWith("/")
+    ? resolvedForCompare
+    : resolvedForCompare + "/";
   if (!normResolved.startsWith(normBase)) {
     throw new Error("Path traversal detected: file escapes the workspace directory");
   }
@@ -181,13 +246,23 @@ export function selectExecutor(language: "node" | "python" | "sh"): ExecutorSpec
  * paths with spaces, quotes, or `$`-variables are passed verbatim to
  * the `docker` binary. The caller is responsible for invoking
  * `execFile` (not `exec`).
+ *
+ * `projectId` adds `--label project=<id>` to the spawned container so
+ * an admin can audit a project's executions with
+ * `docker ps --filter label=project=<id>` or clean them up with
+ * `docker rm -f $(docker ps -aq --filter label=project=<id>)`. The
+ * label is the only audit signal per-container the runner emits —
+ * keeping it opt-in (only when a project context exists) avoids
+ * polluting `docker ps` with empty-label rows for the no-project
+ * case, which is the common state outside a project-bound chat.
  */
 function buildDockerArgs(opts: {
   hostPath: string;
   image: string;
   commandArgs: string[];
+  projectId?: string;
 }): string[] {
-  return [
+  const args: string[] = [
     "run",
     "--rm",
     "--network=none",
@@ -197,19 +272,40 @@ function buildDockerArgs(opts: {
     `${opts.hostPath}:/workspace`,
     "-w",
     "/workspace",
-    opts.image,
-    ...opts.commandArgs,
   ];
+  if (opts.projectId) {
+    // Defense-in-depth: the id has already been through
+    // `parseProjectContextHeader` shape-validation on the wire, but
+    // we still guard against shell-metacharacter smuggling here
+    // because the docker CLI parses the value as a label. A label
+    // value can contain anything except whitespace; an id is a
+    // Mongo ObjectId by convention, so the safe subset is enough.
+    const safeId = opts.projectId.replace(/[^\w.-]/g, "");
+    if (safeId) {
+      args.push("--label", `project=${safeId}`);
+    }
+  }
+  args.push(opts.image, ...opts.commandArgs);
+  return args;
 }
 
 export async function runCode(
   language: "node" | "python" | "sh",
   code: string,
   workspaceSubdir: string,
-  timeoutSeconds: number = 30
+  timeoutSeconds: number = 30,
+  projectContext?: ProjectContext | null
 ): Promise<RunResult> {
   const finalTimeout = Math.min(timeoutSeconds, MAX_TIMEOUT);
-  const { containerPath, hostPath } = getSafePaths(workspaceSubdir);
+  /** Fall back to the per-request ALS-bound context when the caller
+   *  didn't pass one explicitly — keeps the legacy 4-arg call sites
+   *  (e.g. direct CLI invocations and unit tests) working without
+   *  threading the context through every helper. */
+  const ctx = projectContext ?? getCurrentProjectContext();
+  const { containerPath, hostPath } = await getSafePaths(
+    workspaceSubdir,
+    ctx?.workspacePath,
+  );
 
   // Ensure directory exists
   await fs.mkdir(containerPath, { recursive: true });
@@ -227,6 +323,7 @@ export async function runCode(
     hostPath,
     image,
     commandArgs: command(tempFileName),
+    projectId: ctx?.projectId,
   });
   const startTime = Date.now();
 
@@ -268,10 +365,15 @@ export async function runFile(
   fileName: string,
   workspaceSubdir: string,
   language?: "node" | "python" | "sh",
-  timeoutSeconds: number = 30
+  timeoutSeconds: number = 30,
+  projectContext?: ProjectContext | null
 ): Promise<RunResult> {
   const finalTimeout = Math.min(timeoutSeconds, MAX_TIMEOUT);
-  const { containerPath, hostPath } = getSafePaths(workspaceSubdir);
+  const ctx = projectContext ?? getCurrentProjectContext();
+  const { containerPath, hostPath } = await getSafePaths(
+    workspaceSubdir,
+    ctx?.workspacePath,
+  );
 
   // Validate filename to prevent escaping the workspace directory.
   // `resolveSafeFilePath` is the single source of truth — it normalizes
@@ -292,6 +394,7 @@ export async function runFile(
     hostPath,
     image,
     commandArgs: command(safeFile),
+    projectId: ctx?.projectId,
   });
   const startTime = Date.now();
 

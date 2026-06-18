@@ -1,4 +1,5 @@
 import { CallToolRequest } from "@modelcontextprotocol/sdk/types.js";
+import { getCurrentProjectContext } from "./context.js";
 import { runCode, runFile } from "./runner.js";
 
 /**
@@ -113,7 +114,13 @@ export async function handleCallTool(request: CallToolRequest) {
         // runner.getSafePaths -> validateWorkspaceSubdir, which throws a
         // clear error if the value is malicious.
 
-        const result = await runCode(language, code, workspaceSubdir, timeout);
+        const result = await runCode(
+          language,
+          code,
+          workspaceSubdir,
+          timeout,
+          getCurrentProjectContext(),
+        );
         return {
           content: [
             {
@@ -134,7 +141,13 @@ export async function handleCallTool(request: CallToolRequest) {
 
         // See run_code above — empty workspaceSubdir means "default root".
 
-        const result = await runFile(file, workspaceSubdir, language, timeout);
+        const result = await runFile(
+          file,
+          workspaceSubdir,
+          language,
+          timeout,
+          getCurrentProjectContext(),
+        );
         return {
           content: [
             {
