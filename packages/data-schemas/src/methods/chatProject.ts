@@ -1,5 +1,8 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import type { FilterQuery, Model, SortOrder, Types } from 'mongoose';
 import logger from '~/config/winston';
+import { getWorkspaceRoots } from '~/config/workspaceRoots';
 import { isValidObjectIdString } from '~/utils/objectId';
 import { buildRetentionVisibilityFilter } from '~/utils/retention';
 import { escapeRegExp } from '~/utils/string';
@@ -11,9 +14,22 @@ export type ChatProjectSortDirection = 'asc' | 'desc';
 export type CreateChatProjectInput = {
   name: string;
   description?: string | null;
+  /**
+   * Server-side filesystem path the project operates against. `null`/empty
+   * means "no workspace context". Any non-empty value is canonicalised and
+   * validated against `WORKSPACE_ROOTS` by `sanitizeWorkspacePath`.
+   */
+  workspacePath?: string | null;
 };
 
 export type UpdateChatProjectInput = Partial<CreateChatProjectInput>;
+
+export class WorkspacePathValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'WorkspacePathValidationError';
+  }
+}
 
 export type ListChatProjectsOptions = {
   cursor?: string | null;
@@ -86,10 +102,81 @@ function normalizeLimit(limit?: number): number {
   return Math.min(Math.max(Math.floor(limit), 1), 100);
 }
 
-function sanitizeProjectInput(input: CreateChatProjectInput): CreateChatProjectInput {
+function normalizeProjectName(name: string): string {
+  return name.trim().slice(0, 100);
+}
+
+function normalizeProjectDescription(description: string | null | undefined): string {
+  return description?.trim().slice(0, 1000) ?? '';
+}
+
+/**
+ * Canonicalise and validate a user-supplied `workspacePath`. Returns `null`
+ * for empty/missing input, otherwise the canonicalised path. Throws
+ * `WorkspacePathValidationError` when the path cannot be made safe.
+ *
+ * Defences (in order):
+ *  1. `path.resolve` — kills `.` / `..` segments and turns relative paths
+ *     absolute.
+ *  2. `fs.realpath` — resolves symlinks so a user can't
+ *     `ln -s /etc /workspaces/foo` and bypass the root check.
+ *     Falls back to the resolved (non-symlink) path when the target does not
+ *     exist yet, so users can attach a project to a directory that will be
+ *     created later.
+ *  3. Strict-subdir check against every entry in `WORKSPACE_ROOTS`. The root
+ *     itself is NOT a valid workspace — projects must point *inside* a root.
+ *
+ * Symlink resolution failures other than `ENOENT` (e.g. permission denied,
+ * loop) are propagated as validation errors rather than swallowed, so the
+ * caller sees the real cause.
+ */
+export async function sanitizeWorkspacePath(
+  raw: string | null | undefined,
+): Promise<string | null> {
+  if (raw == null) return null;
+  const trimmed = String(raw).trim();
+  if (trimmed.length === 0) return null;
+
+  const resolved = path.resolve(trimmed);
+
+  let canonical = resolved;
+  try {
+    canonical = await fs.realpath(resolved);
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code !== 'ENOENT') {
+      throw new WorkspacePathValidationError(
+        `workspacePath "${trimmed}" could not be resolved: ${(err as Error).message}`,
+      );
+    }
+  }
+
+  const roots = getWorkspaceRoots();
+  const inside = roots.some((root) => {
+    const resolvedRoot = path.resolve(root);
+    // Must be strictly inside a root — the root itself is not a workspace.
+    return (
+      canonical !== resolvedRoot &&
+      canonical.startsWith(resolvedRoot + path.sep)
+    );
+  });
+
+  if (!inside) {
+    throw new WorkspacePathValidationError(
+      `workspacePath "${canonical}" is outside the allowed WORKSPACE_ROOTS: ${roots.join(', ')}`,
+    );
+  }
+
+  return canonical;
+}
+
+async function sanitizeProjectInput(
+  input: CreateChatProjectInput,
+): Promise<CreateChatProjectInput> {
   return {
-    name: input.name.trim().slice(0, 100),
-    description: input.description?.trim().slice(0, 1000) ?? '',
+    name: normalizeProjectName(input.name),
+    description: normalizeProjectDescription(input.description),
+    workspacePath: await sanitizeWorkspacePath(input.workspacePath),
   };
 }
 
@@ -257,7 +344,7 @@ export function createChatProjectMethods(mongoose: typeof import('mongoose')): C
     input: CreateChatProjectInput,
   ): Promise<IChatProject> {
     const ChatProject = mongoose.models.ChatProject as Model<IChatProjectDocument>;
-    const sanitized = sanitizeProjectInput(input);
+    const sanitized = await sanitizeProjectInput(input);
     if (!sanitized.name) {
       throw new Error('Project name is required');
     }
@@ -338,16 +425,25 @@ export function createChatProjectMethods(mongoose: typeof import('mongoose')): C
     }
 
     const ChatProject = mongoose.models.ChatProject as Model<IChatProjectDocument>;
-    const update: Partial<Pick<IChatProject, 'name' | 'description'>> = {};
+    const update: Partial<Pick<IChatProject, 'name' | 'description' | 'workspacePath'>> = {};
     if (typeof input.name === 'string') {
-      const name = input.name.trim().slice(0, 100);
+      const name = normalizeProjectName(input.name);
       if (!name) {
         throw new Error('Project name is required');
       }
       update.name = name;
     }
     if (input.description !== undefined) {
-      update.description = input.description?.trim().slice(0, 1000) ?? '';
+      update.description = normalizeProjectDescription(input.description);
+    }
+    if (input.workspacePath !== undefined) {
+      // `null` or empty string clears the workspace; any other value is
+      // canonicalised and root-checked.
+      if (input.workspacePath == null || input.workspacePath === '') {
+        update.workspacePath = null;
+      } else {
+        update.workspacePath = await sanitizeWorkspacePath(input.workspacePath);
+      }
     }
 
     return await ChatProject.findOneAndUpdate(

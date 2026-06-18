@@ -39,6 +39,12 @@ const chatProjectSchema = new Schema<IChatProjectDocument>(
       type: String,
       index: true,
     },
+    workspacePath: {
+      type: String,
+      default: null,
+      trim: true,
+      maxlength: 2048,
+    },
   },
   { timestamps: true },
 );

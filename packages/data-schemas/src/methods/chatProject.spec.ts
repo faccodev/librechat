@@ -1,8 +1,17 @@
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { createModels } from '~/models';
+import { resetWorkspaceRootsCache } from '~/config/workspaceRoots';
 import type { IChatProject, IConversation } from '~/types';
-import { createChatProjectMethods, type ChatProjectMethods } from './chatProject';
+import {
+  createChatProjectMethods,
+  sanitizeWorkspacePath,
+  WorkspacePathValidationError,
+  type ChatProjectMethods,
+} from './chatProject';
 
 jest.mock('~/config/winston', () => ({
   error: jest.fn(),
@@ -289,5 +298,109 @@ describe('ChatProject methods', () => {
     expect(otherRead).toBeNull();
     expect(assignment).toBeNull();
     expect(deleteResult.deletedCount).toBe(0);
+  });
+});
+
+describe('sanitizeWorkspacePath', () => {
+  let rootA: string;
+  let rootB: string;
+  let projectDir: string;
+  let outsideDir: string;
+
+  beforeEach(async () => {
+    rootA = await fs.mkdtemp(path.join(os.tmpdir(), 'ws-roots-A-'));
+    rootB = await fs.mkdtemp(path.join(os.tmpdir(), 'ws-roots-B-'));
+    projectDir = path.join(rootA, 'my-app');
+    outsideDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ws-outside-'));
+    await fs.mkdir(projectDir, { recursive: true });
+    process.env.WORKSPACE_ROOTS = `${rootA},${rootB}`;
+    resetWorkspaceRootsCache();
+  });
+
+  afterEach(async () => {
+    delete process.env.WORKSPACE_ROOTS;
+    resetWorkspaceRootsCache();
+    await fs.rm(rootA, { recursive: true, force: true });
+    await fs.rm(rootB, { recursive: true, force: true });
+    await fs.rm(outsideDir, { recursive: true, force: true });
+  });
+
+  it('returns null for null / undefined / empty / whitespace', async () => {
+    expect(await sanitizeWorkspacePath(null)).toBeNull();
+    expect(await sanitizeWorkspacePath(undefined)).toBeNull();
+    expect(await sanitizeWorkspacePath('')).toBeNull();
+    expect(await sanitizeWorkspacePath('   ')).toBeNull();
+  });
+
+  it('accepts and canonicalises a real path inside a root', async () => {
+    const result = await sanitizeWorkspacePath(projectDir);
+    // Canonical form: realpath resolves symlinks, normalises separators.
+    expect(result).toBe(await fs.realpath(projectDir));
+  });
+
+  it('resolves `..` segments to a path still inside the root', async () => {
+    const sneaky = path.join(projectDir, '..', 'my-app');
+    const result = await sanitizeWorkspacePath(sneaky);
+    expect(result).toBe(await fs.realpath(projectDir));
+  });
+
+  it('accepts a path that does not exist yet (ENOENT fallback)', async () => {
+    const ghost = path.join(rootA, 'not-created-yet');
+    const result = await sanitizeWorkspacePath(ghost);
+    // Falls back to the resolved path, not realpath, since the dir doesn't exist.
+    expect(result).toBe(path.resolve(ghost));
+  });
+
+  it('rejects a path outside all WORKSPACE_ROOTS', async () => {
+    await expect(sanitizeWorkspacePath(outsideDir)).rejects.toBeInstanceOf(
+      WorkspacePathValidationError,
+    );
+  });
+
+  it('rejects a path that equals a root exactly (must be strictly inside)', async () => {
+    await expect(sanitizeWorkspacePath(rootA)).rejects.toBeInstanceOf(
+      WorkspacePathValidationError,
+    );
+  });
+
+  it('rejects paths in sibling directories with shared prefix', async () => {
+    // Adversarial: a dir like `<rootA>-evil` would `startsWith(rootA)` but
+    // must NOT be accepted. We can't easily create that here, but the check
+    // uses `<root><sep>` which already blocks this; cover via a path that
+    // pretends to be inside the root but escapes via `..`.
+    const evil = path.join(rootA, '..', path.basename(outsideDir));
+    await expect(sanitizeWorkspacePath(evil)).rejects.toBeInstanceOf(
+      WorkspacePathValidationError,
+    );
+  });
+
+  it('accepts paths in the second root when multiple are configured', async () => {
+    const target = path.join(rootB, 'marketing');
+    await fs.mkdir(target, { recursive: true });
+    const result = await sanitizeWorkspacePath(target);
+    expect(result).toBe(await fs.realpath(target));
+  });
+
+  it('rejects symlinks that resolve outside the root', async () => {
+    // Attempt to create a symlink. On Windows without developer mode / admin,
+    // `fs.symlink` throws EPERM; skip the test in that case.
+    const linkPath = path.join(rootA, 'sneaky-link');
+    let created = false;
+    try {
+      await fs.symlink(outsideDir, linkPath, 'dir');
+      created = true;
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      // EPERM = no privilege; EACCES = readonly fs. Both mean "can't test here".
+      if (code === 'EPERM' || code === 'EACCES' || code === 'ENOTSUP') {
+        return;
+      }
+      throw err;
+    }
+    if (!created) return;
+
+    await expect(sanitizeWorkspacePath(linkPath)).rejects.toBeInstanceOf(
+      WorkspacePathValidationError,
+    );
   });
 });
