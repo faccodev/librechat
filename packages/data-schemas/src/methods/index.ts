@@ -32,7 +32,10 @@ import { createPresetMethods, type PresetMethods } from './preset';
 import { createConversationTagMethods, type ConversationTagMethods } from './conversationTag';
 import { createMessageMethods, type MessageMethods } from './message';
 import { createConversationMethods, type ConversationMethods } from './conversation';
-import { createChatProjectMethods, type ChatProjectMethods } from './chatProject';
+import {
+  createChatProjectMethods,
+  type ChatProjectMethods,
+} from './chatProject';
 export type {
   AssignConversationToProjectResult,
   ChatProjectSortBy,
@@ -43,6 +46,7 @@ export type {
   ListChatProjectsResult,
   UpdateChatProjectInput,
 } from './chatProject';
+export { WorkspacePathValidationError, sanitizeWorkspacePath } from './chatProject';
 /* Tier 3 — Complex (heavier injection) */
 import {
   createTxMethods,

@@ -8,6 +8,8 @@ export { createModels } from './models';
 export {
   createMethods,
   RoleConflictError,
+  WorkspacePathValidationError,
+  sanitizeWorkspacePath,
   DEFAULT_REFRESH_TOKEN_EXPIRY,
   DEFAULT_SESSION_EXPIRY,
   tokenValues,

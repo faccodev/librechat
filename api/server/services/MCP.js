@@ -1,5 +1,5 @@
 const { tool } = require('@librechat/agents/langchain/tools');
-const { logger, getTenantId } = require('@librechat/data-schemas');
+const { logger, getTenantId, sanitizeWorkspacePath } = require('@librechat/data-schemas');
 const {
   Providers,
   StepTypes,
@@ -718,6 +718,44 @@ function createToolInstance({
       const customUserVars =
         config?.configurable?.userMCPAuthMap?.[`${Constants.mcp_prefix}${serverName}`];
 
+      /**
+       * Resolve the per-conversation project context at call time. The
+       * agent runtime already passes `requestBody` (which carries
+       * `chatProjectId`) through the LangGraph `config.configurable`
+       * namespace. Re-validating the project's `workspacePath` here is
+       * defence-in-depth: the value was already re-validated in
+       * `initialize.js` (layer 2 of AD-2), but a long-lived tool
+       * instance can outlive that check if the admin narrows
+       * `WORKSPACE_ROOTS` mid-conversation. Catching it at the call
+       * site means the tool fails loud instead of silently running
+       * outside the sandbox.
+       */
+      let projectContext = null;
+      const chatProjectId =
+        config?.configurable?.requestBody?.chatProjectId ??
+        config?.configurable?.chatProjectId;
+      if (chatProjectId && typeof chatProjectId === 'string' && db?.getChatProject) {
+        try {
+          const project = await db.getChatProject(userId ?? '', chatProjectId);
+          if (project?.workspacePath) {
+            const canonicalPath = await sanitizeWorkspacePath(project.workspacePath);
+            projectContext = {
+              projectId: String(project._id ?? chatProjectId),
+              workspacePath: canonicalPath,
+            };
+          }
+        } catch (err) {
+          /** Same non-fatal posture as `initialize.js`: a stale or
+           *  invalid path drops the workspace hint, never the tool
+           *  call. Surface to logs for the admin to act on. */
+          logger.warn(
+            `[MCP][${serverName}][${toolName}] Failed to resolve projectContext for chatProjectId=%s: %s`,
+            chatProjectId,
+            err?.message ?? err,
+          );
+        }
+      }
+
       const result = await mcpManager.callTool({
         serverName,
         serverConfig: capturedServerConfig,
@@ -742,6 +780,7 @@ function createToolInstance({
         graphTokenResolver: getGraphApiToken,
         oboTokenResolver: exchangeOboToken,
         oboTrustChecker: createOboTrustChecker(),
+        projectContext,
       });
 
       if (isAssistantsEndpoint(provider) && Array.isArray(result)) {

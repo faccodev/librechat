@@ -1,4 +1,4 @@
-import { isValidObjectIdString, logger } from '@librechat/data-schemas';
+import { isValidObjectIdString, logger, WorkspacePathValidationError } from '@librechat/data-schemas';
 
 import type {
   ChatProjectMethods,
@@ -81,6 +81,11 @@ const createProjectInput = (req: ProjectRequest): CreateChatProjectInput | null 
   return {
     name,
     description: typeof req.body?.description === 'string' ? req.body.description : '',
+    /** Accept `null`/`undefined` (no path) or a string. `sanitizeProjectInput`
+     *  is the single source of truth for validation (layer 1 of AD-2);
+     *  `sanitizeWorkspacePath` runs inside it and throws on bad input. */
+    workspacePath:
+      typeof req.body?.workspacePath === 'string' ? req.body.workspacePath : null,
   };
 };
 
@@ -111,6 +116,13 @@ export function createProjectHandlers(deps: ProjectHandlerDependencies) {
       const project = await deps.createChatProject(getUserId(req), input);
       return res.status(201).json(project);
     } catch (error) {
+      if (error instanceof WorkspacePathValidationError) {
+        /** Layer 1 of AD-2: surface validation messages from
+         *  `sanitizeWorkspacePath` to the client so the user knows
+         *  the path is out of `WORKSPACE_ROOTS`, points outside a
+         *  root, etc. — the admin can't fix what the API hides. */
+        return res.status(400).json({ error: error.message });
+      }
       logger.error('[projects] Error creating project', error);
       return res.status(500).json({ error: 'Error creating project' });
     }
@@ -178,6 +190,14 @@ export function createProjectHandlers(deps: ProjectHandlerDependencies) {
     if (req.body?.description !== undefined) {
       input.description = typeof req.body.description === 'string' ? req.body.description : '';
     }
+    if (req.body?.workspacePath !== undefined) {
+      /** `null` or empty string clears the path. `sanitizeProjectInput`
+       *  normalises empty → `null` so the DB stores an explicit `null`
+       *  rather than a whitespace-only string. Validation lives in
+       *  `sanitizeWorkspacePath` (layer 1 of AD-2). */
+      input.workspacePath =
+        typeof req.body.workspacePath === 'string' ? req.body.workspacePath : null;
+    }
 
     try {
       const project = await deps.updateChatProject(getUserId(req), projectId, input);
@@ -186,6 +206,9 @@ export function createProjectHandlers(deps: ProjectHandlerDependencies) {
       }
       return res.status(200).json(project);
     } catch (error) {
+      if (error instanceof WorkspacePathValidationError) {
+        return res.status(400).json({ error: error.message });
+      }
       logger.error('[projects] Error updating project', error);
       return res.status(500).json({ error: 'Error updating project' });
     }

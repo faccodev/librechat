@@ -5,6 +5,45 @@ import type { RequestBody } from '~/types';
 import { extractOpenIDTokenInfo, processOpenIDPlaceholders, isOpenIDTokenValid } from './oidc';
 
 /**
+ * Unified contract for propagating per-conversation project context to
+ * MCP servers (see AD-3 in the implementation plan):
+ *   - stdio:  `MCP_PROJECT_CONTEXT` env var with the base64-encoded JSON
+ *   - HTTP:   `X-Project-Context` header with the base64-encoded JSON
+ *
+ * The runner-side header name is overridable via `RUNNER_PROJECT_CONTEXT_HEADER`
+ * (default `X-Project-Context`); the env name is fixed so MCP authors can
+ * rely on a single contract regardless of transport.
+ */
+export const PROJECT_CONTEXT_ENV = 'MCP_PROJECT_CONTEXT';
+export const PROJECT_CONTEXT_HEADER = 'X-Project-Context';
+
+/**
+ * Shape of the project context that flows into an MCP tool call. Mirrors
+ * `ProjectContext` in `@librechat/api`'s `context.ts` — the value comes
+ * from the per-request `endpointOption.projectContext` set in
+ * `initialize.js` after layer-2 re-validation.
+ */
+export type ProjectContext = {
+  projectId: string;
+  workspacePath: string;
+};
+
+/**
+ * Encode a {@link ProjectContext} into the single base64-JSON payload
+ * carried on both transports. Empty object / missing fields return
+ * `null` so callers can skip the propagation entirely.
+ */
+export function encodeProjectContext(
+  ctx: ProjectContext | null | undefined,
+): string | null {
+  if (!ctx || typeof ctx.projectId !== 'string' || typeof ctx.workspacePath !== 'string') {
+    return null;
+  }
+  if (!ctx.projectId || !ctx.workspacePath) return null;
+  return Buffer.from(JSON.stringify(ctx), 'utf8').toString('base64');
+}
+
+/**
  * List of allowed user fields that can be used in MCP environment variables.
  * These are non-sensitive string/boolean fields from the IUser interface.
  */
@@ -293,6 +332,10 @@ function processAdminValue(originalValue: string, dbSourced: boolean): string {
  * @param params.user - The user object containing all user fields
  * @param params.customUserVars - vars that user set in settings
  * @param params.body - the body of the request that is being processed
+ * @param params.projectContext - per-conversation project context (set by
+ *   `initialize.js` after layer-2 re-validation). When present, written to
+ *   `MCP_PROJECT_CONTEXT` env (stdio) and `X-Project-Context` header
+ *   (HTTP) as base64-encoded JSON — the same contract on both transports.
  * @returns - The processed object with environment variables replaced
  */
 export function processMCPEnv(params: {
@@ -302,8 +345,9 @@ export function processMCPEnv(params: {
   body?: RequestBody;
   /** When true, only resolve customUserVars — skip env vars, user/OpenID/body placeholders (for DB-stored servers) */
   dbSourced?: boolean;
+  projectContext?: ProjectContext | null;
 }): MCPOptions {
-  const { options, user, customUserVars, body } = params;
+  const { options, user, customUserVars, body, projectContext } = params;
 
   if (options === null || options === undefined) {
     return options;
@@ -422,6 +466,47 @@ export function processMCPEnv(params: {
       }
     }
     newObj.oauth = processedOAuth;
+  }
+
+  /**
+   * Inject the per-conversation project context as the unified
+   * `MCP_PROJECT_CONTEXT` payload (env + header) — see AD-3 in the
+   * implementation plan. Runs LAST so the canonical encoded value
+   * overrides any stale entry the admin accidentally left in the
+   * server's `env` / `headers` block; a missing project context just
+   * skips the injection so MCPs running on a "no project" conversation
+   * see the same shape they did before this feature landed.
+   *
+   * Detection runs off the transport `type` rather than `'env' in
+   * options` because the Zod schema marks `env` / `headers` as
+   * optional — an object literal with `command` only has no `env`
+   * key at all, and a presence check would miss it. The type-based
+   * branch is the only one that matches the union exhaustively.
+   */
+  const projectContextEncoded = encodeProjectContext(projectContext);
+  if (projectContextEncoded) {
+    const transportType = (newObj as { type?: string }).type;
+    const isHttpish =
+      transportType === 'streamable-http' ||
+      transportType === 'http' ||
+      transportType === 'sse' ||
+      transportType === 'websocket';
+    const isStdio = !isHttpish; // default: stdio (no type or explicit stdio)
+
+    if (isStdio) {
+      const objWithEnv = newObj as { env?: Record<string, string> };
+      if (!objWithEnv.env) {
+        objWithEnv.env = {};
+      }
+      objWithEnv.env[PROJECT_CONTEXT_ENV] = projectContextEncoded;
+    }
+    if (isHttpish) {
+      const objWithHeaders = newObj as { headers?: Record<string, string> };
+      if (!objWithHeaders.headers) {
+        objWithHeaders.headers = {};
+      }
+      objWithHeaders.headers[PROJECT_CONTEXT_HEADER] = projectContextEncoded;
+    }
   }
 
   return newObj;

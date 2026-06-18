@@ -1,4 +1,4 @@
-const { logger } = require('@librechat/data-schemas');
+const { logger, sanitizeWorkspacePath } = require('@librechat/data-schemas');
 const { createContentAggregator } = require('@librechat/agents');
 const {
   loadSkillStates,
@@ -252,6 +252,40 @@ const initializeClient = async ({ req, res, signal, endpointOption }) => {
   delete endpointOption.agent;
   if (!primaryAgent) {
     throw new Error('Agent not found');
+  }
+
+  /**
+   * Layer 2 of AD-2 — re-validate the project's `workspacePath` at lookup
+   * time. The DB might hold a path that was acceptable at save time but
+   * has since been moved out of `WORKSPACE_ROOTS`, or the env was tightened
+   * to a narrower set of roots. We trust the layer-1 sanitized value
+   * stored at save only insofar as the current `WORKSPACE_ROOTS` still
+   * contains it; if not, the conversation falls back to "no project
+   * workspace" rather than failing the whole run — the user can fix the
+   * project settings without losing the chat.
+   */
+  if (endpointOption.chatProjectId && typeof endpointOption.chatProjectId === 'string') {
+    try {
+      const project = await db.getChatProject(req.user.id, endpointOption.chatProjectId);
+      if (project?.workspacePath) {
+        const canonicalPath = await sanitizeWorkspacePath(project.workspacePath);
+        endpointOption.projectContext = {
+          projectId: String(project._id ?? endpointOption.chatProjectId),
+          workspacePath: canonicalPath,
+        };
+      }
+    } catch (err) {
+      /** `WorkspacePathValidationError` is the expected failure mode for
+       *  a path that drifted outside the current allowlist. Anything
+       *  else (DB outage, etc.) is also non-fatal — better to lose the
+       *  workspace hint than to block the run. */
+      logger.warn(
+        '[initializeClient] Failed to resolve projectContext for chatProjectId=%s: %s',
+        endpointOption.chatProjectId,
+        err?.message ?? err,
+      );
+      endpointOption.projectContext = undefined;
+    }
   }
 
   const modelsConfig = await getModelsConfig(req);
@@ -849,6 +883,7 @@ const initializeClient = async ({ req, res, signal, endpointOption }) => {
     spec: endpointOption.spec,
     iconURL: endpointOption.iconURL,
     chatProjectId: endpointOption.chatProjectId,
+    projectContext: endpointOption.projectContext,
     attachments: primaryConfig.requestAttachments ?? primaryConfig.attachments,
     agentContextAttachmentsByAgentId,
     endpointType: endpointOption.endpointType,

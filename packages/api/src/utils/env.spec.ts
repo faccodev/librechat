@@ -3,6 +3,12 @@ import { TokenExchangeMethodEnum } from 'librechat-data-provider';
 import type { MCPOptions } from 'librechat-data-provider';
 import type { IUser } from '@librechat/data-schemas';
 import { resolveHeaders, resolveNestedObject, processMCPEnv, encodeHeaderValue } from './env';
+import {
+  encodeProjectContext,
+  PROJECT_CONTEXT_ENV,
+  PROJECT_CONTEXT_HEADER,
+  type ProjectContext,
+} from './env';
 
 function isStdioOptions(options: MCPOptions): options is Extract<MCPOptions, { type?: 'stdio' }> {
   return !options.type || options.type === 'stdio';
@@ -2085,6 +2091,135 @@ describe('processMCPEnv', () => {
       } else {
         throw new Error('Expected streamable-http options');
       }
+    });
+  });
+
+  describe('projectContext propagation (AD-3 unified contract)', () => {
+    const projectContext: ProjectContext = {
+      projectId: 'proj-abc123',
+      workspacePath: '/workspaces/my-saas',
+    };
+    const expectedEncoded = encodeProjectContext(projectContext);
+
+    it('encodes project context as base64-JSON', () => {
+      expect(expectedEncoded).not.toBeNull();
+      const decoded = JSON.parse(Buffer.from(expectedEncoded!, 'base64').toString('utf8'));
+      expect(decoded).toEqual(projectContext);
+    });
+
+    it('returns null for missing / empty / non-string fields', () => {
+      expect(encodeProjectContext(null)).toBeNull();
+      expect(encodeProjectContext(undefined)).toBeNull();
+      expect(encodeProjectContext({} as ProjectContext)).toBeNull();
+      expect(encodeProjectContext({ projectId: '', workspacePath: '/x' } as ProjectContext)).toBeNull();
+      expect(encodeProjectContext({ projectId: 'a', workspacePath: '' } as ProjectContext)).toBeNull();
+    });
+
+    it('writes MCP_PROJECT_CONTEXT into stdio env when projectContext is set', () => {
+      const options: MCPOptions = {
+        type: 'stdio',
+        command: 'npx',
+        args: ['-y', '@test/mcp'],
+      };
+      const result = processMCPEnv({ options, projectContext });
+      if (!isStdioOptions(result)) {
+        throw new Error('Expected stdio options');
+      }
+      expect(result.env?.[PROJECT_CONTEXT_ENV]).toBe(expectedEncoded);
+    });
+
+    it('writes X-Project-Context into HTTP headers when projectContext is set', () => {
+      const options: MCPOptions = {
+        type: 'streamable-http',
+        url: 'https://mcp.example.com',
+      };
+      const result = processMCPEnv({ options, projectContext });
+      if (!isStreamableHTTPOptions(result)) {
+        throw new Error('Expected streamable-http options');
+      }
+      expect(result.headers?.[PROJECT_CONTEXT_HEADER]).toBe(expectedEncoded);
+    });
+
+    it('overrides a stale env entry left by the admin', () => {
+      const options: MCPOptions = {
+        type: 'stdio',
+        command: 'npx',
+        args: ['-y', '@test/mcp'],
+        env: { [PROJECT_CONTEXT_ENV]: 'stale-value' },
+      };
+      const result = processMCPEnv({ options, projectContext });
+      if (!isStdioOptions(result)) {
+        throw new Error('Expected stdio options');
+      }
+      expect(result.env?.[PROJECT_CONTEXT_ENV]).toBe(expectedEncoded);
+      expect(result.env?.[PROJECT_CONTEXT_ENV]).not.toBe('stale-value');
+    });
+
+    it('overrides a stale header entry left by the admin', () => {
+      const options: MCPOptions = {
+        type: 'streamable-http',
+        url: 'https://mcp.example.com',
+        headers: { [PROJECT_CONTEXT_HEADER]: 'stale-value' },
+      };
+      const result = processMCPEnv({ options, projectContext });
+      if (!isStreamableHTTPOptions(result)) {
+        throw new Error('Expected streamable-http options');
+      }
+      expect(result.headers?.[PROJECT_CONTEXT_HEADER]).toBe(expectedEncoded);
+    });
+
+    it('does not write MCP_PROJECT_CONTEXT when projectContext is missing', () => {
+      const options: MCPOptions = {
+        type: 'stdio',
+        command: 'npx',
+        args: ['-y', '@test/mcp'],
+      };
+      const result = processMCPEnv({ options });
+      if (!isStdioOptions(result)) {
+        throw new Error('Expected stdio options');
+      }
+      expect(result.env?.[PROJECT_CONTEXT_ENV]).toBeUndefined();
+    });
+
+    it('does not write X-Project-Context when projectContext is missing', () => {
+      const options: MCPOptions = {
+        type: 'streamable-http',
+        url: 'https://mcp.example.com',
+      };
+      const result = processMCPEnv({ options });
+      if (!isStreamableHTTPOptions(result)) {
+        throw new Error('Expected streamable-http options');
+      }
+      expect(result.headers?.[PROJECT_CONTEXT_HEADER]).toBeUndefined();
+    });
+
+    it('preserves pre-existing env entries when injecting project context', () => {
+      const options: MCPOptions = {
+        type: 'stdio',
+        command: 'npx',
+        args: ['-y', '@test/mcp'],
+        env: { OTHER_VAR: 'kept' },
+      };
+      const result = processMCPEnv({ options, projectContext });
+      if (!isStdioOptions(result)) {
+        throw new Error('Expected stdio options');
+      }
+      expect(result.env?.OTHER_VAR).toBe('kept');
+      expect(result.env?.[PROJECT_CONTEXT_ENV]).toBe(expectedEncoded);
+    });
+
+    it('preserves pre-existing header entries when injecting project context', () => {
+      const options: MCPOptions = {
+        type: 'streamable-http',
+        url: 'https://mcp.example.com',
+        headers: { Authorization: 'Bearer kept' },
+      };
+      const result = processMCPEnv({ options, projectContext });
+      if (!isStreamableHTTPOptions(result)) {
+        throw new Error('Expected streamable-http options');
+      }
+      expect(result.headers?.Authorization).toBe('Bearer kept');
+      expect(result.headers?.[PROJECT_CONTEXT_HEADER]).toBe(expectedEncoded);
     });
   });
 });

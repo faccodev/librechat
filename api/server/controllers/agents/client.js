@@ -39,6 +39,7 @@ const {
   buildSkillPrimeContentParts,
   buildInitialToolSessions,
   runAgentWithPoolRetry,
+  buildProjectWorkspaceSection,
 } = require('@librechat/api');
 const {
   Callback,
@@ -100,6 +101,7 @@ class AgentClient extends BaseClient {
       artifactPromises,
       maxContextTokens,
       subagentAggregatorsByToolCallId,
+      projectContext,
       ...clientOptions
     } = options;
 
@@ -117,6 +119,14 @@ class AgentClient extends BaseClient {
     this.collectedThoughtSignatures = collectedThoughtSignatures;
     /** @type {ArtifactPromises} */
     this.artifactPromises = artifactPromises;
+    /** @type {ProjectContext} Server-validated per-conversation project
+     *  context (projectId + canonical workspacePath), set by `initialize.js`
+     *  after re-validating the project's `workspacePath` against
+     *  `WORKSPACE_ROOTS` (layer 2 of AD-2). `null` / `undefined` means the
+     *  conversation has no project workspace — system prompt stays free of
+     *  the `# Project Workspace` section. The same value propagates to MCP
+     *  transports via `mcpManager.callTool` (see MCP_PROJECT_CONTEXT). */
+    this.projectContext = projectContext ?? null;
     /** Per-request map of `createContentAggregator` instances keyed by
      *  the parent's `tool_call_id`. `ON_SUBAGENT_UPDATE` events stream
      *  into each aggregator as they arrive; `finalizeSubagentContent`
@@ -435,6 +445,19 @@ class AgentClient extends BaseClient {
     const memoryContext = withoutKeys
       ? `${memoryInstructions}\n\n# Existing memory about the user:\n${withoutKeys}`
       : undefined;
+
+    /**
+     * Project workspace section — tells the agent which server-side
+     * directory this conversation operates against. Layer 2 of AD-2
+     * guarantees `this.projectContext.workspacePath` is canonical and
+     * inside `WORKSPACE_ROOTS`; the helper returns `undefined` when
+     * the conversation has no project, so we drop the section from the
+     * join rather than emitting an empty heading.
+     */
+    const projectWorkspaceSection = buildProjectWorkspaceSection(this.projectContext);
+    if (projectWorkspaceSection) {
+      sharedRunContextParts.push(projectWorkspaceSection);
+    }
 
     const sharedRunContext = sharedRunContextParts.join('\n\n');
     const memoryAgentEnabled = isMemoryAgentEnabled(this.options.req.config?.memory);

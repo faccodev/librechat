@@ -124,6 +124,44 @@ export function buildAgentAdditionalInstructions({
 }
 
 /**
+ * Shape of the per-conversation project context that flows from
+ * `endpointOption.projectContext` through the agent init path into the
+ * system prompt and (in Phase 3) into MCP transports. `null` (or
+ * `workspacePath == null`) means the conversation has no project workspace
+ * — callers should treat that as "no extra context to inject".
+ *
+ * `workspacePath` MUST be the canonical, server-validated path coming out
+ * of `sanitizeWorkspacePath` (Phase 1). Re-validate at every boundary
+ * before trusting it.
+ */
+export type ProjectContext = {
+  projectId: string;
+  workspacePath: string;
+} | null;
+
+/**
+ * Build the `# Project Workspace` section appended to the shared run
+ * context so the agent knows which server-side directory it operates
+ * against. Returns `undefined` when there's no path to share, so the
+ * caller can drop it from the join.
+ *
+ * The text is shaped like the other `# Heading` sections already in
+ * the system prompt (memory, files, MCP instructions) so the LLM
+ * recognises it as project-scoped metadata rather than user chat.
+ */
+export function buildProjectWorkspaceSection(
+  projectContext: ProjectContext,
+): string | undefined {
+  const workspacePath = projectContext?.workspacePath?.trim();
+  if (!workspacePath) return undefined;
+  return (
+    `# Project Workspace\n` +
+    `Working directory for this project: ${workspacePath}\n` +
+    `All file operations and code execution should use this directory as the base path.`
+  );
+}
+
+/**
  * Applies run context and MCP instructions to an agent's configuration.
  * Mutates the agent object in place.
  *

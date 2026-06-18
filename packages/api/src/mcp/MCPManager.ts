@@ -21,6 +21,10 @@ import { preProcessGraphTokens } from '~/utils/graph';
 import { formatToolContent } from './parsers';
 import { MCPConnection } from './connection';
 import { processMCPEnv } from '~/utils/env';
+import {
+  encodeProjectContext,
+  PROJECT_CONTEXT_HEADER,
+} from '~/utils/env';
 import { isUserSourced, requiresOAuthMachinery, requiresUserScopedConnection } from './utils';
 
 function createOboToolCallErrorMessage(
@@ -314,6 +318,7 @@ Please follow these instructions when using tools from the respective MCP server
     graphTokenResolver,
     oboTokenResolver,
     oboTrustChecker,
+    projectContext,
   }: {
     user?: IUser;
     serverName: string;
@@ -332,6 +337,12 @@ Please follow these instructions when using tools from the respective MCP server
     graphTokenResolver?: GraphTokenResolver;
     oboTokenResolver?: OboTokenResolver;
     oboTrustChecker?: OboTrustChecker;
+    /** Per-conversation project context. When set, `processMCPEnv` writes
+     *  `MCP_PROJECT_CONTEXT` (env) and the caller below writes
+     *  `X-Project-Context` (per-request header) so the MCP server — stdio
+     *  or HTTP — can resolve the canonical workspace path itself.
+     *  See AD-3 in the implementation plan. */
+    projectContext?: import('~/utils/env').ProjectContext | null;
   }): Promise<t.FormattedToolResponse> {
     /** User-specific connection */
     let connection: MCPConnection | undefined;
@@ -389,10 +400,28 @@ Please follow these instructions when using tools from the respective MCP server
         dbSourced: isDbSourced,
         options: graphProcessedConfig,
         customUserVars,
+        projectContext,
       });
 
       const resolvedHeaders: Record<string, string> =
         'headers' in currentOptions ? { ...(currentOptions.headers || {}) } : {};
+
+      /**
+       * Re-assert the unified `X-Project-Context` header on the per-call
+       * header bag after `processMCPEnv` ran. `processMCPEnv` already
+       * wrote it into `currentOptions.headers` (which we spread into
+       * `resolvedHeaders`), but for HTTP transports the request itself
+       * goes through `connection.setRequestHeaders(resolvedHeaders)` —
+       * this is the call site that actually ships the header on the
+       * wire. The stdio transport doesn't read `resolvedHeaders`; the
+       * env entry written by `processMCPEnv` is what reaches the child
+       * process. Keeping the assignment here makes the HTTP path
+       * explicit at the call site rather than implicit in env-processor
+       * side effects. */
+      const projectContextEncoded = encodeProjectContext(projectContext);
+      if (projectContextEncoded) {
+        resolvedHeaders[PROJECT_CONTEXT_HEADER] = projectContextEncoded;
+      }
 
       /** Refresh OBO token on each tool call to ensure it's current */
       const oboConfig = rawConfig.obo;

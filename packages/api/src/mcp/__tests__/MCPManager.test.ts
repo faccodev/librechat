@@ -32,6 +32,7 @@ jest.mock('~/mcp/oauth', () => ({
 }));
 
 jest.mock('~/utils/env', () => ({
+  ...jest.requireActual('~/utils/env'),
   processMCPEnv: jest.fn((params) => params.options),
 }));
 
