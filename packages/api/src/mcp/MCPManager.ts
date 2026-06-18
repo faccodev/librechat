@@ -8,6 +8,7 @@ import type { OboTokenResolver, OboTrustChecker } from '~/mcp/oauth/obo';
 import type { GraphTokenResolver } from '~/utils/graph';
 import type { FlowStateManager } from '~/flow/manager';
 import type { MCPOAuthTokens } from './oauth';
+import type { ProjectContext } from '~/agents/context';
 import type { RequestBody } from '~/types';
 import type * as t from './types';
 import { MCPServersInitializer } from './registry/MCPServersInitializer';
@@ -342,7 +343,7 @@ Please follow these instructions when using tools from the respective MCP server
      *  `X-Project-Context` (per-request header) so the MCP server — stdio
      *  or HTTP — can resolve the canonical workspace path itself.
      *  See AD-3 in the implementation plan. */
-    projectContext?: import('~/utils/env').ProjectContext | null;
+    projectContext?: ProjectContext | null;
   }): Promise<t.FormattedToolResponse> {
     /** User-specific connection */
     let connection: MCPConnection | undefined;

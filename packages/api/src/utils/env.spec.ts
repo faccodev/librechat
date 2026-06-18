@@ -7,8 +7,8 @@ import {
   encodeProjectContext,
   PROJECT_CONTEXT_ENV,
   PROJECT_CONTEXT_HEADER,
-  type ProjectContext,
 } from './env';
+import type { ProjectContext } from '../agents/context';
 
 function isStdioOptions(options: MCPOptions): options is Extract<MCPOptions, { type?: 'stdio' }> {
   return !options.type || options.type === 'stdio';

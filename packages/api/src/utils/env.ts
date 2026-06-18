@@ -1,6 +1,7 @@
 import { extractEnvVariable } from 'librechat-data-provider';
 import type { MCPOptions } from 'librechat-data-provider';
 import type { IUser } from '@librechat/data-schemas';
+import type { ProjectContext } from '~/agents/context';
 import type { RequestBody } from '~/types';
 import { extractOpenIDTokenInfo, processOpenIDPlaceholders, isOpenIDTokenValid } from './oidc';
 
@@ -18,20 +19,12 @@ export const PROJECT_CONTEXT_ENV = 'MCP_PROJECT_CONTEXT';
 export const PROJECT_CONTEXT_HEADER = 'X-Project-Context';
 
 /**
- * Shape of the project context that flows into an MCP tool call. Mirrors
- * `ProjectContext` in `@librechat/api`'s `context.ts` — the value comes
- * from the per-request `endpointOption.projectContext` set in
- * `initialize.js` after layer-2 re-validation.
- */
-export type ProjectContext = {
-  projectId: string;
-  workspacePath: string;
-};
-
-/**
  * Encode a {@link ProjectContext} into the single base64-JSON payload
  * carried on both transports. Empty object / missing fields return
- * `null` so callers can skip the propagation entirely.
+ * `null` so callers can skip the propagation entirely. The `ProjectContext`
+ * shape itself lives in `~/agents/context` and is imported above so the
+ * same canonical type is shared between agent instructions and the MCP
+ * transport encoder.
  */
 export function encodeProjectContext(
   ctx: ProjectContext | null | undefined,
