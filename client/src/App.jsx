@@ -41,6 +41,49 @@ const App = () => {
     initializeFontSize();
   }, []);
 
+  /*
+   * Safety net: react-remove-scroll (transitive via @radix-ui/react-dialog)
+   * adds a `block-interactivity-{id}` class to <body> while a Radix dialog
+   * is open. v2.5.5 occasionally leaves the class behind on close — usually
+   * when the dialog unmounts mid-render (Monaco async load, React strict
+   * mode, multiple modals reconciling). When no Radix dialog is in the DOM
+   * (open or animating out), any leftover class is a leak: body stays
+   * `pointer-events: none` and the page is dead until F5. Sweep it.
+   *
+   * Two layers:
+   * 1) MutationObserver on body class — cheap, catches the "add" path.
+   * 2) setInterval(2000) — catches the "stuck and not changing" path that the
+   *    observer can't see. 2s is fast enough to be imperceptible to the user
+   *    and slow enough to be a no-op on the hot path (single early-return
+   *    querySelectorAll per tick).
+   *
+   * Note: we match ANY `[role="dialog"]` (not just `[data-state="open"]`) so
+   * the class is preserved during the close animation — the dialog content
+   * flips to `data-state="closed"` for ~100ms before Radix unmounts it, and
+   * we don't want to strip the body class mid-fade and let the user click
+   * through the still-visible overlay.
+   */
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined;
+
+    const sweep = () => {
+      if (document.querySelector('[role="dialog"]')) return;
+      const stale = document.body.className.match(/block-interactivity-\d+/g);
+      if (!stale) return;
+      stale.forEach((cls) => document.body.classList.remove(cls));
+    };
+
+    const observer = new MutationObserver(sweep);
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
+    const intervalId = window.setInterval(sweep, 2000);
+
+    return () => {
+      observer.disconnect();
+      window.clearInterval(intervalId);
+    };
+  }, []);
+
   // Load theme from environment variables if available
   const envTheme = getThemeFromEnv();
 

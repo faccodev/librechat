@@ -184,7 +184,8 @@
     "monaco-editor": {
       "dompurify": "3.4.0"
     },
-    "svgo": "^2.8.2"
+    "svgo": "^2.8.2",
+    "react-remove-scroll": "^2.5.7"
   },
   "nodemonConfig": {
     "ignore": [
