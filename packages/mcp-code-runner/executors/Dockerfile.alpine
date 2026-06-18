@@ -1,0 +1,14 @@
+# Executor image for sh / generic shell scripts.
+#
+# The default upstream `alpine:latest` does NOT include git. The mcp-code-runner
+# spawns a fresh container of this image for every `run_code` / `run_file` call,
+# so installing git on the host or in the runner container itself would not help.
+# This image bakes git in once, at build time, so every ephemeral executor
+# already has it.
+#
+# Override at runtime by setting `RUNNER_IMAGE_DEFAULT` in the mcp-code-runner
+# service environment to point at any other image that has `git` on PATH.
+
+FROM alpine:latest
+
+RUN apk add --no-cache git

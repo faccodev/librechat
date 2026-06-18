@@ -279,6 +279,17 @@ services:
       # API's port). mcp-code-runner's default is 8932, but it falls back
       # to process.env.PORT if set, which would conflict with the API.
       - PORT=8932
+      # Per-language executor images. Defaults are built locally by
+      # scripts/pull-images.sh from ./executors/Dockerfile.* (each one
+      # extends the upstream base image with `git` pre-installed so
+      # `run_code` can `git clone` without paying the install cost
+      # on every call). Override any of these to plug in your own
+      # image with extra tools (jq, curl, ffmpeg, etc.) baked in.
+      # Set to empty string to opt out of the override and use the
+      # local default.
+      - RUNNER_IMAGE_DEFAULT=${RUNNER_IMAGE_DEFAULT:-mcp-runner-alpine:latest}
+      - RUNNER_IMAGE_NODE=${RUNNER_IMAGE_NODE:-mcp-runner-node:latest}
+      - RUNNER_IMAGE_PYTHON=${RUNNER_IMAGE_PYTHON:-mcp-runner-python:latest}
 
   # ---------------------------------------------------------------------------
   # Notion MCP — persistent container, http transport on port 3001.

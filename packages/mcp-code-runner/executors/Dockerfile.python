@@ -1,0 +1,17 @@
+# Executor image for Python scripts.
+#
+# Default `python:3.12-slim` ships without git. This image extends it with git
+# (plus ca-certificates, which git needs on Debian to verify remote HTTPS hosts).
+# `--no-install-recommends` keeps the layer small; `rm -rf /var/lib/apt/lists/*`
+# drops the apt cache so the final image stays slim.
+#
+# Override at runtime by setting `RUNNER_IMAGE_PYTHON` in the mcp-code-runner
+# service environment.
+
+FROM python:3.12-slim
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        git \
+        ca-certificates \
+    && rm -rf /var/lib/apt/lists/*

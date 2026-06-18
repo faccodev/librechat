@@ -1,4 +1,4 @@
-import { validateWorkspaceSubdir, getSafePaths } from "./runner.js";
+import { validateWorkspaceSubdir, getSafePaths, selectExecutor } from "./runner.js";
 
 describe("validateWorkspaceSubdir", () => {
   it("accepts the empty subdir as the workspace root", () => {
@@ -84,5 +84,52 @@ describe("getSafePaths", () => {
 
   it("throws on shell metacharacters", () => {
     expect(() => getSafePaths("foo;rm")).toThrow();
+  });
+});
+
+describe("selectExecutor", () => {
+  // Env-driven config is read once at module load. These tests use the
+  // module's default behavior (no overrides set in jest env).
+  const ORIGINAL_ENV = { ...process.env };
+
+  afterEach(() => {
+    process.env = { ...ORIGINAL_ENV };
+  });
+
+  it("maps node -> node runner image + node command", () => {
+    const spec = selectExecutor("node");
+    expect(spec.image).toBe("mcp-runner-node:latest");
+    expect(spec.command("/tmp/x.js")).toEqual(["node", "/tmp/x.js"]);
+  });
+
+  it("maps python -> python runner image + python command", () => {
+    const spec = selectExecutor("python");
+    expect(spec.image).toBe("mcp-runner-python:latest");
+    expect(spec.command("/tmp/x.py")).toEqual(["python", "/tmp/x.py"]);
+  });
+
+  it("maps sh -> alpine runner image + sh command", () => {
+    const spec = selectExecutor("sh");
+    expect(spec.image).toBe("mcp-runner-alpine:latest");
+    expect(spec.command("/tmp/x.sh")).toEqual(["sh", "/tmp/x.sh"]);
+  });
+
+  it("falls back to sh when given an unknown language", () => {
+    // Cast through unknown so TS doesn't reject the bad input at compile time —
+    // the function is meant to be defensive at runtime.
+    const spec = selectExecutor("ruby" as unknown as "sh");
+    expect(spec.image).toBe("mcp-runner-alpine:latest");
+  });
+
+  it("honours RUNNER_IMAGE_NODE override", () => {
+    process.env.RUNNER_IMAGE_NODE = "ghcr.io/me/custom-node:1.2.3";
+    // Re-import the module so the top-level const picks up the new env.
+    let spec;
+    jest.isolateModules(() => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { selectExecutor: fresh } = require("./runner.js") as typeof import("./runner.js");
+      spec = fresh("node");
+    });
+    expect(spec!.image).toBe("ghcr.io/me/custom-node:1.2.3");
   });
 });

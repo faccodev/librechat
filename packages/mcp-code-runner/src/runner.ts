@@ -9,6 +9,21 @@ const MAX_TIMEOUT = parseInt(process.env.MAX_TIMEOUT || "120", 10);
 const RUNNER_MEMORY = process.env.RUNNER_MEMORY || "256m";
 const RUNNER_CPUS = process.env.RUNNER_CPUS || "0.5";
 
+// Per-language executor images. Defaults are local images built from
+// `packages/mcp-code-runner/executors/Dockerfile.*`, which extend the upstream
+// base images with `git` pre-installed. Override any of these to plug in your
+// own image (e.g. one with extra tools baked in).
+//
+// Why a local image instead of `git clone && git install` at runtime:
+//   - The runner spawns a FRESH executor container per `run_code` / `run_file`
+//     call. Installing git on every call would add seconds of apt/apk time
+//     and dozens of MB of repeated network traffic.
+//   - The executor containers are ephemeral (`--rm`), so runtime `apk add`
+//     does not persist between calls.
+const RUNNER_IMAGE_DEFAULT = process.env.RUNNER_IMAGE_DEFAULT || "mcp-runner-alpine:latest";
+const RUNNER_IMAGE_NODE = process.env.RUNNER_IMAGE_NODE || "mcp-runner-node:latest";
+const RUNNER_IMAGE_PYTHON = process.env.RUNNER_IMAGE_PYTHON || "mcp-runner-python:latest";
+
 /**
  * Allow only safe characters in workspace subdirectories.
  *
@@ -130,6 +145,37 @@ export interface RunResult {
   executionTimeMs: number;
 }
 
+type ExecutorSpec = {
+  image: string;
+  command: (tempFile: string) => string[];
+};
+
+/**
+ * Map a requested language to the (image, command) pair used to run it inside
+ * the ephemeral executor container. Single source of truth — both `runCode` and
+ * `runFile` go through this so the image/command wiring can never drift.
+ */
+export function selectExecutor(language: "node" | "python" | "sh"): ExecutorSpec {
+  switch (language) {
+    case "node":
+      return {
+        image: RUNNER_IMAGE_NODE,
+        command: (f) => ["node", f],
+      };
+    case "python":
+      return {
+        image: RUNNER_IMAGE_PYTHON,
+        command: (f) => ["python", f],
+      };
+    case "sh":
+    default:
+      return {
+        image: RUNNER_IMAGE_DEFAULT,
+        command: (f) => ["sh", f],
+      };
+  }
+}
+
 /**
  * Build the docker argv. Returns an array of strings (no shell) so
  * paths with spaces, quotes, or `$`-variables are passed verbatim to
@@ -176,18 +222,12 @@ export async function runCode(
   // Write code to temp file
   await fs.writeFile(tempFilePath, code, "utf-8");
 
-  let image = "alpine:latest";
-  let commandArgs: string[] = ["sh", tempFileName];
-
-  if (language === "node") {
-    image = "node:20-alpine";
-    commandArgs = ["node", tempFileName];
-  } else if (language === "python") {
-    image = "python:3.12-slim";
-    commandArgs = ["python", tempFileName];
-  }
-
-  const dockerArgs = buildDockerArgs({ hostPath, image, commandArgs });
+  const { image, command } = selectExecutor(language);
+  const dockerArgs = buildDockerArgs({
+    hostPath,
+    image,
+    commandArgs: command(tempFileName),
+  });
   const startTime = Date.now();
 
   return new Promise<RunResult>((resolve) => {
@@ -247,18 +287,12 @@ export async function runFile(
     else lang = "sh"; // fallback
   }
 
-  let image = "alpine:latest";
-  let commandArgs: string[] = ["sh", safeFile];
-
-  if (lang === "node") {
-    image = "node:20-alpine";
-    commandArgs = ["node", safeFile];
-  } else if (lang === "python") {
-    image = "python:3.12-slim";
-    commandArgs = ["python", safeFile];
-  }
-
-  const dockerArgs = buildDockerArgs({ hostPath, image, commandArgs });
+  const { image, command } = selectExecutor(lang);
+  const dockerArgs = buildDockerArgs({
+    hostPath,
+    image,
+    commandArgs: command(safeFile),
+  });
   const startTime = Date.now();
 
   return new Promise<RunResult>((resolve) => {

@@ -1,0 +1,12 @@
+# Executor image for Node.js scripts.
+#
+# Default `node:20-alpine` ships without git. This image extends it with git so
+# Node-based run_code calls can clone repositories, run git-aware tooling, etc.,
+# without paying the install cost on every invocation.
+#
+# Override at runtime by setting `RUNNER_IMAGE_NODE` in the mcp-code-runner
+# service environment.
+
+FROM node:20-alpine
+
+RUN apk add --no-cache git
