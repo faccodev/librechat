@@ -68,16 +68,22 @@ function AuthLayout({
         <div className="w-authPageWidth overflow-hidden bg-white px-6 py-6 dark:bg-gray-900 sm:max-w-md sm:rounded-lg">
           <div className="mb-5 flex justify-center">
             <BlinkAnimation active={isFetching}>
-              <img
-                src={startupConfig?.customLogoLight || 'assets/logo_light.png'}
-                className="h-12 w-auto object-contain dark:hidden"
-                alt={localize('com_ui_logo', { 0: startupConfig?.appTitle ?? 'LibreChat' })}
-              />
-              <img
-                src={startupConfig?.customLogoDark || 'assets/logo_dark.png'}
-                className="hidden h-12 w-auto object-contain dark:block"
-                alt={localize('com_ui_logo', { 0: startupConfig?.appTitle ?? 'LibreChat' })}
-              />
+              {!startupConfig ? (
+                <div className="h-12 w-auto" />
+              ) : (
+                <>
+                  <img
+                    src={startupConfig.customLogoLight || 'assets/logo_light.png'}
+                    className="h-12 w-auto object-contain dark:hidden"
+                    alt={localize('com_ui_logo', { 0: startupConfig.appTitle ?? 'LibreChat' })}
+                  />
+                  <img
+                    src={startupConfig.customLogoDark || 'assets/logo_dark.png'}
+                    className="hidden h-12 w-auto object-contain dark:block"
+                    alt={localize('com_ui_logo', { 0: startupConfig.appTitle ?? 'LibreChat' })}
+                  />
+                </>
+              )}
             </BlinkAnimation>
           </div>
           {!hasStartupConfigError && !isFetching && header && (
