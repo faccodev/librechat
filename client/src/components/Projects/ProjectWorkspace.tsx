@@ -2,16 +2,17 @@ import { useCallback, useId, useMemo, useState } from 'react';
 import * as Ariakit from '@ariakit/react';
 import { useRecoilValue } from 'recoil';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ArrowUpDown, Check, Folder, Plus } from 'lucide-react';
+import { ArrowLeft, ArrowUpDown, Check, Folder, Plus, Pencil } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { QueryKeys } from 'librechat-data-provider';
 import type { ConversationListResponse } from 'librechat-data-provider';
-import { Spinner, DropdownPopup } from '@librechat/client';
+import { Spinner, DropdownPopup, Button, OGDialog, OGDialogTemplate, useToastContext } from '@librechat/client';
 import type { MenuItemProps, RenderProp } from '~/common';
-import { useConversationsInfiniteQuery, useProjectQuery } from '~/data-provider';
+import { useConversationsInfiniteQuery, useProjectQuery, useUpdateProjectMutation } from '~/data-provider';
 import { useLocalize, useNewConvo } from '~/hooks';
 import { cn, clearMessagesCache } from '~/utils';
 import ProjectChatList from './ProjectChatList';
+import WorkspacePathPicker from './WorkspacePathPicker';
 import store from '~/store';
 
 type ChatSortField = 'updatedAt' | 'createdAt';
@@ -43,6 +44,38 @@ export default function ProjectWorkspace() {
   const conversation = useRecoilValue(store.conversationByIndex(0));
   const { newConversation } = useNewConvo();
   const activeProjectId = project?._id;
+
+  const [isEditingPath, setIsEditingPath] = useState(false);
+  const [editPath, setEditPath] = useState<string | null>(null);
+  const updateProject = useUpdateProjectMutation();
+  const { showToast } = useToastContext();
+
+  const handleOpenEditPath = () => {
+    setEditPath(project?.workspacePath ?? null);
+    setIsEditingPath(true);
+  };
+
+  const handleSavePath = async () => {
+    if (!activeProjectId) {
+      return;
+    }
+    try {
+      await updateProject.mutateAsync({
+        projectId: activeProjectId,
+        workspacePath: editPath || null,
+      });
+      setIsEditingPath(false);
+      showToast({
+        message: localize('com_ui_project_updated'),
+        status: 'success',
+      });
+    } catch {
+      showToast({
+        message: localize('com_ui_project_workspace_path_save_error'),
+        status: 'error',
+      });
+    }
+  };
 
   const sortOptions = useMemo(
     () => [
@@ -150,6 +183,33 @@ export default function ProjectWorkspace() {
                 {project.description}
               </p>
             ) : null}
+            {project.workspacePath ? (
+              <div className="mt-2 flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-surface-secondary px-2.5 py-1 text-xs font-medium text-text-primary border border-border-medium">
+                  <Folder className="h-3.5 w-3.5 text-text-secondary" />
+                  <span className="truncate max-w-[250px]" title={project.workspacePath}>
+                    {project.workspacePath}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  onClick={handleOpenEditPath}
+                  className="rounded p-1 text-text-secondary hover:bg-surface-hover hover:text-text-primary transition-colors"
+                  title={localize('com_ui_project_workspace_path_add')}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={handleOpenEditPath}
+                className="mt-2 inline-flex items-center gap-1 text-xs text-text-secondary hover:text-text-primary transition-colors"
+              >
+                <Plus className="h-3 w-3" />
+                {localize('com_ui_project_workspace_path_add')}
+              </button>
+            )}
           </div>
         </header>
 
@@ -210,6 +270,42 @@ export default function ProjectWorkspace() {
           />
         </section>
       </div>
+      <OGDialog open={isEditingPath} onOpenChange={setIsEditingPath}>
+        <OGDialogTemplate
+          title={localize('com_ui_project_workspace_path')}
+          showCloseButton={true}
+          className="w-11/12 max-w-lg bg-surface-primary text-text-primary"
+          main={
+            <div className="py-4">
+              <WorkspacePathPicker
+                value={editPath}
+                onChange={setEditPath}
+                disabled={updateProject.isLoading}
+              />
+            </div>
+          }
+          buttons={
+            <div className="flex gap-2 justify-end w-full">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditingPath(false)}
+                disabled={updateProject.isLoading}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="submit"
+                onClick={handleSavePath}
+                disabled={updateProject.isLoading}
+              >
+                {updateProject.isLoading ? <Spinner className="size-4" /> : 'Save'}
+              </Button>
+            </div>
+          }
+        />
+      </OGDialog>
     </main>
   );
 }

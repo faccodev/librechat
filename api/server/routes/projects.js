@@ -18,6 +18,7 @@ router.use(requireJwtAuth);
 router.get('/', handlers.listProjects);
 router.post('/', handlers.createProject);
 router.put('/conversations/:conversationId', handlers.assignConversationToProject);
+router.get('/workspaces/available', handlers.listAvailableWorkspaces);
 router.get('/:projectId', handlers.getProject);
 router.patch('/:projectId', handlers.updateProject);
 router.delete('/:projectId', handlers.deleteProject);

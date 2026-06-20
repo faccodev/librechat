@@ -84,6 +84,15 @@ export default function ProjectLandingChip({ project }: { project: TChatProject 
           </button>
         }
       />
+      {project.workspacePath && (
+        <span
+          className="inline-flex items-center gap-1 rounded-full bg-surface-secondary px-2.5 py-1 text-xs text-text-secondary border border-border-medium max-w-[200px] truncate ml-1.5"
+          title={project.workspacePath}
+        >
+          <Folder className="h-3 w-3 shrink-0" aria-hidden="true" />
+          <span className="truncate">{project.workspacePath}</span>
+        </span>
+      )}
     </div>
   );
 }

@@ -5,7 +5,7 @@ import type {
   QueryObserverResult,
   UseQueryOptions,
 } from '@tanstack/react-query';
-import type { ProjectListParams, ProjectListResponse, TChatProject } from 'librechat-data-provider';
+import type { ProjectListParams, ProjectListResponse, TChatProject, TAvailableProjectWorkspacesResponse } from 'librechat-data-provider';
 
 export const useProjectsInfiniteQuery = (
   params: ProjectListParams = {},
@@ -43,6 +43,22 @@ export const useProjectQuery = (
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
       refetchOnMount: false,
+      ...config,
+    },
+  );
+};
+
+export const useAvailableProjectWorkspaces = (
+  config?: UseQueryOptions<TAvailableProjectWorkspacesResponse>,
+): QueryObserverResult<TAvailableProjectWorkspacesResponse, unknown> => {
+  return useQuery<TAvailableProjectWorkspacesResponse>(
+    [QueryKeys.availableProjectWorkspaces],
+    () => dataService.getAvailableProjectWorkspaces(),
+    {
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      refetchOnMount: false,
+      staleTime: 60_000,
       ...config,
     },
   );

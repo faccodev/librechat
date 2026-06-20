@@ -298,11 +298,22 @@ export type TChatProject = {
   lastConversationId?: string | null;
   createdAt: string;
   updatedAt: string;
+  workspacePath?: string | null;
 };
 
 export type TCreateChatProjectRequest = {
   name: string;
   description?: string;
+  workspacePath?: string | null;
+};
+
+export type TAvailableProjectWorkspace = {
+  path: string;
+  label: string;
+};
+
+export type TAvailableProjectWorkspacesResponse = {
+  workspaces: TAvailableProjectWorkspace[];
 };
 
 export type TUpdateChatProjectRequest = Partial<TCreateChatProjectRequest> & {

@@ -128,6 +128,8 @@ export const duplicateConversation = () => `${conversationsRoot}/duplicate`;
 
 export const projectsRoot = `${BASE_URL}/api/projects`;
 
+export const availableProjectWorkspaces = () => `${projectsRoot}/workspaces/available`;
+
 export const projects = (params: q.ProjectListParams = {}) => {
   return `${projectsRoot}${buildQuery(params)}`;
 };

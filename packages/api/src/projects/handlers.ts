@@ -1,4 +1,6 @@
-import { isValidObjectIdString, logger, WorkspacePathValidationError } from '@librechat/data-schemas';
+import fs from 'fs';
+import path from 'path';
+import { isValidObjectIdString, logger, WorkspacePathValidationError, getWorkspaceRoots } from '@librechat/data-schemas';
 
 import type {
   ChatProjectMethods,
@@ -232,6 +234,36 @@ export function createProjectHandlers(deps: ProjectHandlerDependencies) {
     }
   }
 
+  async function listAvailableWorkspaces(req: ProjectRequest, res: Response) {
+    try {
+      const roots = getWorkspaceRoots();
+      const workspaces: { path: string; label: string }[] = [];
+
+      for (const root of roots) {
+        try {
+          const entries = await fs.promises.readdir(root, { withFileTypes: true });
+          for (const entry of entries) {
+            if (entry.isDirectory()) {
+              const fullPath = path.join(root, entry.name);
+              const normalizedPath = fullPath.replace(/\\/g, '/');
+              workspaces.push({
+                path: normalizedPath,
+                label: entry.name,
+              });
+            }
+          }
+        } catch (err) {
+          logger.warn(`[projects] Failed to read workspace root "${root}": ${(err as Error).message}`);
+        }
+      }
+
+      return res.status(200).json({ workspaces });
+    } catch (error) {
+      logger.error('[projects] Error listing available workspaces', error);
+      return res.status(500).json({ error: 'Error listing available workspaces' });
+    }
+  }
+
   return {
     listProjects,
     createProject,
@@ -239,5 +271,6 @@ export function createProjectHandlers(deps: ProjectHandlerDependencies) {
     getProject,
     updateProject,
     deleteProject,
+    listAvailableWorkspaces,
   };
 }

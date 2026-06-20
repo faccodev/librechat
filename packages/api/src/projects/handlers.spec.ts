@@ -1,3 +1,5 @@
+import fs from 'fs';
+import * as dataSchemas from '@librechat/data-schemas';
 import { WorkspacePathValidationError } from '@librechat/data-schemas';
 import { createProjectHandlers } from './handlers';
 import type { ChatProjectMethods } from '@librechat/data-schemas';
@@ -195,6 +197,34 @@ describe('createProjectHandlers — workspacePath', () => {
       expect(res.statusCode).toBe(400);
       expect(res.body).toEqual({
         error: 'workspacePath escapes WORKSPACE_ROOTS (../)',
+      });
+    });
+  });
+
+  describe('listAvailableWorkspaces', () => {
+    it('returns list of directories inside workspace roots', async () => {
+      const activeRoots = dataSchemas.getWorkspaceRoots();
+      const primaryRoot = activeRoots[0] || '/workspaces';
+
+      jest.spyOn(fs.promises, 'readdir').mockResolvedValue([
+        { isDirectory: () => true, name: 'dir1' },
+        { isDirectory: () => false, name: 'file1' },
+        { isDirectory: () => true, name: 'dir2' },
+      ] as any);
+
+      const deps = buildDeps();
+      const handlers = createProjectHandlers(deps);
+      const req = buildReq({});
+      const res = buildRes();
+
+      await handlers.listAvailableWorkspaces(req, res);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toEqual({
+        workspaces: [
+          { path: `${primaryRoot}/dir1`, label: 'dir1' },
+          { path: `${primaryRoot}/dir2`, label: 'dir2' },
+        ],
       });
     });
   });

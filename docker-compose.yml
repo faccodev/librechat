@@ -86,6 +86,7 @@ services:
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
       - UPLOADS_DIR=/app/uploads
       - SESSION_COOKIE_SECURE=${SESSION_COOKIE_SECURE:-false}
+      - WORKSPACE_ROOTS=${WORKSPACE_ROOTS:-/workspaces}
     volumes:
       - ./librechat.yaml:/app/librechat.yaml
       - librechat_uploads:/app/uploads
@@ -279,6 +280,8 @@ services:
       # API's port). mcp-code-runner's default is 8932, but it falls back
       # to process.env.PORT if set, which would conflict with the API.
       - PORT=8932
+      - WORKSPACE_ROOTS=${WORKSPACE_ROOTS:-/workspaces}
+      - RUNNER_PROJECT_CONTEXT_HEADER=${RUNNER_PROJECT_CONTEXT_HEADER:-X-Project-Context}
       # Per-language executor images. Defaults are built locally by
       # scripts/pull-images.sh from ./executors/Dockerfile.* (each one
       # extends the upstream base image with `git` pre-installed so
