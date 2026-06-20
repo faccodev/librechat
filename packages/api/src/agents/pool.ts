@@ -121,9 +121,6 @@ export function isRetryablePoolError(err: unknown): boolean {
   if (err == null) return false;
 
   // Network errors from Node have a `code` like ECONNRESET, ETIMEDOUT, etc.
-  // Match the "E" prefix plus a known set of full suffixes (no partial
-  // alternation, which would consume the prefix and miss compound names
-  // like ECONNRESET = ECONN + RESET).
   const code = (err as { code?: unknown })?.code;
   if (typeof code === 'string' && /^(ECONNRESET|ECONNREFUSED|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|EHOSTUNREACH|EPIPE|ENETDOWN|ENETUNREACH|EHOSTDOWN|ENETRESET)$/.test(code)) {
     return true;
@@ -140,16 +137,25 @@ export function isRetryablePoolError(err: unknown): boolean {
   if (err instanceof DOMException && err.name === 'AbortError') {
     return false;
   }
+  if ((err as { name?: unknown })?.name === 'AbortError') {
+    return false;
+  }
 
   // HTTP status from axios, undici, or LangChain chat-model errors.
-  // The shapes vary: { status }, { response: { status } },
-  // { statusCode }, or the error itself carries a numeric `status`.
   const status = readStatus(err);
   if (status != null) {
     if (status >= 500 && status < 600) return true;
     if (status === 429) return true;
     if (status === 401) return true;
+    // 400, 403, 404, 422 are not retryable (usually bad payload/config)
     return false;
+  }
+
+  // Fail-open: treat general/unknown errors (e.g. LangChain wrapping, OpenAI API
+  // generic errors, etc.) as retryable by default rather than failing immediately.
+  // Primitive values like strings/numbers/booleans are NOT retryable.
+  if (typeof err === 'object') {
+    return true;
   }
 
   return false;
@@ -326,6 +332,8 @@ export async function runAgentWithPoolRetry<T>(
       ? { provider: primaryAgent.provider ?? '', model: primaryAgent.model ?? '' }
       : null);
 
+    const counterBefore = hasPool ? peekPoolIndex(primaryAgent.id, pool.length) : 0;
+
     try {
       const result = await attempt({
         attempt: i + 1,
@@ -337,6 +345,16 @@ export async function runAgentWithPoolRetry<T>(
       lastError = err;
       const remaining = total - (i + 1);
       const canRetry = remaining > 0;
+
+      // If the attempt failed before selectNextEntry could advance the pool counter,
+      // force advance it so the next retry loop doesn't re-use the exact same entry.
+      if (hasPool) {
+        const counterAfter = peekPoolIndex(primaryAgent.id, pool.length);
+        if (counterAfter === counterBefore) {
+          nextPoolIndex(primaryAgent.id, pool.length);
+        }
+      }
+
       if (!canRetry || !isRetryablePoolError(err)) {
         throw err;
       }

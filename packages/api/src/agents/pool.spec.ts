@@ -160,11 +160,11 @@ describe('isRetryablePoolError', () => {
     expect(isRetryablePoolError(err)).toBe(false);
   });
 
-  it('returns false for null/undefined and unknown shapes', () => {
+  it('returns true for null/undefined and unknown shapes', () => {
     expect(isRetryablePoolError(null)).toBe(false);
     expect(isRetryablePoolError(undefined)).toBe(false);
     expect(isRetryablePoolError('string error')).toBe(false);
-    expect(isRetryablePoolError(new Error('plain error'))).toBe(false);
+    expect(isRetryablePoolError(new Error('plain error'))).toBe(true);
   });
 });
 
@@ -443,5 +443,31 @@ describe('runAgentWithPoolRetry', () => {
     expect(idx1).toEqual(pool[0]);
     expect(idx2).toEqual(pool[1]);
     expect(idx3).toEqual(pool[2]);
+  });
+
+  it('force-advances the counter if the attempt throws early (before selectNextEntry is called)', async () => {
+    let selectCalled = false;
+    await expect(
+      runAgentWithPoolRetry({
+        primaryAgent: { id: 'agent-x', models: pool },
+        attempt: async ({ attempt }) => {
+          if (attempt === 1) {
+            // Throw early error, simulating a crash/pre-validation before selectNextEntry is ever hit
+            throw new Error('early error');
+          }
+          selectCalled = true;
+          selectNextEntry('agent-x', pool, { provider: 'openAI', model: 'gpt-4o' });
+          return 'ok';
+        },
+      }),
+    ).resolves.toBeDefined();
+
+    expect(selectCalled).toBe(true);
+    // Since attempt 1 failed early, the counter index before it was 0,
+    // it got forced to 1. Then attempt 2 succeeded and called selectNextEntry,
+    // so it returned 1 and set the counter to 2.
+    // Let's verify the next select starts at index 2.
+    const nextIdx = selectNextEntry('agent-x', pool, { provider: 'openAI', model: 'gpt-4o' });
+    expect(nextIdx).toEqual(pool[2]);
   });
 });
