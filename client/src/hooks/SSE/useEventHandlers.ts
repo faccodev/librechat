@@ -678,7 +678,7 @@ export default function useEventHandlers({
           }));
           if (location.pathname.includes(finalConversationId)) {
             const startupConfig = queryClient.getQueryData<TStartupConfig>(startupConfigKey(true));
-            document.title = startupConfig?.appTitle ?? 'LibreChat';
+            document.title = startupConfig?.appTitle ?? '';
           }
         }
 

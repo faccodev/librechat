@@ -18,7 +18,7 @@ export default function BrandingPanel() {
 
   useEffect(() => {
     if (brandingData) {
-      setAppTitle(brandingData.appTitle || 'LibreChat');
+      setAppTitle(brandingData.appTitle || '');
       setAccentColor(brandingData.accentColor || '#ab68ff');
       setLogoLight(brandingData.logoLight || '');
       setLogoDark(brandingData.logoDark || '');
@@ -51,7 +51,7 @@ export default function BrandingPanel() {
     e.preventDefault();
     updateBrandingMutation.mutate(
       {
-        appTitle: appTitle.trim() || 'LibreChat',
+        appTitle: appTitle.trim() || '',
         accentColor: accentColor.trim() || '#ab68ff',
         logoLight,
         logoDark,
@@ -103,7 +103,7 @@ export default function BrandingPanel() {
             required
             value={appTitle}
             onChange={(e) => setAppTitle(e.target.value)}
-            placeholder="e.g. LibreChat"
+            placeholder="e.g. Minha Plataforma IA"
             className="h-9 w-full rounded-lg border border-border-light bg-surface-secondary px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-purple-500"
           />
         </div>
