@@ -1,4 +1,5 @@
 import React, { memo, useMemo } from 'react';
+import { Spinner } from '@librechat/client';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import supersub from 'remark-supersub';
@@ -67,7 +68,7 @@ const Markdown = memo(function Markdown({ content = '', isLatestMessage }: TCont
     return (
       <div className="absolute">
         <p className="relative">
-          <span className={isLatestMessage ? 'result-thinking' : ''} />
+          {isLatestMessage ? <Spinner className="size-4 text-text-secondary" /> : null}
         </p>
       </div>
     );
