@@ -237,8 +237,40 @@ export function createProjectHandlers(deps: ProjectHandlerDependencies) {
   async function listAvailableWorkspaces(req: ProjectRequest, res: Response) {
     try {
       const roots = getWorkspaceRoots();
-      const workspaces: { path: string; label: string }[] = [];
+      const browsePath = queryString(req.query['path']);
 
+      // If a specific path was requested, validate it is under a known root
+      // and list its children (enables file-browser navigation).
+      if (browsePath) {
+        const normalized = path.normalize(browsePath).replace(/\\/g, '/');
+        const isUnderRoot = roots.some((root) => {
+          const normalizedRoot = path.normalize(root).replace(/\\/g, '/');
+          return normalized === normalizedRoot || normalized.startsWith(normalizedRoot + '/');
+        });
+
+        if (!isUnderRoot) {
+          return res.status(403).json({ error: 'Path is outside allowed workspace roots' });
+        }
+
+        let entries: fs.Dirent[];
+        try {
+          entries = await fs.promises.readdir(normalized, { withFileTypes: true });
+        } catch (err) {
+          return res.status(404).json({ error: `Cannot read directory: ${(err as Error).message}` });
+        }
+
+        const workspaces = entries
+          .filter((e) => e.isDirectory())
+          .map((e) => ({
+            path: `${normalized}/${e.name}`,
+            label: e.name,
+          }));
+
+        return res.status(200).json({ workspaces, currentPath: normalized });
+      }
+
+      // Default: return one level of subdirectories under each root
+      const workspaces: { path: string; label: string }[] = [];
       for (const root of roots) {
         try {
           const entries = await fs.promises.readdir(root, { withFileTypes: true });

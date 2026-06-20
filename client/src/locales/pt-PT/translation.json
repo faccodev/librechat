@@ -1020,6 +1020,7 @@
   "com_ui_project_workspace_path_add": "Adicionar caminho do workspace",
   "com_ui_project_workspace_path_clear": "Limpar caminho do workspace",
   "com_ui_project_workspace_path_save_error": "Falha ao atualizar o caminho do workspace",
+  "com_ui_back": "Voltar",
   "com_ui_prompt": "Prompt",
   "com_ui_prompt_name": "Nome do Prompt",
   "com_ui_prompt_name_required": "Nome do Prompt é obrigatório",

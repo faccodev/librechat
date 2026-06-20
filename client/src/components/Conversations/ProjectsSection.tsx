@@ -8,8 +8,10 @@ import {
   ChevronRight,
   Ellipsis,
   Folder,
+  FolderOpen,
   FolderPlus,
   Folders,
+  HardDrive,
   Pencil,
   Trash2,
 } from 'lucide-react';
@@ -38,6 +40,7 @@ import {
 } from '~/data-provider';
 import { useLocalize, useLocalStorage, useNewConvo } from '~/hooks';
 import ProjectCreateDialog from '~/components/Projects/ProjectCreateDialog';
+import WorkspacePathPicker from '~/components/Projects/WorkspacePathPicker';
 import { clearMessagesCache, cn } from '~/utils';
 import { NotificationSeverity } from '~/common';
 import Convo from './Convo';
@@ -184,6 +187,76 @@ function ProjectDeleteDialog({
   );
 }
 
+function ProjectWorkspaceDialog({
+  open,
+  onOpenChange,
+  project,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  project: TChatProject;
+}) {
+  const localize = useLocalize();
+  const [editPath, setEditPath] = useState<string | null>(project.workspacePath ?? null);
+  const updateProject = useUpdateProjectMutation();
+  const { showToast } = useToastContext();
+
+  useEffect(() => {
+    if (open) {
+      setEditPath(project.workspacePath ?? null);
+    }
+  }, [open, project.workspacePath]);
+
+  const handleSave = () => {
+    if (updateProject.isLoading) {
+      return;
+    }
+    updateProject.mutate(
+      { projectId: project._id, workspacePath: editPath || null },
+      {
+        onSuccess: () => onOpenChange(false),
+        onError: () =>
+          showToast({
+            message: localize('com_ui_project_workspace_path_save_error'),
+            severity: NotificationSeverity.ERROR,
+            showIcon: true,
+          }),
+      },
+    );
+  };
+
+  return (
+    <OGDialog open={open} onOpenChange={onOpenChange}>
+      <OGDialogContent className="w-11/12 max-w-lg" showCloseButton={false}>
+        <OGDialogHeader>
+          <OGDialogTitle>{localize('com_ui_project_workspace_path')}</OGDialogTitle>
+        </OGDialogHeader>
+        <div className="py-2">
+          <WorkspacePathPicker
+            value={editPath}
+            onChange={setEditPath}
+            disabled={updateProject.isLoading}
+          />
+        </div>
+        <div className="flex justify-end gap-4 pt-4">
+          <OGDialogClose asChild>
+            <Button aria-label="cancel" variant="outline">
+              {localize('com_ui_cancel')}
+            </Button>
+          </OGDialogClose>
+          <Button
+            variant="submit"
+            onClick={handleSave}
+            disabled={updateProject.isLoading}
+          >
+            {updateProject.isLoading ? <Spinner className="size-4" /> : localize('com_ui_save')}
+          </Button>
+        </div>
+      </OGDialogContent>
+    </OGDialog>
+  );
+}
+
 const noop = () => {};
 
 function ProjectChatsInline({
@@ -270,6 +343,7 @@ function ProjectItem({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isRenameOpen, setIsRenameOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false);
 
   const openProject = useCallback(() => {
     navigate(`/projects/${project._id}`);
@@ -290,6 +364,14 @@ function ProjectItem({
         label: localize('com_ui_open_project'),
         icon: <Folder className="size-4 text-text-secondary" aria-hidden="true" />,
         onClick: openProject,
+      },
+      {
+        id: `${menuId}-workspace`,
+        label: localize('com_ui_project_workspace_path'),
+        icon: project.workspacePath
+          ? <FolderOpen className="size-4 text-text-secondary" aria-hidden="true" />
+          : <HardDrive className="size-4 text-text-secondary" aria-hidden="true" />,
+        onClick: () => setIsWorkspaceOpen(true),
       },
       {
         id: `${menuId}-rename`,
@@ -370,6 +452,7 @@ function ProjectItem({
       )}
       <ProjectRenameDialog open={isRenameOpen} onOpenChange={setIsRenameOpen} project={project} />
       <ProjectDeleteDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen} project={project} />
+      <ProjectWorkspaceDialog open={isWorkspaceOpen} onOpenChange={setIsWorkspaceOpen} project={project} />
     </li>
   );
 }

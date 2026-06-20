@@ -49,11 +49,12 @@ export const useProjectQuery = (
 };
 
 export const useAvailableProjectWorkspaces = (
+  browsePath?: string | null,
   config?: UseQueryOptions<TAvailableProjectWorkspacesResponse>,
 ): QueryObserverResult<TAvailableProjectWorkspacesResponse, unknown> => {
   return useQuery<TAvailableProjectWorkspacesResponse>(
-    [QueryKeys.availableProjectWorkspaces],
-    () => dataService.getAvailableProjectWorkspaces(),
+    [QueryKeys.availableProjectWorkspaces, browsePath ?? null],
+    () => dataService.getAvailableProjectWorkspaces(browsePath ?? undefined),
     {
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,

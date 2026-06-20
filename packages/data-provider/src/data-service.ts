@@ -864,8 +864,8 @@ export function listProjects(params?: q.ProjectListParams): Promise<q.ProjectLis
   return request.get(endpoints.projects(params ?? {}));
 }
 
-export function getAvailableProjectWorkspaces(): Promise<t.TAvailableProjectWorkspacesResponse> {
-  return request.get(endpoints.availableProjectWorkspaces());
+export function getAvailableProjectWorkspaces(browsePath?: string): Promise<t.TAvailableProjectWorkspacesResponse> {
+  return request.get(endpoints.availableProjectWorkspaces(browsePath));
 }
 
 export function createProject(payload: t.TCreateChatProjectRequest): Promise<t.TChatProject> {

@@ -1387,6 +1387,7 @@
   "com_ui_project_workspace_path_add": "Adicionar caminho do workspace",
   "com_ui_project_workspace_path_clear": "Limpar caminho do workspace",
   "com_ui_project_workspace_path_save_error": "Falha ao atualizar o caminho do workspace",
+  "com_ui_back": "Voltar",
   "com_ui_prompt": "Prompt",
   "com_ui_prompt_category_selector_aria": "Seletor de categoria do prompt",
   "com_ui_prompt_delete_confirm": "Tem certeza de que deseja excluir o prompt '{{0}}'?",
