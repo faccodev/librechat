@@ -1,4 +1,12 @@
 const express = require('express');
+const mongoose = require('mongoose');
+const Branding = mongoose.models.Branding || mongoose.model('Branding', new mongoose.Schema({
+  appTitle: String,
+  logoLight: String,
+  logoDark: String,
+  favicon: String,
+  accentColor: String
+}));
 const {
   isEnabled,
   getBalanceConfig,
@@ -203,6 +211,7 @@ function buildCloudFrontStartupConfig() {
 
 router.get('/', async function (req, res) {
   try {
+    const branding = await Branding.findOne();
     const preLoginPayload = buildPreLoginPayload();
     const publicSharePayload = buildPublicSharePayload();
     const rum = getRumConfig();
@@ -214,6 +223,11 @@ router.get('/', async function (req, res) {
       /** @type {Partial<TStartupConfig>} */
       const payload = {
         ...preLoginPayload,
+        appTitle: branding?.appTitle || preLoginPayload.appTitle,
+        customLogoLight: branding?.logoLight || null,
+        customLogoDark: branding?.logoDark || null,
+        customFavicon: branding?.favicon || null,
+        customAccentColor: branding?.accentColor || null,
         ...(req.query.context === 'share' ? publicSharePayload : {}),
         socialLogins: baseConfig?.registration?.socialLogins ?? defaultSocialLogins,
         turnstile: baseConfig?.turnstileConfig,
@@ -255,6 +269,11 @@ router.get('/', async function (req, res) {
     /** @type {TStartupConfig} */
     const payload = {
       ...preLoginPayload,
+      appTitle: branding?.appTitle || preLoginPayload.appTitle,
+      customLogoLight: branding?.logoLight || null,
+      customLogoDark: branding?.logoDark || null,
+      customFavicon: branding?.favicon || null,
+      customAccentColor: branding?.accentColor || null,
       ...publicSharePayload,
       ...buildPostLoginPayload(),
       socialLogins: appConfig?.registration?.socialLogins ?? defaultSocialLogins,

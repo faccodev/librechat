@@ -1476,3 +1476,20 @@ export function deleteAdminUser(
   return request.delete(endpoints.adminUserDelete(userId));
 }
 
+export interface BrandingResponse {
+  appTitle: string;
+  logoLight: string;
+  logoDark: string;
+  favicon: string;
+  accentColor: string;
+}
+
+export function getAdminBranding(): Promise<BrandingResponse> {
+  return request.get(endpoints.adminBranding());
+}
+
+export function updateAdminBranding(data: Partial<BrandingResponse>): Promise<BrandingResponse> {
+  return request.put(endpoints.adminBranding(), data);
+}
+
+

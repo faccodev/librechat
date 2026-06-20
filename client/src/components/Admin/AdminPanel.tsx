@@ -4,6 +4,8 @@ import {
   X,
   Shield,
   Folder,
+  FolderOpen,
+  Palette,
   Users,
   ChevronLeft,
   ChevronRight,
@@ -31,6 +33,8 @@ import {
 } from '~/data-provider';
 import AdminResetPasswordDialog from './AdminResetPasswordDialog';
 import UserWorkspacePanel from '../Nav/Workspaces/UserWorkspacePanel';
+import AdminWorkspaceDialog from './AdminWorkspaceDialog';
+import BrandingPanel from './BrandingPanel';
 
 const PAGE_SIZE = 20;
 
@@ -337,6 +341,7 @@ interface CreateUserPanelProps {
 }
 
 function CreateUserPanel({ onClose, onSuccess }: CreateUserPanelProps) {
+  const localize = useLocalize();
   const createUserMutation = useCreateAdminUser();
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
@@ -344,6 +349,7 @@ function CreateUserPanel({ onClose, onSuccess }: CreateUserPanelProps) {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('USER');
   const [workspaceSubdir, setWorkspaceSubdir] = useState('');
+  const [isWorkspacePickerOpen, setIsWorkspacePickerOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -455,14 +461,30 @@ function CreateUserPanel({ onClose, onSuccess }: CreateUserPanelProps) {
 
         <div className="space-y-1">
           <label className="text-xs font-semibold text-text-secondary">Workspace Subdirectory</label>
-          <input
-            type="text"
-            value={workspaceSubdir}
-            onChange={(e) => setWorkspaceSubdir(e.target.value)}
-            placeholder="e.g. john"
-            className="h-9 w-full rounded-lg border border-border-light bg-surface-secondary px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-purple-500"
-          />
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={workspaceSubdir}
+              onChange={(e) => setWorkspaceSubdir(e.target.value)}
+              placeholder="e.g. john"
+              className="h-9 w-full rounded-lg border border-border-light bg-surface-secondary px-3 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-purple-500"
+            />
+            <button
+              type="button"
+              onClick={() => setIsWorkspacePickerOpen(true)}
+              className="flex h-9 items-center justify-center rounded-lg border border-border-light bg-surface-secondary px-3 text-text-secondary hover:bg-surface-hover hover:text-text-primary focus:outline-none"
+              title={localize('com_ui_browse') ?? 'Browse'}
+            >
+              <FolderOpen className="size-4" />
+            </button>
+          </div>
           <p className="text-[10px] text-text-secondary">Optional directory relative to containerBasePath.</p>
+          <AdminWorkspaceDialog
+            open={isWorkspacePickerOpen}
+            onOpenChange={setIsWorkspacePickerOpen}
+            initialSubdir={workspaceSubdir}
+            onSelect={(val) => setWorkspaceSubdir(val ?? '')}
+          />
         </div>
       </div>
 
@@ -498,6 +520,7 @@ export default function AdminPanel({ open, onOpenChange }: AdminPanelProps) {
   const [page, setPage] = useState(0);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [isBranding, setIsBranding] = useState(false);
 
   const isSearching = searchQuery.trim().length >= 2;
 
@@ -540,6 +563,7 @@ export default function AdminPanel({ open, onOpenChange }: AdminPanelProps) {
       setSearchQuery('');
       setPage(0);
       setIsCreating(false);
+      setIsBranding(false);
     }
     onOpenChange(isOpen);
   };
@@ -582,6 +606,7 @@ export default function AdminPanel({ open, onOpenChange }: AdminPanelProps) {
                     setPage(0);
                     setSelectedUser(null);
                     setIsCreating(false);
+                    setIsBranding(false);
                   }}
                   placeholder="Search users..."
                   className="h-8 w-full rounded-lg border border-border-light bg-surface-secondary pl-8 pr-3 text-xs text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-1 focus:ring-purple-500/50"
@@ -601,11 +626,28 @@ export default function AdminPanel({ open, onOpenChange }: AdminPanelProps) {
                 onClick={() => {
                   setSelectedUser(null);
                   setIsCreating(true);
+                  setIsBranding(false);
                 }}
-                className="flex h-8 flex-shrink-0 items-center gap-1.5 rounded-lg bg-purple-600 px-2.5 text-xs font-medium text-white shadow-sm transition-colors hover:bg-purple-700 focus:outline-none focus:ring-1 focus:ring-purple-500/50"
+                className="flex h-8 flex-shrink-0 items-center gap-1 rounded-lg bg-purple-600 px-2 text-xs font-medium text-white shadow-sm transition-colors hover:bg-purple-700 focus:outline-none focus:ring-1 focus:ring-purple-500/50"
               >
                 <UserPlus className="size-3.5" />
-                <span>New User</span>
+                <span>+ User</span>
+              </button>
+              <button
+                type="button"
+                title="Branding"
+                onClick={() => {
+                  setSelectedUser(null);
+                  setIsCreating(false);
+                  setIsBranding(true);
+                }}
+                className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border transition-colors focus:outline-none focus:ring-1 focus:ring-purple-500/50 ${
+                  isBranding
+                    ? 'bg-purple-600 border-purple-600 text-white'
+                    : 'border-border-light bg-surface-secondary text-text-secondary hover:bg-surface-hover hover:text-text-primary'
+                }`}
+              >
+                <Palette className="size-3.5" />
               </button>
             </div>
 
@@ -631,6 +673,7 @@ export default function AdminPanel({ open, onOpenChange }: AdminPanelProps) {
                       isSelected={selectedUser === u.id}
                       onClick={() => {
                         setIsCreating(false);
+                        setIsBranding(false);
                         setSelectedUser(u.id === selectedUser ? null : u.id);
                       }}
                     />
@@ -676,7 +719,7 @@ export default function AdminPanel({ open, onOpenChange }: AdminPanelProps) {
             )}
           </div>
 
-          {/* Right panel — user details or create panel */}
+          {/* Right panel — user details or create panel or branding panel */}
           <div className="flex-1 overflow-y-auto p-4">
             {isCreating ? (
               <CreateUserPanel
@@ -687,6 +730,8 @@ export default function AdminPanel({ open, onOpenChange }: AdminPanelProps) {
                   setSelectedUser(newUser.id);
                 }}
               />
+            ) : isBranding ? (
+              <BrandingPanel />
             ) : selectedUserData ? (
               <UserDetailPanel
                 user={selectedUserData}

@@ -92,3 +92,27 @@ export function useDeleteAdminUser() {
   );
 }
 
+export function useGetAdminBranding(config?: UseQueryOptions<t.BrandingResponse>) {
+  return useQuery<t.BrandingResponse>(
+    [QueryKeys.startupConfig, 'admin-branding'],
+    () => dataService.getAdminBranding(),
+    {
+      refetchOnWindowFocus: false,
+      ...config,
+    },
+  );
+}
+
+export function useUpdateAdminBranding() {
+  const queryClient = useQueryClient();
+  return useMutation(
+    (data: Partial<t.BrandingResponse>) => dataService.updateAdminBranding(data),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries([QueryKeys.startupConfig]);
+      },
+    },
+  );
+}
+
+

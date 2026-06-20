@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Folder, Save, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Folder, FolderOpen, Save, AlertTriangle, CheckCircle } from 'lucide-react';
 import { Button, useToastContext } from '@librechat/client';
 import { useUserWorkspace, useSetUserWorkspace } from '~/data-provider';
 import { useLocalize } from '~/hooks';
+import AdminWorkspaceDialog from '~/components/Admin/AdminWorkspaceDialog';
 
 interface UserWorkspacePanelProps {
   userId: string;
@@ -14,6 +15,7 @@ export default function UserWorkspacePanel({ userId }: UserWorkspacePanelProps) 
   const { data, isLoading, error } = useUserWorkspace(userId);
   const setWorkspaceMutation = useSetUserWorkspace(userId);
   const [subdir, setSubdir] = useState<string>('');
+  const [isWorkspacePickerOpen, setIsWorkspacePickerOpen] = useState(false);
 
   useEffect(() => {
     if (data) {
@@ -69,6 +71,15 @@ export default function UserWorkspacePanel({ userId }: UserWorkspacePanelProps) 
               onChange={(e) => setSubdir(e.target.value)}
               disabled={setWorkspaceMutation.isLoading}
             />
+            <button
+              type="button"
+              onClick={() => setIsWorkspacePickerOpen(true)}
+              className="flex h-9 items-center justify-center rounded-lg border border-border-light bg-surface-secondary px-3 text-text-secondary hover:bg-surface-hover hover:text-text-primary focus:outline-none disabled:opacity-50"
+              disabled={setWorkspaceMutation.isLoading}
+              title={localize('com_ui_browse') ?? 'Browse'}
+            >
+              <FolderOpen className="size-4" />
+            </button>
             <Button
               variant="submit"
               size="sm"
@@ -82,6 +93,12 @@ export default function UserWorkspacePanel({ userId }: UserWorkspacePanelProps) 
           <p className="mt-1 text-xs text-text-secondary">
             {localize('com_ui_workspace_admin_hint')}
           </p>
+          <AdminWorkspaceDialog
+            open={isWorkspacePickerOpen}
+            onOpenChange={setIsWorkspacePickerOpen}
+            initialSubdir={subdir}
+            onSelect={(val) => setSubdir(val ?? '')}
+          />
         </div>
 
         {(subdir.trim() || (data?.enabled && data?.resolvedPath)) && (

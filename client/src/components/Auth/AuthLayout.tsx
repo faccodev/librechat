@@ -69,12 +69,12 @@ function AuthLayout({
           <div className="mb-5 flex justify-center">
             <BlinkAnimation active={isFetching}>
               <img
-                src="assets/logo_light.png"
+                src={startupConfig?.customLogoLight || 'assets/logo_light.png'}
                 className="h-12 w-auto object-contain dark:hidden"
                 alt={localize('com_ui_logo', { 0: startupConfig?.appTitle ?? 'LibreChat' })}
               />
               <img
-                src="assets/logo_dark.png"
+                src={startupConfig?.customLogoDark || 'assets/logo_dark.png'}
                 className="hidden h-12 w-auto object-contain dark:block"
                 alt={localize('com_ui_logo', { 0: startupConfig?.appTitle ?? 'LibreChat' })}
               />

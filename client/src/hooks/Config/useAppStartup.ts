@@ -57,6 +57,31 @@ export default function useAppStartup({
     localStorage.setItem(LocalStorageKeys.APP_TITLE, appTitle);
   }, [startupConfig]);
 
+  /** Apply custom favicon and accent color branding */
+  useEffect(() => {
+    const customFavicon = startupConfig?.customFavicon;
+    if (customFavicon) {
+      const links = document.querySelectorAll("link[rel*='icon']");
+      if (links.length > 0) {
+        links.forEach((link) => {
+          (link as HTMLLinkElement).href = customFavicon;
+        });
+      } else {
+        const link = document.createElement('link');
+        link.rel = 'icon';
+        link.href = customFavicon;
+        document.head.appendChild(link);
+      }
+    }
+
+    const customAccentColor = startupConfig?.customAccentColor;
+    if (customAccentColor) {
+      document.documentElement.style.setProperty('--brand-purple', customAccentColor);
+    } else {
+      document.documentElement.style.removeProperty('--brand-purple');
+    }
+  }, [startupConfig]);
+
   /** Set the default spec's preset as default */
   useEffect(() => {
     if (defaultPreset && defaultPreset.spec != null) {

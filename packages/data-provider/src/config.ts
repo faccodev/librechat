@@ -1206,6 +1206,10 @@ export type TStartupConfig = {
     branch?: string | null;
     buildDate?: string | null;
   };
+  customLogoLight?: string | null;
+  customLogoDark?: string | null;
+  customFavicon?: string | null;
+  customAccentColor?: string | null;
 };
 
 export enum OCRStrategy {

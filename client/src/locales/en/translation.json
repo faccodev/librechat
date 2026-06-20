@@ -1902,6 +1902,8 @@
   "com_ui_workspace_readonly": "Managed by administrator",
   "com_ui_workspace_save": "Save Workspace",
   "com_ui_workspace_subdir": "Workspace Subdirectory",
+  "com_ui_browse": "Browse",
+  "com_ui_admin_branding_title": "Branding & Whitelabel",
   "com_ui_write": "Writing",
   "com_ui_writing_command": "Writing command",
   "com_ui_x_selected": "{{0}} selected",
