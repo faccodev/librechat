@@ -84,7 +84,7 @@ export default function BrandingPanel() {
     <form onSubmit={handleSave} className="space-y-6 text-text-primary max-w-xl">
       <div>
         <h2 className="text-base font-semibold text-text-primary flex items-center gap-2">
-          <Palette className="size-4 text-purple-600" />
+          <Palette className="size-4 text-text-secondary" />
           {localize('com_ui_admin_branding_title') ?? 'Branding & Whitelabel'}
         </h2>
         <p className="text-xs text-text-secondary mt-1">
