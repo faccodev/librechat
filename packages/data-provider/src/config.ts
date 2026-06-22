@@ -939,6 +939,16 @@ export const interfaceSchema = z
     customWelcome: z.string().optional(),
     mcpServers: mcpServersSchema.optional(),
     modelSelect: z.boolean().optional(),
+    /**
+     * When true (default), the model selector shows BOTH agents and
+     * standalone providers (OpenAI, Anthropic, custom endpoints). When
+     * false, only agents are listed in the selector — useful for setups
+     * that route every conversation through an agent and don't want
+     * raw provider access in the UI. Admins can toggle this in the
+     * Admin Panel; non-admin users never see providers regardless of
+     * this setting (the client also gates by role).
+     */
+    showProvidersList: z.boolean().optional(),
     parameters: z.boolean().optional(),
     multiConvo: z.boolean().optional(),
     bookmarks: z.boolean().optional(),
@@ -1026,6 +1036,7 @@ export const interfaceSchema = z
     multiConvo: true,
     bookmarks: true,
     memories: true,
+    showProvidersList: true,
     prompts: {
       use: true,
       create: true,

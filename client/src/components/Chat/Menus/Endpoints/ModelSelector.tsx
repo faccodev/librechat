@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { TooltipAnchor } from '@librechat/client';
-import { getConfigDefaults } from 'librechat-data-provider';
+import { getConfigDefaults, SystemRoles } from 'librechat-data-provider';
 import type { ModelSelectorProps } from '~/common';
 import {
   renderModelSpecs,
@@ -13,12 +13,13 @@ import { ModelSelectorChatProvider } from './ModelSelectorChatContext';
 import { getSelectedIcon, getDisplayValue } from './utils';
 import { CustomMenu as Menu } from './CustomMenu';
 import DialogManager from './DialogManager';
-import { useLocalize } from '~/hooks';
+import { useAuthContext, useLocalize } from '~/hooks';
 
 const defaultInterface = getConfigDefaults().interface;
 
 function ModelSelectorContent() {
   const localize = useLocalize();
+  const { user } = useAuthContext();
 
   const {
     // LibreChat
@@ -81,6 +82,13 @@ function ModelSelectorContent() {
     />
   );
 
+  // Provider list is gated by:
+  //   1. `interface.showProvidersList` — admin toggle in Admin Panel
+  //   2. `user.role === ADMIN` — non-admins never see provider rows
+  // Both must hold for `renderEndpoints` to run; default = true/true.
+  const showProviders =
+    (interfaceConfig?.showProvidersList ?? true) && user?.role === SystemRoles.ADMIN;
+
   return (
     <div className="relative flex w-full max-w-md flex-col items-center gap-2">
       <Menu
@@ -106,8 +114,12 @@ function ModelSelectorContent() {
               modelSpecs?.filter((spec) => !spec.group) || [],
               selectedValues.modelSpec || '',
             )}
-            {/* Render endpoints (will include grouped specs matching endpoint names) */}
-            {renderEndpoints(mappedEndpoints ?? [])}
+            {/* Render endpoints only when the admin toggle is on AND the
+             *  current user is an admin. Non-admins always see agents
+             *  only; admins see providers when `interface.showProvidersList`
+             *  is true (default). Toggling the setting in Admin Panel
+             *  takes effect after a browser refresh (F5). */}
+            {showProviders && renderEndpoints(mappedEndpoints ?? [])}
             {/* Render custom groups (specs with group field not matching any endpoint) */}
             {renderCustomGroups(modelSpecs || [], mappedEndpoints ?? [])}
           </>
