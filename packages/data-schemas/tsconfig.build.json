@@ -6,5 +6,11 @@
     "declarationDir": "dist/types",
     "outDir": "dist"
   },
-  "exclude": ["node_modules", "dist", "**/*.spec.ts"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.spec.ts",
+    "**/cronJob.ts",
+    "**/cronjobs.ts"
+  ]
 }
