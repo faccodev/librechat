@@ -197,6 +197,70 @@ describe('runAgentWithPoolRetry', () => {
     expect(entries).toEqual([{ provider: 'openAI', model: 'gpt-4o' }]);
   });
 
+  it('defaults maxAttempts to 10 when the pool has more than 10 entries', async () => {
+    const bigPool: Array<ModelPoolEntry> = Array.from({ length: 12 }, (_, i) => ({
+      provider: `provider_${i}`,
+      model: `model_${i}`,
+    }));
+    let invocations = 0;
+    await expect(
+      runAgentWithPoolRetry({
+        primaryAgent: { id: 'agent-x', models: bigPool },
+        attempt: async () => {
+          invocations += 1;
+          throw Object.assign(new Error('boom'), { status: 503 });
+        },
+      }),
+    ).rejects.toMatchObject({ message: 'boom' });
+    // Cap kicks in: 10 attempts, not 12.
+    expect(invocations).toBe(10);
+  });
+
+  it('retries on 413 (TPM exceeded / payload too large)', async () => {
+    const pool = [
+      { provider: 'groq', model: 'qwen/qwen3-32b' },
+      { provider: 'anthropic', model: 'claude-3-5-sonnet' },
+    ];
+    let invocations = 0;
+    const { effectiveEntry } = await runAgentWithPoolRetry({
+      primaryAgent: { id: 'agent-x', models: pool },
+      attempt: async ({ attempt }) => {
+        invocations += 1;
+        selectNextEntry('agent-x', pool, { provider: 'groq', model: 'qwen/qwen3-32b' });
+        if (attempt === 1) {
+          throw Object.assign(new Error('Request too large for model'), {
+            status: 413,
+            message:
+              '413 Request too large for model `qwen/qwen3-32b` in organization `org_01kgg46bk5eb0bt96h7sjaxgd9` service tier `on_demand` on tokens per minute (TPM): Limit 6000, Requested 27770',
+          });
+        }
+        return 'ok';
+      },
+    });
+    expect(invocations).toBe(2);
+    expect(effectiveEntry).toEqual(pool[1]);
+  });
+
+  it('retries on 408 (request timeout)', async () => {
+    const pool = [
+      { provider: 'groq', model: 'qwen/qwen3-32b' },
+      { provider: 'anthropic', model: 'claude-3-5-sonnet' },
+    ];
+    let invocations = 0;
+    const { effectiveEntry } = await runAgentWithPoolRetry({
+      primaryAgent: { id: 'agent-x', models: pool },
+      attempt: async ({ attempt }) => {
+        invocations += 1;
+        selectNextEntry('agent-x', pool, { provider: 'groq', model: 'qwen/qwen3-32b' });
+        if (attempt === 1) {
+          throw Object.assign(new Error('Request Timeout'), { status: 408 });
+        }
+        return 'ok';
+      },
+    });
+    expect(invocations).toBe(2);
+    expect(effectiveEntry).toEqual(pool[1]);
+  });
   it('invokes the attempt pool.length times when every attempt fails retryably', async () => {
     let invocations = 0;
     await expect(

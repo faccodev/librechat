@@ -102,7 +102,12 @@ export function selectNextEntry(
  * Classify an error as retryable for the purposes of advancing the
  * round-robin pool. Returns true for:
  *   - HTTP 5xx (server error)
- *   - HTTP 429 (rate limit / quota)
+ *   - HTTP 429 (rate limit / quota — requests/minute exceeded)
+ *   - HTTP 413 (payload too large / TPM exceeded — content was too long
+ *     for the model's per-minute token quota; another entry in the pool
+ *     often has a higher limit or no per-minute cap, so retrying is the
+ *     right behavior instead of surfacing the error to the user)
+ *   - HTTP 408 (request timeout)
  *   - HTTP 401 (auth — usually a per-key failure, retry with next)
  *   - Network-level errors (ECONNRESET, ECONNREFUSED, ETIMEDOUT, ENOTFOUND,
  *     EAI_AGAIN, fetch failures, AbortError)
@@ -122,7 +127,12 @@ export function isRetryablePoolError(err: unknown): boolean {
 
   // Network errors from Node have a `code` like ECONNRESET, ETIMEDOUT, etc.
   const code = (err as { code?: unknown })?.code;
-  if (typeof code === 'string' && /^(ECONNRESET|ECONNREFUSED|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|EHOSTUNREACH|EPIPE|ENETDOWN|ENETUNREACH|EHOSTDOWN|ENETRESET)$/.test(code)) {
+  if (
+    typeof code === 'string' &&
+    /^(ECONNRESET|ECONNREFUSED|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|EHOSTUNREACH|EPIPE|ENETDOWN|ENETUNREACH|EHOSTDOWN|ENETRESET)$/.test(
+      code,
+    )
+  ) {
     return true;
   }
 
@@ -146,6 +156,8 @@ export function isRetryablePoolError(err: unknown): boolean {
   if (status != null) {
     if (status >= 500 && status < 600) return true;
     if (status === 429) return true;
+    if (status === 413) return true;
+    if (status === 408) return true;
     if (status === 401) return true;
     // 400, 403, 404, 422 are not retryable (usually bad payload/config)
     return false;
@@ -206,8 +218,8 @@ export interface PoolRetryAgent {
 export interface PoolRetryAttemptInfo {
   /** 1-based index of the current attempt. */
   attempt: number;
-  /** Total number of attempts the helper will make (== pool.length when a
-   *  pool is configured, 1 otherwise). */
+  /** Total number of attempts the helper will make (default: 10 when a
+   *  pool is configured, capped at `pool.length`; 1 otherwise). */
   total: number;
   /** The (provider, model) tuple the upcoming attempt will use. `null` for
    *  legacy single-model runs. */
@@ -229,8 +241,9 @@ export interface RunAgentWithPoolRetryParams<T> {
    *  are classified by {@link isRetryablePoolError} and retried with the
    *  next pool entry when possible. */
   attempt: (info: PoolRetryAttemptInfo) => Promise<T>;
-  /** Hard cap on attempts; defaults to `pool.length` (no point trying more
-   *  times than there are models). */
+  /** Hard cap on attempts; defaults to 10 (cycling through the pool up
+   *  to `pool.length` distinct entries). Set to 1 for fail-fast behavior
+   *  (single attempt, error surfaces immediately on failure). */
   maxAttempts?: number;
   /** Aborts the retry loop early — typical use is the request's
    *  `AbortSignal` so a client disconnect stops further LLM calls. */
@@ -300,9 +313,16 @@ export async function runAgentWithPoolRetry<T>(
 
   const pool = primaryAgent?.models;
   const hasPool = Array.isArray(pool) && pool.length > 0;
-  const total = hasPool
-    ? Math.min(maxAttempts ?? pool.length, pool.length)
-    : 1;
+  /**
+   * Default attempt cap. Round-robin pools are best-effort load
+   * distribution, not strict per-entry guarantee — when every entry
+   * fails (rate limit, TPM exceeded, 5xx), cycling 10 times gives the
+   * caller a reasonable chance to land on a working provider before the
+   * error surfaces. Override per-call via `maxAttempts`, or set
+   * `maxAttempts: 1` on the pool entry for fail-fast behavior.
+   */
+  const DEFAULT_MAX_ATTEMPTS = 10;
+  const total = hasPool ? Math.min(maxAttempts ?? DEFAULT_MAX_ATTEMPTS, pool.length) : 1;
 
   let lastError: unknown;
   for (let i = 0; i < total; i++) {
@@ -328,9 +348,11 @@ export async function runAgentWithPoolRetry<T>(
     /** Legacy fallback when the agent has no pool: synthesize a one-off
      *  entry from the agent's singular (provider, model). This lets
      *  `info.entry` always carry the tuple that will be used. */
-    const effectiveForInfo: ModelPoolEntry | null = entry ?? (primaryAgent
-      ? { provider: primaryAgent.provider ?? '', model: primaryAgent.model ?? '' }
-      : null);
+    const effectiveForInfo: ModelPoolEntry | null =
+      entry ??
+      (primaryAgent
+        ? { provider: primaryAgent.provider ?? '', model: primaryAgent.model ?? '' }
+        : null);
 
     const counterBefore = hasPool ? peekPoolIndex(primaryAgent.id, pool.length) : 0;
 
