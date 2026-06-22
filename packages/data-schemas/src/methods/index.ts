@@ -79,10 +79,17 @@ import {
 import { createAgentMethods, type AgentMethods, type AgentDeps } from './agent';
 /* Config */
 import { createConfigMethods, type ConfigMethods } from './config';
+/* CronJobs */
+import {
+  createCronJobMethods,
+  CronJobValidationError,
+  type CronJobMethods,
+} from './cronJob';
 
 export { RoleConflictError, DEFAULT_REFRESH_TOKEN_EXPIRY, DEFAULT_SESSION_EXPIRY };
 export { tokenValues, cacheTokenValues, premiumTokenValues, defaultRate };
 export { permissionBitSupersets };
+export { CronJobValidationError };
 
 export type AllMethods = UserMethods &
   SessionMethods &

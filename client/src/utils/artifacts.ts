@@ -292,6 +292,16 @@ export const TOOL_ARTIFACT_TYPES = {
   DOCX: 'application/vnd.librechat.docx-preview',
   SPREADSHEET: 'application/vnd.librechat.spreadsheet-preview',
   PRESENTATION: 'application/vnd.librechat.presentation-preview',
+  /* Media buckets — image / video / audio rendered directly via native
+   * <img>/<video>/<audio> elements by `ArtifactMedia`. Same synthetic
+   * MIME convention as the office previews: never sent over the wire,
+   * only stamped on the artifact object so the panel knows which
+   * renderer to dispatch to. Source URL lives on `artifact.src`,
+   * populated from `attachment.filepath` (or a `data:` text payload)
+   * in `fileToArtifact`. */
+  IMAGE: 'application/vnd.librechat.image-preview',
+  VIDEO: 'application/vnd.librechat.video-preview',
+  AUDIO: 'application/vnd.librechat.audio-preview',
 } as const;
 
 export type ToolArtifactType = (typeof TOOL_ARTIFACT_TYPES)[keyof typeof TOOL_ARTIFACT_TYPES];
@@ -320,6 +330,9 @@ const PREVIEW_ONLY_ARTIFACT_TYPES: ReadonlySet<ToolArtifactType> = new Set([
   TOOL_ARTIFACT_TYPES.DOCX,
   TOOL_ARTIFACT_TYPES.SPREADSHEET,
   TOOL_ARTIFACT_TYPES.PRESENTATION,
+  TOOL_ARTIFACT_TYPES.IMAGE,
+  TOOL_ARTIFACT_TYPES.VIDEO,
+  TOOL_ARTIFACT_TYPES.AUDIO,
 ]);
 
 export function isPreviewOnlyArtifact(type: string | null | undefined): boolean {
@@ -584,6 +597,36 @@ const EXTENSION_TO_TOOL_ARTIFACT_TYPE: Record<string, ToolArtifactType> = {
   xls: TOOL_ARTIFACT_TYPES.SPREADSHEET,
   ods: TOOL_ARTIFACT_TYPES.SPREADSHEET,
   pptx: TOOL_ARTIFACT_TYPES.PRESENTATION,
+  /* Media buckets — raster image, video container, audio container.
+   * Rendered natively by `ArtifactMedia` from `artifact.src`. SVG
+   * could route to HTML (the existing bucket handles `<svg>` bodies
+   * via Sandpack's static template) but routing it through IMAGE
+   * keeps the iframe-free native viewer consistent for vector art
+   * returned by tools that don't wrap it in HTML. */
+  png: TOOL_ARTIFACT_TYPES.IMAGE,
+  jpg: TOOL_ARTIFACT_TYPES.IMAGE,
+  jpeg: TOOL_ARTIFACT_TYPES.IMAGE,
+  gif: TOOL_ARTIFACT_TYPES.IMAGE,
+  webp: TOOL_ARTIFACT_TYPES.IMAGE,
+  avif: TOOL_ARTIFACT_TYPES.IMAGE,
+  apng: TOOL_ARTIFACT_TYPES.IMAGE,
+  bmp: TOOL_ARTIFACT_TYPES.IMAGE,
+  ico: TOOL_ARTIFACT_TYPES.IMAGE,
+  svg: TOOL_ARTIFACT_TYPES.IMAGE,
+  mp4: TOOL_ARTIFACT_TYPES.VIDEO,
+  m4v: TOOL_ARTIFACT_TYPES.VIDEO,
+  webm: TOOL_ARTIFACT_TYPES.VIDEO,
+  mov: TOOL_ARTIFACT_TYPES.VIDEO,
+  mkv: TOOL_ARTIFACT_TYPES.VIDEO,
+  ogv: TOOL_ARTIFACT_TYPES.VIDEO,
+  mp3: TOOL_ARTIFACT_TYPES.AUDIO,
+  m4a: TOOL_ARTIFACT_TYPES.AUDIO,
+  wav: TOOL_ARTIFACT_TYPES.AUDIO,
+  ogg: TOOL_ARTIFACT_TYPES.AUDIO,
+  oga: TOOL_ARTIFACT_TYPES.AUDIO,
+  flac: TOOL_ARTIFACT_TYPES.AUDIO,
+  aac: TOOL_ARTIFACT_TYPES.AUDIO,
+  opus: TOOL_ARTIFACT_TYPES.AUDIO,
 };
 
 /* Append every entry in `CODE_EXTENSION_TO_LANGUAGE` to the routing map
@@ -661,6 +704,51 @@ const MIME_TO_TOOL_ARTIFACT_TYPE: Record<string, ToolArtifactType> = {
   'text/comma-separated-values': TOOL_ARTIFACT_TYPES.SPREADSHEET,
   'application/vnd.openxmlformats-officedocument.presentationml.presentation':
     TOOL_ARTIFACT_TYPES.PRESENTATION,
+  /* Media MIME buckets — routes to the native ArtifactMedia renderer.
+   * Covers extensionless filenames whose upstream supplied a useful
+   * Content-Type (e.g. an MCP filesystem tool returning an unnamed
+   * `image/png` blob). Image MIME parameters (e.g. `; charset=`) are
+   * stripped by `baseMime` upstream so the regex matches without
+   * case-sensitive parameter collisions. */
+  'image/png': TOOL_ARTIFACT_TYPES.IMAGE,
+  'image/jpeg': TOOL_ARTIFACT_TYPES.IMAGE,
+  'image/jpg': TOOL_ARTIFACT_TYPES.IMAGE,
+  'image/gif': TOOL_ARTIFACT_TYPES.IMAGE,
+  'image/webp': TOOL_ARTIFACT_TYPES.IMAGE,
+  'image/avif': TOOL_ARTIFACT_TYPES.IMAGE,
+  'image/apng': TOOL_ARTIFACT_TYPES.IMAGE,
+  'image/bmp': TOOL_ARTIFACT_TYPES.IMAGE,
+  'image/x-bmp': TOOL_ARTIFACT_TYPES.IMAGE,
+  'image/x-icon': TOOL_ARTIFACT_TYPES.IMAGE,
+  'image/vnd.microsoft.icon': TOOL_ARTIFACT_TYPES.IMAGE,
+  'image/svg+xml': TOOL_ARTIFACT_TYPES.IMAGE,
+  /* Common `video/*` types — same convention as the image map. MP4
+   * QuickTime siblings (`application/mp4`) are intentionally omitted;
+   * those almost always surface from a server with a proper `video/*`
+   * Content-Type and the extra mapping would only catch misconfigured
+   * proxies. */
+  'video/mp4': TOOL_ARTIFACT_TYPES.VIDEO,
+  'video/webm': TOOL_ARTIFACT_TYPES.VIDEO,
+  'video/quicktime': TOOL_ARTIFACT_TYPES.VIDEO,
+  'video/x-matroska': TOOL_ARTIFACT_TYPES.VIDEO,
+  'video/x-m4v': TOOL_ARTIFACT_TYPES.VIDEO,
+  'video/ogg': TOOL_ARTIFACT_TYPES.VIDEO,
+  /* Audio MIMEs — covers MP3, M4A (AAC-in-MP4), WAV, OGG, FLAC, Opus.
+   * `audio/mpeg` is the canonical MP3 form per RFC 3003; the legacy
+   * `audio/mp3` alias is included because some servers (notably
+   * older ffmpeg pipelines) still emit it. */
+  'audio/mpeg': TOOL_ARTIFACT_TYPES.AUDIO,
+  'audio/mp3': TOOL_ARTIFACT_TYPES.AUDIO,
+  'audio/mp4': TOOL_ARTIFACT_TYPES.AUDIO,
+  'audio/x-m4a': TOOL_ARTIFACT_TYPES.AUDIO,
+  'audio/wav': TOOL_ARTIFACT_TYPES.AUDIO,
+  'audio/x-wav': TOOL_ARTIFACT_TYPES.AUDIO,
+  'audio/wave': TOOL_ARTIFACT_TYPES.AUDIO,
+  'audio/ogg': TOOL_ARTIFACT_TYPES.AUDIO,
+  'audio/flac': TOOL_ARTIFACT_TYPES.AUDIO,
+  'audio/x-flac': TOOL_ARTIFACT_TYPES.AUDIO,
+  'audio/aac': TOOL_ARTIFACT_TYPES.AUDIO,
+  'audio/opus': TOOL_ARTIFACT_TYPES.AUDIO,
   // Note: bare `text/plain` is NOT mapped here. The extension map handles
   // `.txt` explicitly; routing every unrecognized-extension `text/plain`
   // file (extensionless scripts, .env, etc.) through the panel would be a
@@ -757,14 +845,21 @@ export function detectArtifactTypeFromFile(
     !attachment.text &&
     type !== TOOL_ARTIFACT_TYPES.PLAIN_TEXT &&
     type !== TOOL_ARTIFACT_TYPES.MARKDOWN &&
-    type !== TOOL_ARTIFACT_TYPES.CODE
+    type !== TOOL_ARTIFACT_TYPES.CODE &&
+    type !== TOOL_ARTIFACT_TYPES.IMAGE &&
+    type !== TOOL_ARTIFACT_TYPES.VIDEO &&
+    type !== TOOL_ARTIFACT_TYPES.AUDIO
   ) {
     /* HTML, REACT, MERMAID, and the office preview buckets all require
      * real content — their renderers (sandpack iframes / mermaid.js /
      * the office HTML pipeline) error or render blank without it. The
      * artifact stays unregistered until the backend produces text;
      * `ToolArtifactCard`'s self-heal effect re-fires on drift so the
-     * card transitions cleanly when text arrives. */
+     * card transitions cleanly when text arrives. Media buckets are
+     * exempted: their source URL is on `attachment.filepath`, not
+     * `attachment.text`, and `fileToArtifact` resolves the URL
+     * separately. Empty-text media still routes to the panel as long
+     * as a `filepath` exists. */
     return null;
   }
   return type;
@@ -848,13 +943,18 @@ export function fileToArtifact(
   // Mirror the empty-text gate from `detectArtifactTypeFromFile` so a
   // caller that supplies `preClassifiedType` (and thus skips that gate)
   // can't accidentally hand HTML/React/Mermaid an empty buffer that
-  // their viewers would error on. Plain-text and markdown are still
-  // tolerated empty — the markdown viewer renders empty cleanly.
+  // their viewers would error on. Plain-text, markdown, and the three
+  // media buckets are still tolerated empty — markdown renders empty
+  // cleanly, and media's source URL is on `attachment.filepath`
+  // (resolved below into `artifact.src`) so `text` is irrelevant.
   if (
     !attachment.text &&
     type !== TOOL_ARTIFACT_TYPES.PLAIN_TEXT &&
     type !== TOOL_ARTIFACT_TYPES.MARKDOWN &&
-    type !== TOOL_ARTIFACT_TYPES.CODE
+    type !== TOOL_ARTIFACT_TYPES.CODE &&
+    type !== TOOL_ARTIFACT_TYPES.IMAGE &&
+    type !== TOOL_ARTIFACT_TYPES.VIDEO &&
+    type !== TOOL_ARTIFACT_TYPES.AUDIO
   ) {
     /* HTML, REACT, MERMAID, and the office preview buckets all require
      * real content — their renderers (sandpack iframes / mermaid.js /
@@ -862,6 +962,31 @@ export function fileToArtifact(
      * artifact stays unregistered until the backend produces text;
      * `ToolArtifactCard`'s self-heal effect re-fires on drift so the
      * card transitions cleanly when text arrives. */
+    return null;
+  }
+  /* Media buckets need a source URL. Prefer the backend-served
+   * `filepath` (so the browser caches the asset separately, and a
+   * refresh re-fetches cleanly). Fall back to a `data:` URI carried in
+   * `attachment.text` — some MCP servers inline the bytes directly
+   * rather than staging them on the backend. Reject media without
+   * either: the native element would render an empty broken-image
+   * icon, which is worse UX than dropping the artifact back to a
+   * regular file chip. */
+  const src =
+    type === TOOL_ARTIFACT_TYPES.IMAGE ||
+    type === TOOL_ARTIFACT_TYPES.VIDEO ||
+    type === TOOL_ARTIFACT_TYPES.AUDIO
+      ? attachment.filepath ??
+        (typeof attachment.text === 'string' && attachment.text.startsWith('data:')
+          ? attachment.text
+          : undefined)
+      : undefined;
+  if (
+    (type === TOOL_ARTIFACT_TYPES.IMAGE ||
+      type === TOOL_ARTIFACT_TYPES.VIDEO ||
+      type === TOOL_ARTIFACT_TYPES.AUDIO) &&
+    !src
+  ) {
     return null;
   }
   /* For CODE artifacts, resolve the language hint at construction time
@@ -889,6 +1014,10 @@ export function fileToArtifact(
     language,
     messageId: attachment.messageId ?? undefined,
     lastUpdateTime: toLastUpdate(attachment),
+    // Only set on media buckets — undefined on every other type so the
+    // existing serialization (incl. `removeNullishValues` paths)
+    // strips it cleanly. ArtifactMedia is the only consumer.
+    src,
   };
 }
 

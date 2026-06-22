@@ -47,6 +47,19 @@ export function createEndpointsConfigService(deps: EndpointsConfigDeps) {
       ...customEndpointsConfig,
     };
 
+    const defaultEndpoints = [
+      EModelEndpoint.openAI,
+      EModelEndpoint.assistants,
+      EModelEndpoint.google,
+      EModelEndpoint.anthropic,
+    ];
+
+    for (const endpoint of defaultEndpoints) {
+      if (!appConfig.endpoints?.[endpoint]) {
+        delete mergedConfig[endpoint];
+      }
+    }
+
     if (appConfig.endpoints?.[EModelEndpoint.azureOpenAI]) {
       mergedConfig[EModelEndpoint.azureOpenAI] = { userProvide: false };
     }

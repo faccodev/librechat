@@ -1,13 +1,34 @@
-import React, { memo, useMemo, useState, useCallback, useRef } from 'react';
-import { ArrowLeft, Eye, Code, Copy, Check, FileText, FileQuestion } from 'lucide-react';
+import React, { memo, useMemo, useState, useCallback, useRef, useContext } from 'react';
+import {
+  ArrowLeft,
+  Eye,
+  Code,
+  Copy,
+  Check,
+  FileText,
+  FileQuestion,
+  Edit3,
+  Save,
+  X,
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Spinner, TooltipAnchor, useToastContext } from '@librechat/client';
-import { apiBaseUrl } from 'librechat-data-provider';
-import { useGetSkillFileContentQuery } from '~/data-provider';
-import SkillMarkdownRenderer from './SkillMarkdownRenderer';
-import { parseFrontmatter } from '../utils';
+import { useQueryClient } from '@tanstack/react-query';
+import MonacoEditor from '@monaco-editor/react';
+import {
+  Spinner,
+  TooltipAnchor,
+  useToastContext,
+  ThemeContext,
+  isDark,
+  Button,
+} from '@librechat/client';
+import { apiBaseUrl, QueryKeys } from 'librechat-data-provider';
+import { useGetSkillFileContentQuery, useUploadSkillFileMutation } from '~/data-provider';
 import { useLocalize } from '~/hooks';
 import { cn } from '~/utils';
+import { getLanguageFromFilename } from '~/components/SidePanel/FileManager/PreviewModal';
+import SkillMarkdownRenderer from './SkillMarkdownRenderer';
+import { parseFrontmatter } from '../utils';
 
 interface SkillFileViewerProps {
   skillId: string;
@@ -19,13 +40,33 @@ const SKILL_MD_SKIP_KEYS = new Set(['name', 'description']);
 function SkillFileViewer({ skillId, relativePath }: SkillFileViewerProps) {
   const navigate = useNavigate();
   const localize = useLocalize();
+  const queryClient = useQueryClient();
   const { showToast } = useToastContext();
+  const { theme } = useContext(ThemeContext);
+  const isDarkMode = isDark(theme);
+
   const { data, isLoading, isError } = useGetSkillFileContentQuery(skillId, relativePath);
+  const uploadMutation = useUploadSkillFileMutation();
+
   const [viewMode, setViewMode] = useState<'rendered' | 'source'>('rendered');
   const [isCopied, setIsCopied] = useState(false);
   const copyTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  const isMarkdown = relativePath.endsWith('.md');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Reset editing mode when path changes
+  const prevPathRef = useRef(relativePath);
+  if (prevPathRef.current !== relativePath) {
+    prevPathRef.current = relativePath;
+    setIsEditing(false);
+    setEditContent('');
+  }
+
+  const isMarkdown = relativePath.endsWith('.md') || relativePath.endsWith('.mdx');
+  const isHTML = relativePath.endsWith('.html') || relativePath.endsWith('.htm');
+  const isPDF = relativePath.endsWith('.pdf');
   const isImage = data?.mimeType?.startsWith('image/') ?? false;
   const isSkillMd = relativePath === 'SKILL.md';
   const isText = data != null && !data.isBinary && data.content != null;
@@ -60,9 +101,51 @@ function SkillFileViewer({ skillId, relativePath }: SkillFileViewerProps) {
     }
   }, [data?.content, isCopied, showToast, localize]);
 
+  const handleStartEdit = () => {
+    setEditContent(data?.content ?? '');
+    setIsEditing(true);
+  };
+
+  const handleSave = async () => {
+    if (!data) {
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const fileBlob = new Blob([editContent], { type: data.mimeType || 'text/plain' });
+      const file = new File([fileBlob], data.filename || relativePath.split('/').pop() || 'file', {
+        type: data.mimeType || 'text/plain',
+      });
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('relativePath', relativePath);
+
+      await uploadMutation.mutateAsync({ skillId, formData });
+
+      await queryClient.invalidateQueries([QueryKeys.skillFileContent, skillId, relativePath]);
+
+      setIsEditing(false);
+      showToast({
+        message: localize('com_ui_saved') || 'Saved successfully',
+        status: 'success',
+      });
+    } catch (err) {
+      console.error('[SkillFileViewer] Failed to save file:', err);
+      showToast({
+        message: localize('com_ui_error_save_admin_settings') || 'Failed to save file',
+        status: 'error',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const canEdit = isText && !isPDF && !isImage && relativePath !== 'SKILL.md';
+
   return (
     <div className="flex h-full flex-col">
-      {/* Header — fixed h-10 prevents layout shift when toggle appears/disappears */}
+      {/* Header */}
       <div className="flex h-10 items-center gap-2 border-b border-border-medium px-4">
         <button
           type="button"
@@ -77,63 +160,110 @@ function SkillFileViewer({ skillId, relativePath }: SkillFileViewerProps) {
           {data?.filename ?? relativePath}
         </span>
 
-        {/* Actions — right side */}
-        <div className="flex shrink-0 items-center gap-1">
-          {/* Copy (text files only) */}
-          {isText && (
-            <TooltipAnchor
-              description={isCopied ? localize('com_ui_copied') : localize('com_ui_copy')}
-              render={
-                <button
-                  type="button"
-                  onClick={handleCopy}
-                  className="rounded-md p-1 text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
-                  aria-label={localize('com_ui_copy_to_clipboard')}
-                >
-                  {isCopied ? <Check className="size-4" /> : <Copy className="size-4" />}
-                </button>
-              }
-            />
-          )}
+        {/* Actions */}
+        <div className="flex shrink-0 items-center gap-1.5">
+          {isEditing ? (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEditing(false)}
+                disabled={isSaving}
+                className="h-7 gap-1 px-2.5 text-xs"
+              >
+                <X className="size-3.5" />
+                {localize('com_ui_cancel') || 'Cancel'}
+              </Button>
+              <Button
+                type="button"
+                variant="submit"
+                size="sm"
+                onClick={handleSave}
+                disabled={isSaving}
+                className="h-7 gap-1 px-2.5 text-xs"
+              >
+                {isSaving ? (
+                  <Spinner className="size-3 text-white" />
+                ) : (
+                  <Save className="size-3.5" />
+                )}
+                {localize('com_ui_save') || 'Save'}
+              </Button>
+            </>
+          ) : (
+            <>
+              {canEdit && (
+                <TooltipAnchor
+                  description={localize('com_ui_edit') || 'Edit'}
+                  render={
+                    <button
+                      type="button"
+                      onClick={handleStartEdit}
+                      className="rounded-md p-1 text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
+                      aria-label={localize('com_ui_edit')}
+                    >
+                      <Edit3 className="size-4" />
+                    </button>
+                  }
+                />
+              )}
 
-          {/* View toggle (markdown only) */}
-          {isMarkdown && isText && (
-            <div
-              role="group"
-              className="inline-flex h-7 rounded-lg bg-surface-tertiary p-0.5 text-sm font-medium"
-            >
-              <button
-                type="button"
-                onClick={() => setViewMode('rendered')}
-                className={cn(
-                  'flex items-center justify-center rounded-md px-1.5 transition-colors',
-                  viewMode === 'rendered'
-                    ? 'bg-surface-primary text-text-primary shadow-sm'
-                    : 'text-text-secondary hover:text-text-primary',
-                )}
-                aria-pressed={viewMode === 'rendered'}
-              >
-                <Eye className="size-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('source')}
-                className={cn(
-                  'flex items-center justify-center rounded-md px-1.5 transition-colors',
-                  viewMode === 'source'
-                    ? 'bg-surface-primary text-text-primary shadow-sm'
-                    : 'text-text-secondary hover:text-text-primary',
-                )}
-                aria-pressed={viewMode === 'source'}
-              >
-                <Code className="size-4" />
-              </button>
-            </div>
+              {isText && (
+                <TooltipAnchor
+                  description={isCopied ? localize('com_ui_copied') : localize('com_ui_copy')}
+                  render={
+                    <button
+                      type="button"
+                      onClick={handleCopy}
+                      className="rounded-md p-1 text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
+                      aria-label={localize('com_ui_copy_to_clipboard')}
+                    >
+                      {isCopied ? <Check className="size-4" /> : <Copy className="size-4" />}
+                    </button>
+                  }
+                />
+              )}
+
+              {isMarkdown && isText && (
+                <div
+                  role="group"
+                  className="inline-flex h-7 rounded-lg bg-surface-tertiary p-0.5 text-sm font-medium"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('rendered')}
+                    className={cn(
+                      'flex items-center justify-center rounded-md px-1.5 transition-colors',
+                      viewMode === 'rendered'
+                        ? 'bg-surface-primary text-text-primary shadow-sm'
+                        : 'text-text-secondary hover:text-text-primary',
+                    )}
+                    aria-pressed={viewMode === 'rendered'}
+                  >
+                    <Eye className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('source')}
+                    className={cn(
+                      'flex items-center justify-center rounded-md px-1.5 transition-colors',
+                      viewMode === 'source'
+                        ? 'bg-surface-primary text-text-primary shadow-sm'
+                        : 'text-text-secondary hover:text-text-primary',
+                    )}
+                    aria-pressed={viewMode === 'source'}
+                  >
+                    <Code className="size-4" />
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
 
-      {/* Content — fills remaining space */}
+      {/* Content */}
       <div className="flex-1 overflow-y-auto px-5 py-4">
         {isLoading && (
           <div className="flex items-center justify-center py-12">
@@ -150,71 +280,142 @@ function SkillFileViewer({ skillId, relativePath }: SkillFileViewerProps) {
 
         {data && !isLoading && !isError && (
           <>
-            {data.isBinary && isImage && (
-              <img
-                src={rawUrl}
-                alt={data.filename}
-                className="max-h-[600px] max-w-full rounded-lg object-contain"
-              />
-            )}
-
-            {data.isBinary && !isImage && (
-              <div className="flex flex-col items-center justify-center gap-2 py-12 text-text-secondary">
-                <FileQuestion className="size-8" />
-                <p className="text-sm">{localize('com_ui_skill_file_binary')}</p>
-                <a
-                  href={rawUrl}
-                  download
-                  className="text-sm text-text-primary underline hover:no-underline"
-                >
-                  {localize('com_ui_skill_file_download')}
-                </a>
+            {isEditing ? (
+              <div className="overflow-hidden rounded border border-border-light bg-white dark:bg-gray-900">
+                <MonacoEditor
+                  height="70vh"
+                  language={getLanguageFromFilename(data.filename ?? relativePath)}
+                  theme={isDarkMode ? 'vs-dark' : 'light'}
+                  value={editContent}
+                  onChange={(val) => setEditContent(val ?? '')}
+                  options={{
+                    readOnly: false,
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    fontSize: 13,
+                    lineNumbers: 'on',
+                    automaticLayout: true,
+                  }}
+                />
               </div>
-            )}
-
-            {/* Markdown — frontmatter grid + rendered/source body */}
-            {isText && isMarkdown && parsed && (
+            ) : (
               <>
-                {viewMode === 'rendered' && parsed.fields.length > 0 && (
-                  <div className="mb-3 grid grid-cols-[max-content_1fr] items-baseline gap-x-8 gap-y-2">
-                    {parsed.fields.map(({ key, value }) => (
-                      <React.Fragment key={key}>
-                        <span className="text-xs capitalize text-text-secondary">{key}</span>
-                        <span className="text-sm text-text-primary">{value}</span>
-                      </React.Fragment>
-                    ))}
+                {/* Images */}
+                {data.isBinary && isImage && (
+                  <div className="flex min-h-[300px] items-center justify-center">
+                    <img
+                      src={rawUrl}
+                      alt={data.filename}
+                      className="max-h-[70vh] max-w-full rounded-lg object-contain shadow-lg"
+                    />
                   </div>
                 )}
-                {viewMode === 'rendered' ? (
-                  <SkillMarkdownRenderer content={parsed.body} />
-                ) : (
-                  <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-text-primary">
-                    {data.content}
-                  </pre>
+
+                {/* HTML iframe preview */}
+                {!data.isBinary && isHTML && (
+                  <iframe
+                    title={data.filename ?? relativePath}
+                    src={rawUrl}
+                    sandbox=""
+                    className="h-[70vh] w-full rounded border border-border-light bg-white dark:bg-gray-900"
+                  />
+                )}
+
+                {/* PDF iframe preview */}
+                {data.isBinary && isPDF && (
+                  <iframe
+                    title={data.filename ?? relativePath}
+                    src={rawUrl}
+                    className="h-[70vh] w-full rounded border border-border-light bg-white"
+                  />
+                )}
+
+                {/* Markdown */}
+                {isText && isMarkdown && parsed && (
+                  <>
+                    {viewMode === 'rendered' && parsed.fields.length > 0 && (
+                      <div className="mb-3 grid grid-cols-[max-content_1fr] items-baseline gap-x-8 gap-y-2">
+                        {parsed.fields.map(({ key, value }) => (
+                          <React.Fragment key={key}>
+                            <span className="text-xs capitalize text-text-secondary">{key}</span>
+                            <span className="text-sm text-text-primary">{value}</span>
+                          </React.Fragment>
+                        ))}
+                      </div>
+                    )}
+                    {viewMode === 'rendered' ? (
+                      <SkillMarkdownRenderer content={parsed.body} />
+                    ) : (
+                      <div className="overflow-hidden rounded border border-border-light bg-white dark:bg-gray-900">
+                        <MonacoEditor
+                          height="70vh"
+                          language="markdown"
+                          theme={isDarkMode ? 'vs-dark' : 'light'}
+                          value={data.content}
+                          options={{
+                            readOnly: true,
+                            minimap: { enabled: false },
+                            scrollBeyondLastLine: false,
+                            fontSize: 13,
+                            lineNumbers: 'on',
+                            automaticLayout: true,
+                          }}
+                        />
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Other code/text files */}
+                {isText && !isMarkdown && !isHTML && (
+                  <div className="overflow-hidden rounded border border-border-light bg-white dark:bg-gray-900">
+                    <MonacoEditor
+                      height="70vh"
+                      language={getLanguageFromFilename(data.filename ?? relativePath)}
+                      theme={isDarkMode ? 'vs-dark' : 'light'}
+                      value={data.content}
+                      options={{
+                        readOnly: true,
+                        minimap: { enabled: false },
+                        scrollBeyondLastLine: false,
+                        fontSize: 13,
+                        lineNumbers: 'on',
+                        automaticLayout: true,
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Binary files not supported */}
+                {data.isBinary && !isImage && !isPDF && (
+                  <div className="flex flex-col items-center justify-center gap-2 py-12 text-text-secondary">
+                    <FileQuestion className="size-8" />
+                    <p className="text-sm">{localize('com_ui_skill_file_binary')}</p>
+                    <a
+                      href={rawUrl}
+                      download
+                      className="text-sm text-text-primary underline hover:no-underline"
+                    >
+                      {localize('com_ui_skill_file_download')}
+                    </a>
+                  </div>
+                )}
+
+                {/* Large text files fallback */}
+                {!data.isBinary && data.content == null && !isHTML && (
+                  <div className="flex flex-col items-center justify-center gap-2 py-12 text-text-secondary">
+                    <FileText className="size-8" />
+                    <p className="text-sm">{localize('com_ui_skill_file_download')}</p>
+                    <a
+                      href={rawUrl}
+                      download
+                      className="text-sm text-text-primary underline hover:no-underline"
+                    >
+                      {localize('com_ui_skill_file_download')}
+                    </a>
+                  </div>
                 )}
               </>
-            )}
-
-            {/* Non-markdown text */}
-            {isText && !isMarkdown && (
-              <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-text-primary">
-                {data.content}
-              </pre>
-            )}
-
-            {/* Text file too large for JSON response — offer download */}
-            {!data.isBinary && data.content == null && (
-              <div className="flex flex-col items-center justify-center gap-2 py-12 text-text-secondary">
-                <FileText className="size-8" />
-                <p className="text-sm">{localize('com_ui_skill_file_download')}</p>
-                <a
-                  href={rawUrl}
-                  download
-                  className="text-sm text-text-primary underline hover:no-underline"
-                >
-                  {localize('com_ui_skill_file_download')}
-                </a>
-              </div>
             )}
           </>
         )}

@@ -1,8 +1,9 @@
+import { useState } from 'react';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { Button, TooltipAnchor } from '@librechat/client';
-import { Pencil, Pin, User, Calendar, EarthIcon, Sparkles } from 'lucide-react';
-import { InvocationMode } from 'librechat-data-provider';
+import { Button, TooltipAnchor, useToastContext } from '@librechat/client';
+import { Pencil, Pin, User, Calendar, EarthIcon, Sparkles, Download } from 'lucide-react';
+import { InvocationMode, dataService } from 'librechat-data-provider';
 import type { TSkill } from 'librechat-data-provider';
 import type { TranslationKeys } from '~/hooks';
 import { useLocalize, useAuthContext } from '~/hooks';
@@ -24,10 +25,48 @@ const SkillDetailHeader = ({ skill, showActions = true }: SkillDetailHeaderProps
   const localize = useLocalize();
   const navigate = useNavigate();
   const { user } = useAuthContext();
+  const { showToast } = useToastContext();
+  const [isExporting, setIsExporting] = useState(false);
+
   const formattedDate = skill.createdAt ? format(new Date(skill.createdAt), 'MMM d, yyyy') : null;
   const isOwner = skill.author === user?.id;
   const isShared = !isOwner && Boolean(skill.authorName);
   const isPublic = skill.isPublic === true;
+
+  const handleDownload = async () => {
+    try {
+      setIsExporting(true);
+      const response = await dataService.exportSkill(skill._id);
+
+      const blob = new Blob([response.data], { type: 'application/zip' });
+      const objectUrl = URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = `${skill.name}.zip`;
+      document.body.appendChild(link);
+
+      link.click();
+
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+
+      showToast({
+        message: 'Skill downloaded successfully',
+        severity: 'success',
+      });
+    } catch (err) {
+      console.error('Error exporting skill:', err);
+      showToast({
+        message:
+          localize('com_ui_download_error') ||
+          'Error downloading file. The file may have been deleted.',
+        severity: 'error',
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-3 py-2 sm:flex-row sm:items-center sm:gap-4">
@@ -87,6 +126,22 @@ const SkillDetailHeader = ({ skill, showActions = true }: SkillDetailHeaderProps
       {showActions && (
         <div className="flex shrink-0 items-center gap-2">
           <ShareSkill skill={skill} />
+          <TooltipAnchor
+            description={localize('com_ui_download')}
+            side="bottom"
+            render={
+              <Button
+                variant="outline"
+                size="icon"
+                className="size-9"
+                aria-label={localize('com_ui_download')}
+                onClick={handleDownload}
+                disabled={isExporting}
+              >
+                <Download className="size-5" aria-hidden="true" />
+              </Button>
+            }
+          />
           {isOwner && (
             <>
               <TooltipAnchor

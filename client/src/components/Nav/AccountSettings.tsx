@@ -87,9 +87,12 @@ function AccountSettings({ collapsed = false }: { collapsed?: boolean }) {
           </Menu.MenuItem>
         )}
         {isAdmin && (
-          <Menu.MenuItem onClick={() => setShowAdmin(true)} className="select-item text-sm text-purple-600 dark:text-purple-400">
+          <Menu.MenuItem
+            onClick={() => setShowAdmin(true)}
+            className="select-item text-sm text-brand-purple"
+          >
             <ShieldEllipsis className="icon-md" aria-hidden="true" />
-            Admin Panel
+            {localize('com_ui_admin_panel')}
           </Menu.MenuItem>
         )}
         <Menu.MenuItem onClick={() => setShowSettings(true)} className="select-item text-sm">

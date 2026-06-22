@@ -7,6 +7,7 @@ export * from './utils';
 export { createModels } from './models';
 export {
   createMethods,
+  CronJobValidationError,
   RoleConflictError,
   WorkspacePathValidationError,
   sanitizeWorkspacePath,

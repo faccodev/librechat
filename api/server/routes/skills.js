@@ -293,6 +293,12 @@ router.get(
   handlers.get,
 );
 
+router.get(
+  '/:id/export',
+  canAccessSkillResource({ requiredPermission: PermissionBits.VIEW }),
+  handlers.exportSkill,
+);
+
 router.patch(
   '/:id',
   checkSkillCreate,

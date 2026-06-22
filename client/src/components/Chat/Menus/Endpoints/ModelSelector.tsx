@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { TooltipAnchor } from '@librechat/client';
 import { getConfigDefaults, SystemRoles } from 'librechat-data-provider';
+import type { TInterfaceConfig } from 'librechat-data-provider';
 import type { ModelSelectorProps } from '~/common';
 import {
   renderModelSpecs,
@@ -17,7 +18,11 @@ import { useAuthContext, useLocalize } from '~/hooks';
 
 const defaultInterface = getConfigDefaults().interface;
 
-function ModelSelectorContent() {
+function ModelSelectorContent({
+  interfaceConfig,
+}: {
+  interfaceConfig?: Partial<TInterfaceConfig>;
+}) {
   const localize = useLocalize();
   const { user } = useAuthContext();
 
@@ -84,10 +89,10 @@ function ModelSelectorContent() {
 
   // Provider list is gated by:
   //   1. `interface.showProvidersList` — admin toggle in Admin Panel
-  //   2. `user.role === ADMIN` — non-admins never see provider rows
-  // Both must hold for `renderEndpoints` to run; default = true/true.
+  //   2. `user.role === ADMIN` — admins always see provider rows
+  // If showProvidersList is true, anyone can see provider rows; if false, only admins can.
   const showProviders =
-    (interfaceConfig?.showProvidersList ?? true) && user?.role === SystemRoles.ADMIN;
+    user?.role === SystemRoles.ADMIN || (interfaceConfig?.showProvidersList ?? true);
 
   return (
     <div className="relative flex w-full max-w-md flex-col items-center gap-2">
@@ -114,11 +119,10 @@ function ModelSelectorContent() {
               modelSpecs?.filter((spec) => !spec.group) || [],
               selectedValues.modelSpec || '',
             )}
-            {/* Render endpoints only when the admin toggle is on AND the
-             *  current user is an admin. Non-admins always see agents
-             *  only; admins see providers when `interface.showProvidersList`
-             *  is true (default). Toggling the setting in Admin Panel
-             *  takes effect after a browser refresh (F5). */}
+            {/* Render endpoints/providers list. If the admin toggle
+             *  "Exibir lista de provedores" is enabled, everyone sees
+             *  providers. If disabled, only admins see providers, and
+             *  non-admins only see agents/model specs. */}
             {showProviders && renderEndpoints(mappedEndpoints ?? [])}
             {/* Render custom groups (specs with group field not matching any endpoint) */}
             {renderCustomGroups(modelSpecs || [], mappedEndpoints ?? [])}
@@ -147,7 +151,7 @@ export default function ModelSelector({ startupConfig }: ModelSelectorProps) {
   return (
     <ModelSelectorChatProvider>
       <ModelSelectorProvider startupConfig={startupConfig}>
-        <ModelSelectorContent />
+        <ModelSelectorContent interfaceConfig={interfaceConfig} />
       </ModelSelectorProvider>
     </ModelSelectorChatProvider>
   );

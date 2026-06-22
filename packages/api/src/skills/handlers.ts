@@ -1,3 +1,4 @@
+import JSZip from 'jszip';
 import { logger } from '@librechat/data-schemas';
 import {
   ResourceType,
@@ -772,6 +773,66 @@ export function createSkillsHandlers(deps: SkillsHandlersDeps) {
     }
   }
 
+  async function exportSkillHandler(req: ServerRequest, res: Response) {
+    try {
+      const { id } = req.params as { id: string };
+      const skill = await getSkillById(id);
+      if (!skill) {
+        return res.status(404).json({ error: 'Skill not found' });
+      }
+
+      const files = await listSkillFiles(id);
+
+      const zip = new JSZip();
+
+      // Add the main SKILL.md body
+      zip.file('SKILL.md', skill.body);
+
+      // Add other files
+      for (const file of files) {
+        const strategy = getStrategyFunctions(file.source);
+        if (!strategy.getDownloadStream) {
+          logger.warn(
+            `[exportSkill] Storage backend "${file.source}" does not support streaming for file ${file.relativePath}`,
+          );
+          continue;
+        }
+
+        try {
+          const stream = await strategy.getDownloadStream(req, file.storageKey || file.filepath);
+          const fileBuffer = await new Promise<Buffer>((resolve, reject) => {
+            const chunks: Buffer[] = [];
+            stream.on('data', (chunk: Buffer) => chunks.push(chunk));
+            stream.on('end', () => resolve(Buffer.concat(chunks)));
+            stream.on('error', (err: Error) => reject(err));
+          });
+          zip.file(file.relativePath, fileBuffer);
+        } catch (fileError) {
+          logger.error(
+            `[exportSkill] Failed to fetch file ${file.relativePath} from storage`,
+            fileError,
+          );
+          throw new Error(`Failed to export file: ${file.relativePath}`);
+        }
+      }
+
+      const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+
+      const safeName = skill.name.replace(/["\\\n\r]/g, '_');
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('Content-Disposition', `attachment; filename="${safeName}.zip"`);
+      return res.status(200).send(zipBuffer);
+    } catch (error) {
+      logger.error('[GET /skills/:id/export] Error exporting skill:', error);
+      if (!res.headersSent) {
+        return res.status(500).json({ error: 'Failed to export skill' });
+      } else {
+        res.destroy();
+      }
+    }
+  }
+
   return {
     list: listHandler,
     create: createHandler,
@@ -781,6 +842,7 @@ export function createSkillsHandlers(deps: SkillsHandlersDeps) {
     listFiles: listFilesHandler,
     downloadFile: downloadFileHandler,
     deleteFile: deleteFileHandler,
+    exportSkill: exportSkillHandler,
   };
 }
 

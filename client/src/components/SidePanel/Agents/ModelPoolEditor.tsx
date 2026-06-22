@@ -1,83 +1,56 @@
-import React, { useCallback, useMemo } from 'react';
-import { useFieldArray, useWatch, useFormContext, Controller } from 'react-hook-form';
-import { Plus, Trash2, Info } from 'lucide-react';
-import { ControlCombobox } from '@librechat/client';
+import React, { useCallback, useMemo, useState } from 'react';
+import { useWatch, useFormContext } from 'react-hook-form';
+import { Info, Search, X } from 'lucide-react';
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+  Checkbox,
+  Label,
+} from '@librechat/client';
 import { EModelEndpoint, type OptionWithIcon } from 'librechat-data-provider';
 import { useGetModelsQuery } from 'librechat-data-provider/react-query';
 import { useGetEndpointsQuery } from '~/data-provider';
 import { useLocalize } from '~/hooks';
 import { icons } from '~/hooks/Endpoint/Icons';
 import type { AgentForm } from '~/common';
-
-type PoolEntry = { provider: string; model: string };
-
+import { defaultTextProps, removeFocusOutlines } from '~/utils';
 /**
  * Round-robin model pool editor.
  *
- * Sits diretamente below the singular "Model" picker in the agent
- * editor. Lets the operator add/remove (provider, model) pairs;
- * each pair is a candidate the runtime picks from on every
- * request via an atomic counter (see
- * `packages/api/src/agents/pool.ts`).
- *
- * The singular `provider`/`model` fields remain the fallback when
- * the pool is empty, so this is purely additive — existing agents
- * with no pool keep their current behavior.
- *
- * The list is rendered as a vertical stack of (provider, model)
- * combos. Each row has a delete button; a footer "+ Adicionar"
- * button appends a new entry pre-seeded with the singular
- * `provider` so a user with a working model can replicate it as
- * a pool entry in one click.
+ * Sits directly below the singular "Model" picker in the agent
+ * editor. Lets the operator manage (provider, model) pairs via
+ * an accordion of providers and checkboxes for their models.
  */
 const ModelPoolEditor: React.FC = () => {
   const localize = useLocalize();
   const { control, setValue } = useFormContext<AgentForm>();
-  const { fields, append, remove } = useFieldArray<AgentForm, 'models'>({
-    control,
-    name: 'models',
-  });
+
+  const [searchQuery, setSearchQuery] = useState('');
 
   const { data: endpointsConfig } = useGetEndpointsQuery();
-  /**
-   * Live model catalog. `useGetModelsQuery` returns the full
-   * `Record<provider, string[]>` so the model dropdown updates
-   * the moment the user switches the provider on a row — same
-   * pattern AgentPanel.tsx uses for the singular picker. We
-   * intentionally do NOT scope this query to a single provider
-   * (it doesn't accept a param), but the catalog is fetched
-   * once on app load and cached, so the per-row filtering is
-   * free.
-   */
   const { data: modelsConfig } = useGetModelsQuery();
 
-  // Singular provider/model — used as the seed for new pool entries
-  // and as the list of available models for the provider dropdown.
-  const singularProvider = useWatch({ control, name: 'provider' });
-  const singularModel = useWatch({ control, name: 'model' });
+  const rawModels = useWatch({ control, name: 'models' });
+  const models = useMemo(() => rawModels || [], [rawModels]);
 
   const providerOptions: OptionWithIcon[] = useMemo(() => {
-    if (!endpointsConfig) return [];
+    if (!endpointsConfig) {
+      return [];
+    }
     return Object.entries(endpointsConfig)
       .filter(([key, value]) => key !== EModelEndpoint.agents && value?.type)
       .map(([key, value]) => {
         const endpoint = value as { title?: string; name?: string; iconURL?: string };
-        // Icon resolution order:
-        // 1. Static branded-SVG map (openai / anthropic / google /
-        //    etc) — covers the first-party endpoints with the
-        //    correct SVG component, no network fetch.
-        // 2. Endpoint's remote `iconURL` (custom providers that
-        //    ship their own asset) — render as <img>.
-        // 3. None — the dropdown shows a neutral placeholder.
         const IconComp =
-          (icons as Record<string, React.ComponentType<{ className?: string }>>)[key]
-          ?? (icons as Record<string, React.ComponentType<{ className?: string }>>).unknown;
+          (icons as Record<string, React.ComponentType<{ className?: string }>>)[key] ??
+          (icons as Record<string, React.ComponentType<{ className?: string }>>).unknown;
         let iconNode: React.ReactNode = null;
         if (IconComp) {
           iconNode = <IconComp className="h-4 w-4" />;
         } else if (endpoint.iconURL) {
           iconNode = (
-            // eslint-disable-next-line @next/next/no-img-element
             <img src={endpoint.iconURL} alt="" className="h-4 w-4 rounded-sm object-contain" />
           );
         }
@@ -89,51 +62,74 @@ const ModelPoolEditor: React.FC = () => {
       });
   }, [endpointsConfig]);
 
-  const singularProviderValue = useMemo(() => {
-    if (typeof singularProvider === 'string') return singularProvider;
-    return (singularProvider as { value?: string } | undefined)?.value ?? '';
-  }, [singularProvider]);
-
-  /**
-   * Build the model option list for a given provider. We
-   * prefer the agents-capability-filtered list (`modelsConfig`)
-   * because that's what the AgentPanel uses and what actually
-   * ships through the runtime ACL. If absent, fall back to
-   * the endpoint-level list. The function recomputes when
-   * either source changes, so swapping a row's provider
-   * refreshes the model dropdown immediately.
-   */
   const modelsForProvider = useCallback(
     (provider: string): OptionWithIcon[] => {
-      if (!provider) return [];
+      if (!provider) {
+        return [];
+      }
       const names = (modelsConfig?.[provider] ?? []) as string[];
-      if (names.length > 0) return names.map((m) => ({ value: m, label: m }));
-      // Final fallback: endpoint-level list. The agents config
-      // shape can vary, so this stays loose.
+      if (names.length > 0) {
+        return names.map((m) => ({ value: m, label: m }));
+      }
+
       const endpointList = (endpointsConfig as Record<string, { models?: string[] }> | undefined)?.[
         provider
       ]?.models;
-      return Array.isArray(endpointList)
-        ? endpointList.map((m) => ({ value: m, label: m }))
-        : [];
+      return Array.isArray(endpointList) ? endpointList.map((m) => ({ value: m, label: m })) : [];
     },
     [modelsConfig, endpointsConfig],
   );
 
-  const handleAdd = useCallback(() => {
-    const seed: PoolEntry = {
-      provider: singularProviderValue || '',
-      model: singularModel || '',
-    };
-    append(seed);
-  }, [append, singularProviderValue, singularModel]);
+  const modelsForProviderWithLegacy = useCallback(
+    (provider: string): OptionWithIcon[] => {
+      const catalog = modelsForProvider(provider);
+      const legacy = models
+        .filter((entry) => entry.provider === provider)
+        .map((entry) => entry.model)
+        .filter((modelName) => !catalog.some((c) => c.value === modelName));
 
-  const addDisabled = !singularProviderValue && fields.length === 0;
+      const legacyOptions = legacy.map((m) => ({
+        value: m,
+        label: `${m} (${localize('com_ui_legacy') || 'legacy'})`,
+      }));
+
+      return [...catalog, ...legacyOptions];
+    },
+    [modelsForProvider, models, localize],
+  );
+
+  const filteredProviders = useMemo(() => {
+    return providerOptions.filter((provider) => {
+      const allModels = modelsForProviderWithLegacy(provider.value);
+      const matchingModels = allModels.filter((m) =>
+        m.value.toLowerCase().includes(searchQuery.toLowerCase()),
+      );
+      const matchesProvider = provider.label.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesProvider || matchingModels.length > 0;
+    });
+  }, [providerOptions, modelsForProviderWithLegacy, searchQuery]);
+
+  const handleToggle = useCallback(
+    (provider: string, model: string, checked: boolean) => {
+      if (checked) {
+        if (!models.some((entry) => entry.provider === provider && entry.model === model)) {
+          setValue('models', [...models, { provider, model }], { shouldDirty: true });
+        }
+      } else {
+        setValue(
+          'models',
+          models.filter((entry) => !(entry.provider === provider && entry.model === model)),
+          { shouldDirty: true },
+        );
+      }
+    },
+    [models, setValue],
+  );
 
   return (
     <div className="mb-4">
       <div className="mb-2 flex items-center gap-1.5">
-        <label className="block text-sm font-medium text-token-text-primary">
+        <label className="text-token-text-primary block text-sm font-medium">
           {localize('com_ui_model_pool_label')}
         </label>
         <span
@@ -145,135 +141,180 @@ const ModelPoolEditor: React.FC = () => {
         </span>
       </div>
 
-      {fields.length === 0 ? (
-        <p className="mb-2 text-xs text-text-secondary">
-          {localize('com_ui_model_pool_empty')}
-        </p>
-      ) : (
-        <ul className="mb-2 flex flex-col gap-2">
-          {fields.map((field, index) => (
-            <PoolRow
-              key={field.id}
-              index={index}
-              control={control}
-              setValue={setValue}
-              onRemove={() => remove(index)}
-              providerOptions={providerOptions}
-              modelsForProvider={modelsForProvider}
-            />
-          ))}
-        </ul>
+      {/* Selected Models Summary */}
+      {models.length > 0 && (
+        <div className="mb-4">
+          <div className="mb-1.5 text-xs font-semibold text-text-secondary">
+            {localize('com_ui_selected_models') || 'Selected models'} ({models.length}):
+          </div>
+          <div className="bg-surface-secondary/50 flex max-h-36 flex-wrap gap-1.5 overflow-y-auto rounded-md border border-border-light p-1.5">
+            {models.map((entry, idx) => (
+              <div
+                key={`${entry.provider}-${entry.model}-${idx}`}
+                className="text-token-text-primary flex items-center gap-1 rounded border border-border-light bg-surface-primary px-2 py-0.5 text-xs"
+              >
+                <span className="font-semibold text-text-secondary">{entry.provider}:</span>
+                <span className="break-all">{entry.model}</span>
+                <button
+                  type="button"
+                  onClick={() => handleToggle(entry.provider, entry.model, false)}
+                  className="ml-1 text-text-secondary transition-colors hover:text-red-500"
+                  aria-label={localize('com_ui_delete') || 'Delete'}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
-      <button
-        type="button"
-        onClick={handleAdd}
-        disabled={addDisabled}
-        className="btn btn-neutral border-token-border-light relative h-8 w-full rounded-lg text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        <Plus className="mr-1 inline-block h-3.5 w-3.5" aria-hidden="true" />
-        {localize('com_ui_model_pool_add')}
-      </button>
-    </div>
-  );
-};
-
-interface PoolRowProps {
-  index: number;
-  control: ReturnType<typeof useFormContext<AgentForm>>['control'];
-  setValue: ReturnType<typeof useFormContext<AgentForm>>['setValue'];
-  onRemove: () => void;
-  providerOptions: OptionWithIcon[];
-  modelsForProvider: (provider: string) => OptionWithIcon[];
-}
-
-const PoolRow: React.FC<PoolRowProps> = ({
-  index,
-  control,
-  setValue,
-  onRemove,
-  providerOptions,
-  modelsForProvider,
-}) => {
-  const localize = useLocalize();
-  const providerPath = `models.${index}.provider` as const;
-  const modelPath = `models.${index}.model` as const;
-  const rowProvider = useWatch({ control, name: providerPath });
-  const rowModel = useWatch({ control, name: modelPath });
-
-  const rowProviderValue = useMemo(() => {
-    if (typeof rowProvider === 'string') return rowProvider;
-    return (rowProvider as { value?: string } | undefined)?.value ?? '';
-  }, [rowProvider]);
-
-  const rowModelValue = typeof rowModel === 'string' ? rowModel : '';
-
-  const modelOptions = useMemo(
-    () => modelsForProvider(rowProviderValue),
-    [modelsForProvider, rowProviderValue],
-  );
-
-  const handleProviderChange = useCallback(
-    (next: string) => {
-      setValue(providerPath, next);
-      // Clear the model when the provider changes so the dropdown
-      // doesn't silently carry a model name that the new provider
-      // doesn't actually have. The next open of the combobox
-      // will show the right model list.
-      setValue(modelPath, '');
-    },
-    [setValue, providerPath, modelPath],
-  );
-
-  return (
-    <li className="flex items-start gap-2 rounded-md border border-border-light bg-surface-secondary p-2">
-      <div className="flex flex-1 flex-col gap-2">
-        <Controller
-          control={control}
-          name={providerPath}
-          render={({ field }) => (
-            <ControlCombobox
-              selectedValue={rowProviderValue}
-              setValue={(v) => {
-                field.onChange(v);
-                handleProviderChange(v);
-              }}
-              items={providerOptions}
-              ariaLabel={localize('com_ui_provider')}
-              selectPlaceholder={localize('com_ui_select_provider')}
-              isCollapsed={false}
-              showCarat
-            />
-          )}
+      {/* Search Bar */}
+      <div className="relative mb-3">
+        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-text-secondary">
+          <Search className="h-4 w-4" />
+        </span>
+        <input
+          type="text"
+          placeholder={localize('com_ui_search') || 'Search'}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className={`${defaultTextProps} ${removeFocusOutlines} flex w-full rounded-md border-border-light bg-surface-secondary py-1.5 pl-9 pr-3 text-sm focus-visible:ring-2 focus-visible:ring-ring-primary`}
         />
-        <Controller
-          control={control}
-          name={modelPath}
-          render={({ field }) => (
-            <ControlCombobox
-              selectedValue={rowModelValue}
-              setValue={(v) => {
-                field.onChange(v);
-                setValue(modelPath, v);
-              }}
-              items={modelOptions}
-              ariaLabel={localize('com_ui_model')}
-              selectPlaceholder={localize('com_ui_select_model')}
-              isCollapsed={false}
-              showCarat
-            />
-          )}
-        />
+        {searchQuery && (
+          <button
+            type="button"
+            onClick={() => setSearchQuery('')}
+            className="hover:text-token-text-primary absolute inset-y-0 right-0 flex items-center pr-3 text-text-secondary"
+            aria-label={localize('com_agents_clear_search') || 'Clear search'}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
       </div>
-      <button
-        type="button"
-        onClick={onRemove}
-        aria-label={localize('com_ui_delete')}
-        className="mt-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-red-500 transition-colors hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/30"
-      >
-        <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-      </button>
-    </li>
+
+      {filteredProviders.length === 0 ? (
+        <p className="mb-2 text-xs text-text-secondary">
+          {localize('com_ui_no_results') || 'No results found'}
+        </p>
+      ) : (
+        <Accordion
+          type="multiple"
+          className="bg-surface-secondary/20 w-full overflow-hidden rounded-md border border-border-light"
+        >
+          {filteredProviders.map((provider) => {
+            const allModels = modelsForProviderWithLegacy(provider.value);
+            const matchingModels = allModels.filter((m) =>
+              m.value.toLowerCase().includes(searchQuery.toLowerCase()),
+            );
+
+            const activeModelsForProvider = models.filter(
+              (entry) => entry.provider === provider.value,
+            );
+            const activeCount = activeModelsForProvider.length;
+            const totalCount = allModels.length;
+
+            const isAllChecked =
+              matchingModels.length > 0 &&
+              matchingModels.every((m) =>
+                models.some(
+                  (entry) => entry.provider === provider.value && entry.model === m.value,
+                ),
+              );
+
+            const handleSelectAll = (checked: boolean) => {
+              let nextModels = [...models];
+              if (checked) {
+                matchingModels.forEach((m) => {
+                  if (
+                    !nextModels.some(
+                      (entry) => entry.provider === provider.value && entry.model === m.value,
+                    )
+                  ) {
+                    nextModels.push({ provider: provider.value, model: m.value });
+                  }
+                });
+              } else {
+                nextModels = nextModels.filter(
+                  (entry) =>
+                    !(
+                      entry.provider === provider.value &&
+                      matchingModels.some((m) => m.value === entry.model)
+                    ),
+                );
+              }
+              setValue('models', nextModels, { shouldDirty: true });
+            };
+
+            return (
+              <AccordionItem
+                key={provider.value}
+                value={provider.value}
+                className="border-b border-border-light last:border-0"
+              >
+                <AccordionTrigger className="text-token-text-primary hover:bg-surface-secondary/40 px-3 py-2.5 text-sm font-semibold transition-colors hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    {provider.icon}
+                    <span>{provider.label}</span>
+                    <span className="text-xs font-normal text-text-secondary">
+                      ({activeCount}/{totalCount})
+                    </span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-3 pb-3 pt-1">
+                  <div className="flex flex-col gap-2">
+                    {matchingModels.length > 1 && (
+                      <>
+                        <div className="flex items-center gap-2.5 py-1">
+                          <Checkbox
+                            id={`select-all-${provider.value}`}
+                            checked={isAllChecked}
+                            onCheckedChange={handleSelectAll}
+                            aria-label={localize('com_ui_select_all') || 'Select All'}
+                          />
+                          <Label
+                            htmlFor={`select-all-${provider.value}`}
+                            className="cursor-pointer select-none text-xs font-semibold text-text-secondary"
+                          >
+                            {localize('com_ui_select_all') || 'Select All'}
+                          </Label>
+                        </div>
+                        <div className="border-border-light/50 my-0.5 border-t" />
+                      </>
+                    )}
+
+                    {matchingModels.map((m) => {
+                      const isSelected = models.some(
+                        (entry) => entry.provider === provider.value && entry.model === m.value,
+                      );
+                      const checkboxId = `model-checkbox-${provider.value}-${m.value}`;
+                      return (
+                        <div key={m.value} className="flex items-center gap-2.5 py-1">
+                          <Checkbox
+                            id={checkboxId}
+                            checked={isSelected}
+                            onCheckedChange={(checked) =>
+                              handleToggle(provider.value, m.value, !!checked)
+                            }
+                            aria-label={m.label}
+                          />
+                          <Label
+                            htmlFor={checkboxId}
+                            className="text-token-text-primary grow cursor-pointer select-none break-all text-sm font-normal"
+                          >
+                            {m.label}
+                          </Label>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            );
+          })}
+        </Accordion>
+      )}
+    </div>
   );
 };
 

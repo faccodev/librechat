@@ -20,7 +20,8 @@ import {
 import MCPIntegrationsPanel from './MCPIntegrationsPanel';
 import { OGDialog, OGDialogContent, OGDialogTitle, useToastContext } from '@librechat/client';
 import { SystemRoles } from 'librechat-data-provider';
-import { useAuthContext, useGetStartupConfig, useLocalize } from '~/hooks';
+import { useAuthContext, useLocalize } from '~/hooks';
+import { useGetStartupConfig } from '~/data-provider';
 import {
   useAdminUsers,
   useAdminUsersSearch,
@@ -740,10 +741,10 @@ function InterfacePanel() {
         <div className="flex-1">
           <p className="text-sm font-medium">Exibir lista de provedores</p>
           <p className="mt-1 text-xs text-text-secondary">
-            Quando <strong>ativado</strong>, o seletor mostra provedores (OpenAI, Anthropic, etc.)
-            para admins. Quando <strong>desativado</strong>, o seletor mostra apenas os agents —
-            ideal para setups que roteiam toda conversa via agent. Usuários não-admin sempre veem
-            somente agents.
+            Quando <strong>ativado</strong>, todos os usuários podem visualizar e selecionar
+            provedores (OpenAI, Anthropic, etc.). Quando <strong>desativado</strong>, apenas
+            administradores veem a lista de provedores, enquanto usuários comuns ficam limitados a
+            visualizar e interagir somente com agents predefinidos.
           </p>
         </div>
         <button
@@ -752,8 +753,8 @@ function InterfacePanel() {
           aria-checked={enabled}
           disabled={saving}
           onClick={() => setEnabled((v) => !v)}
-          className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 ${
-            enabled ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-600'
+          className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-2 disabled:opacity-50 ${
+            enabled ? 'bg-brand-purple' : 'bg-gray-300 dark:bg-gray-600'
           }`}
         >
           <span

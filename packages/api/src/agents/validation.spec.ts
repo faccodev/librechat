@@ -129,8 +129,8 @@ describe('agent schemas with model pool (round-robin)', () => {
     expect(result.success).toBe(false);
   });
 
-  it('rejects a pool larger than the 32-entry cap', () => {
-    const oversized = Array.from({ length: 33 }, (_, i) => ({
+  it('rejects a pool larger than the 256-entry cap', () => {
+    const oversized = Array.from({ length: 257 }, (_, i) => ({
       provider: 'openAI',
       model: `gpt-4o-${i}`,
     }));
@@ -143,8 +143,8 @@ describe('agent schemas with model pool (round-robin)', () => {
     expect(result.success).toBe(false);
   });
 
-  it('accepts a pool at the 32-entry boundary', () => {
-    const boundary = Array.from({ length: 32 }, (_, i) => ({
+  it('accepts a pool at the 256-entry boundary', () => {
+    const boundary = Array.from({ length: 256 }, (_, i) => ({
       provider: 'openAI',
       model: `gpt-4o-${i}`,
     }));

@@ -7,7 +7,7 @@ import type { TModelSpec } from 'librechat-data-provider';
 import type { Endpoint } from '~/common';
 import { CustomMenu as Menu, CustomMenuItem as MenuItem } from '../CustomMenu';
 import { useModelSelectorContext } from '../ModelSelectorContext';
-import { renderEndpointModels } from './EndpointModelItem';
+import { EndpointModelItem, renderEndpointModels } from './EndpointModelItem';
 import { ModelSpecItem } from './ModelSpecItem';
 import { filterModels } from '../utils';
 import { useLocalize } from '~/hooks';
@@ -247,11 +247,22 @@ export function EndpointItem({ endpoint, endpointIndex }: EndpointItemProps) {
 }
 
 export function renderEndpoints(mappedEndpoints: Endpoint[]) {
-  return mappedEndpoints.map((endpoint, index) => (
-    <EndpointItem
-      endpoint={endpoint}
-      endpointIndex={index}
-      key={`endpoint-${endpoint.value}-${index}`}
-    />
-  ));
+  return mappedEndpoints.flatMap((endpoint, index) => {
+    if (isAgentsEndpoint(endpoint.value)) {
+      return (endpoint.models || []).map((model, modelIndex) => (
+        <EndpointModelItem
+          key={`${endpoint.value}-${model.name}-${modelIndex}`}
+          modelId={model.name}
+          endpoint={endpoint}
+        />
+      ));
+    }
+    return (
+      <EndpointItem
+        endpoint={endpoint}
+        endpointIndex={index}
+        key={`endpoint-${endpoint.value}-${index}`}
+      />
+    );
+  });
 }

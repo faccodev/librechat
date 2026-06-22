@@ -1022,6 +1022,15 @@ export function getSkill(id: string): Promise<sk.TSkill> {
   return request.get(endpoints.getSkill(id));
 }
 
+export function exportSkill(id: string): Promise<AxiosResponse> {
+  return request.getResponse(`${endpoints.getSkill(id)}/export`, {
+    responseType: 'blob',
+    headers: {
+      Accept: 'application/zip',
+    },
+  });
+}
+
 export function createSkill(payload: sk.TCreateSkill): Promise<sk.TSkill> {
   return request.post(endpoints.skills(), payload);
 }

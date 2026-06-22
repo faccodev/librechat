@@ -130,10 +130,10 @@ export const agentBaseSchema = z.object({
    * `provider`+`model` fields are the legacy fallback (also used as the
    * default if the pool is empty), so this is purely additive.
    *
-   * Capped at 32 entries to keep validation memory bounded and to make
-   * the worst-case retry sequence (32 hops) tractable for operators.
+   * Capped at 256 entries to keep validation memory bounded and to make
+   * the worst-case retry sequence (256 hops) tractable for operators.
    */
-  models: z.array(agentModelPoolEntrySchema).max(32).optional(),
+  models: z.array(agentModelPoolEntrySchema).max(256).optional(),
 });
 
 /** Create schema extends base with required fields for creation */

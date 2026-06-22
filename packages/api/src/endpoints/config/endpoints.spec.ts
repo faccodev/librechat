@@ -42,7 +42,16 @@ type ConfigPrincipals = NonNullable<Parameters<AppConfigServiceDeps['getApplicab
 
 function createMockDeps(overrides: Partial<EndpointsConfigDeps> = {}): EndpointsConfigDeps {
   return {
-    getAppConfig: jest.fn().mockResolvedValue(appConfig({ endpoints: {} })),
+    getAppConfig: jest.fn().mockResolvedValue(
+      appConfig({
+        endpoints: {
+          [EModelEndpoint.openAI]: {},
+          [EModelEndpoint.assistants]: {},
+          [EModelEndpoint.google]: {},
+          [EModelEndpoint.anthropic]: {},
+        },
+      }),
+    ),
     loadDefaultEndpointsConfig: jest.fn().mockResolvedValue({
       [EModelEndpoint.openAI]: { userProvide: false, order: 0 },
     }),

@@ -18,6 +18,6 @@ module.exports = {
    * rebuild.
    */
   imageOutput: path.resolve(__dirname, '..', '..', 'uploads', 'images'),
-  structuredTools: path.resolve(__dirname, '..', '..', 'app', 'clients', 'tools', 'structured'),
+  structuredTools: path.resolve(__dirname, '..', 'app', 'clients', 'tools', 'structured'),
   pluginManifest: path.resolve(__dirname, '..', 'app', 'clients', 'tools', 'manifest.json'),
 };
