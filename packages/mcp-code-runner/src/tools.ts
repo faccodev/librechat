@@ -17,13 +17,38 @@ const WORKSPACE_HINT =
   "Empty workspaceSubdir means the workspace root (/workspaces itself). " +
   "Absolute paths and `..` traversal are rejected by the runner for safety.";
 
+/**
+ * Description block that tells the agent it can run `git` CLI directly
+ * via `run_code`/`run_file` — no need to fall back to the `github` MCP
+ * (which only exposes the REST API and cannot create a local working
+ * copy). The executor image bakes git in via `apk add git`, so `git
+ * clone`, `git pull`, `git checkout`, `git status`, `git log`, `git
+ * diff`, `git add`, `git commit`, `git push` are all available. Auth
+ * piggybacks on the user's `GITHUB_PERSONAL_ACCESS_TOKEN` env var when
+ * the runner container inherits it from the api container; otherwise
+ * embed the token in the clone URL using the
+ * `https://x-access-token:<PAT>@github.com/owner/repo.git` form.
+ */
+const GIT_HINT =
+  "Git CLI is pre-installed in the executor (apk add git in the alpine image). " +
+  "Use language: \"sh\" + a single git invocation per call — e.g. " +
+  "\"git clone https://github.com/owner/repo.git\", " +
+  "\"git -C /workspace/repo pull\", \"git -C /workspace/repo checkout -b feat/x\", " +
+  "\"git -C /workspace/repo status\", \"git -C /workspace/repo log --oneline -n 20\". " +
+  "For HTTPS auth, embed a personal access token in the clone URL as " +
+  "\"https://x-access-token:<PAT>@github.com/owner/repo.git\" — do NOT prompt the user " +
+  "for credentials. Do NOT use the `github` MCP for clone/checkout/pull/commit/push; " +
+  "that MCP only wraps the REST API and has no working-copy operations.";
+
 export const TOOLS = [
   {
     name: "run_code",
     description:
       "Executes a block of Node.js, Python, or Shell code inside an isolated Docker container " +
       "scoped to the user's workspace directory. " +
-      WORKSPACE_HINT,
+      WORKSPACE_HINT +
+      " " +
+      GIT_HINT,
     inputSchema: {
       type: "object",
       properties: {
@@ -57,7 +82,9 @@ export const TOOLS = [
     name: "run_file",
     description:
       "Executes an existing script file in the user's workspace directory. " +
-      WORKSPACE_HINT,
+      WORKSPACE_HINT +
+      " " +
+      GIT_HINT,
     inputSchema: {
       type: "object",
       properties: {
