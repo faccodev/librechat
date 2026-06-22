@@ -9,6 +9,7 @@ import { createAgentModel } from './agent';
 import { createAgentApiKeyModel } from './agentApiKey';
 import { createAgentCategoryModel } from './agentCategory';
 import { createMCPServerModel } from './mcpServer';
+import { createMCPIntegrationModel } from './mcpIntegration';
 import { createRoleModel } from './role';
 import { createActionModel } from './action';
 import { createAssistantModel } from './assistant';
@@ -48,6 +49,7 @@ export function createModels(mongoose: typeof import('mongoose')) {
     AgentApiKey: createAgentApiKeyModel(mongoose),
     AgentCategory: createAgentCategoryModel(mongoose),
     MCPServer: createMCPServerModel(mongoose),
+    MCPIntegration: createMCPIntegrationModel(mongoose),
     Role: createRoleModel(mongoose),
     Action: createActionModel(mongoose),
     Assistant: createAssistantModel(mongoose),

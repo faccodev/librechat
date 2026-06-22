@@ -216,6 +216,7 @@ const startServer = async () => {
   app.use('/api/admin/branding', routes.adminBranding);
   app.use('/api/admin/grants', routes.adminGrants);
   app.use('/api/admin/groups', routes.adminGroups);
+  app.use('/api/admin/mcp-integrations', routes.adminMCPIntegrations);
   app.use('/api/admin/roles', routes.adminRoles);
   app.use('/api/admin/users', routes.adminUsers);
   app.use('/api/admin/users', routes.adminWorkspaces);
