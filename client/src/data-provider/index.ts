@@ -17,6 +17,7 @@ export * from './queries';
 export * from './roles';
 export * from './tags';
 export * from './MCP';
+export * from './MCPIntegrations';
 export * from './SSE';
 export * from './Workspaces';
 export * from './Admin';

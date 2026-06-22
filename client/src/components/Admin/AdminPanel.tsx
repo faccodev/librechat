@@ -17,6 +17,7 @@ import {
   Trash2,
   KeyRound,
 } from 'lucide-react';
+import MCPIntegrationsPanel from './MCPIntegrationsPanel';
 import { OGDialog, OGDialogContent, OGDialogTitle, useToastContext } from '@librechat/client';
 import { SystemRoles } from 'librechat-data-provider';
 import { useAuthContext, useGetStartupConfig, useLocalize } from '~/hooks';
@@ -35,7 +36,7 @@ import BrandingPanel from './BrandingPanel';
 const PAGE_SIZE = 20;
 
 /* ─── Nav items ─────────────────────────────────────────────────────────── */
-type NavSection = 'users' | 'whitelabel' | 'interface';
+type NavSection = 'users' | 'whitelabel' | 'interface' | 'mcp-integrations';
 
 interface NavItem {
   id: NavSection;
@@ -791,6 +792,7 @@ export default function AdminPanel({ open, onOpenChange }: AdminPanelProps) {
   const navItems: NavItem[] = [
     { id: 'users', label: 'Usuários', icon: Users },
     { id: 'whitelabel', label: 'Whitelabel', icon: Palette },
+    { id: 'mcp-integrations', label: 'MCP Keys', icon: KeyRound },
     { id: 'interface', label: 'Interface', icon: Settings },
   ];
 
@@ -846,6 +848,7 @@ export default function AdminPanel({ open, onOpenChange }: AdminPanelProps) {
                 <BrandingPanel />
               </div>
             )}
+            {activeSection === 'mcp-integrations' && <MCPIntegrationsPanel />}
             {activeSection === 'interface' && (
               <div className="flex-1 overflow-y-auto p-6">
                 <InterfacePanel />

@@ -235,6 +235,11 @@ export const cancelMCPOAuth = (serverName: string) => {
 
 export const mcpOAuthBind = (serverName: string) => `${BASE_URL}/api/mcp/${serverName}/oauth/bind`;
 
+/* MCP Integrations (admin-managed; credentials at rest are encrypted) */
+export const mcpIntegrations = () => `${BASE_URL}/api/admin/mcp-integrations`;
+export const mcpIntegration = (name: string) =>
+  `${BASE_URL}/api/admin/mcp-integrations/${encodeURIComponent(name)}`;
+
 export const actionOAuthBind = (actionId: string) =>
   `${BASE_URL}/api/actions/${actionId}/oauth/bind`;
 

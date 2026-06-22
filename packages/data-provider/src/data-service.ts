@@ -1492,4 +1492,29 @@ export function updateAdminBranding(data: Partial<BrandingResponse>): Promise<Br
   return request.put(endpoints.adminBranding(), data);
 }
 
+/* MCP Integrations (admin-managed; encrypted at rest) */
+import type {
+  MCPIntegrationDetail,
+  MCPIntegrationListResponse,
+  MCPIntegrationUpsertPayload,
+} from './types/mcpIntegrations';
+
+export function listMCPIntegrations(): Promise<MCPIntegrationListResponse> {
+  return request.get(endpoints.mcpIntegrations());
+}
+
+export function getMCPIntegration(name: string): Promise<MCPIntegrationDetail> {
+  return request.get(endpoints.mcpIntegration(name));
+}
+
+export function upsertMCPIntegration(
+  variables: { name: string; payload: MCPIntegrationUpsertPayload },
+): Promise<MCPIntegrationDetail> {
+  return request.put(endpoints.mcpIntegration(variables.name), variables.payload);
+}
+
+export function removeMCPIntegration(name: string): Promise<{ removed: boolean; name: string }> {
+  return request.delete(endpoints.mcpIntegration(name));
+}
+
 

@@ -70,6 +70,9 @@ export enum QueryKeys {
   /* MCP Servers */
   mcpServers = 'mcpServers',
   mcpServer = 'mcpServer',
+  /* MCP Integrations (admin-managed; encrypted credentials) */
+  mcpIntegrations = 'mcpIntegrations',
+  mcpIntegration = 'mcpIntegration',
   /* Active Jobs */
   activeJobs = 'activeJobs',
   /* Agent API Keys */
