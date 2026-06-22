@@ -746,10 +746,12 @@ const createResponse = async (req, res) => {
               conversationId,
             },
             user: { id: userId },
+            req,
+            db: dbMethods,
           });
 
           if (!run) {
-            throw new Error('Failed to create agent run');
+            throw new Error('Failed to create run');
           }
 
           // Process the stream
@@ -935,6 +937,8 @@ const createResponse = async (req, res) => {
               conversationId,
             },
             user: { id: userId },
+            req,
+            db: dbMethods,
           });
 
           if (!run) {

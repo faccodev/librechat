@@ -40,6 +40,7 @@ import {
   writeSSE,
 } from './handlers';
 import { createSafeUser } from '~/utils';
+import type { EndpointDbMethods } from '~/types';
 import type { ToolExecuteOptions } from '../handlers';
 
 /**
@@ -82,6 +83,15 @@ export interface ChatCompletionDependencies {
   appConfig?: AppConfig;
   /** Tool execute options for event-driven tool execution */
   toolExecuteOptions?: ToolExecuteOptions;
+  /**
+   * DB methods needed by `createRun` when a round-robin pool entry targets
+   * a provider different from the agent's legacy `provider` — required so
+   * the pool re-resolver can look up user-provided credentials via
+   * `getUserKeyValues`. Optional; when omitted, the pool falls back to a
+   * best-effort inline path that only resolves env-based credentials and
+   * always overlays the pool entry's `model` on the legacy parameters.
+   */
+  db?: EndpointDbMethods;
 }
 
 /**
@@ -176,6 +186,8 @@ type CreateRunFn = (params: {
   requestBody: Record<string, unknown>;
   user: Record<string, unknown>;
   tokenCounter?: (message: unknown) => number;
+  req?: Request;
+  db?: EndpointDbMethods;
 }) => Promise<{
   Graph?: unknown;
   processStream: (
@@ -524,6 +536,8 @@ export async function createAgentChatCompletion(
           conversationId,
         },
         user: safeUser,
+        req,
+        db: deps.db,
       });
 
       if (run) {

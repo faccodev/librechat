@@ -70,6 +70,18 @@ const BaseClient = require('~/app/clients/BaseClient');
 const { getMCPManager } = require('~/config');
 const db = require('~/models');
 
+/**
+ * Subset of `db` consumed by `createRun` when a round-robin pool entry
+ * targets a different provider than the agent's legacy `provider` —
+ * the pool re-resolves credentials (apiKey, baseURL) for the new
+ * provider, and `getUserKey` + `getUserKeyValues` are the DB hooks
+ * `initializeCustom` / `initializeOpenAI` use internally.
+ */
+const dbMethods = {
+  getUserKey: db.getUserKey,
+  getUserKeyValues: db.getUserKeyValues,
+};
+
 const loadAgent = (params) => loadAgentFn(params, { getAgent: db.getAgent, getMCPServerTools });
 
 class AgentClient extends BaseClient {
@@ -1114,6 +1126,8 @@ class AgentClient extends BaseClient {
               summarizationConfig: appConfig?.summarization,
               appConfig,
               tokenCounter,
+              req: this.options.req,
+              db: dbMethods,
             });
 
             if (!attemptRun) {

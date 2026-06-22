@@ -31,6 +31,7 @@ import type {
 } from 'librechat-data-provider';
 import type { BaseMessage } from '@librechat/agents/langchain/messages';
 import type { AppConfig, IUser } from '@librechat/data-schemas';
+import type { EndpointDbMethods, ServerRequest } from '~/types';
 import type * as t from '~/types';
 import { getProviderConfig } from '~/endpoints/config/providers';
 import { resolveHeaders, createSafeUser } from '~/utils/env';
@@ -38,6 +39,7 @@ import { getOpenAIConfig } from '~/endpoints/openai/config';
 import { applyTestRunHook } from '~/agents/testHook';
 import { selectNextEntry } from '~/agents/pool';
 import { isUserProvided } from '~/utils/common';
+// `hasUnresolvedPlaceholder` is defined locally in this file (see below).
 
 /** Expected shape of JSON tool search results */
 interface ToolSearchJsonResult {
@@ -669,14 +671,14 @@ function anyAgentHasCodeEnv(agents: RunAgent[]): boolean {
  * explicit child agents loaded in `agent.subagentAgentConfigs`. Returns an empty
  * array when subagents are disabled or no spawn targets are available.
  */
-function buildSubagentConfigs(
+async function buildSubagentConfigs(
   agent: RunAgent,
   agentInput: AgentInputs,
-  toInput: (child: RunAgent, opts?: { isSubagent?: boolean }) => AgentInputs,
+  toInput: (child: RunAgent, opts?: { isSubagent?: boolean }) => Promise<AgentInputs>,
   state: SubagentBuildState,
   ancestors: Set<string> = new Set(),
   depth = 0,
-): SubagentConfig[] {
+): Promise<SubagentConfig[]> {
   if (!agent.subagents?.enabled) {
     return [];
   }
@@ -726,7 +728,7 @@ function buildSubagentConfigs(
      * skips both the field stamping and the registry mutation at the
      * source so children truly start fresh.
      */
-    const childInputs = toInput(child, { isSubagent: true });
+    const childInputs = await toInput(child, { isSubagent: true });
     /**
      * Recursively resolve the child's own spawn targets so multi-level
      * delegation (A → B → C) works. Without this, a child whose own
@@ -735,7 +737,7 @@ function buildSubagentConfigs(
      * `subagentConfigs`, and that only runs for the outer agents in
      * `agents[]`. Cycle-safe via `nextAncestors`.
      */
-    const grandchildConfigs = buildSubagentConfigs(
+    const grandchildConfigs = await buildSubagentConfigs(
       child,
       childInputs,
       toInput,
@@ -781,6 +783,8 @@ export async function createRun({
   messages,
   requestBody,
   user,
+  req,
+  db,
   tokenCounter,
   customHandlers,
   indexTokenCountMap,
@@ -799,6 +803,19 @@ export async function createRun({
   streamUsage?: boolean;
   requestBody?: t.RequestBody;
   user?: IUser;
+  /**
+   * Original Express request. Required when any agent in `agents` uses the
+   * round-robin model pool and a pool entry targets a provider different
+   * from the agent's legacy `provider` — the resolver needs `req.user.id`
+   * and `req.body.key` to look up user-provided credentials via
+   * `db.getUserKeyValues`. Without `req`/`db` the pool falls back to a
+   * best-effort path that only resolves env-based credentials and keeps
+   * the legacy apiKey/baseURL; the model is always overlaid with the
+   * pool entry's `model` regardless.
+   */
+  req?: ServerRequest;
+  /** DB methods for `getUserKeyValues` lookups during pool re-resolution. */
+  db?: EndpointDbMethods;
   /** Message history for extracting previously discovered tools */
   messages?: BaseMessage[];
   summarizationConfig?: SummarizationConfig;
@@ -830,7 +847,10 @@ export async function createRun({
       ? extractDiscoveredToolsFromHistory(messages)
       : new Set<string>();
 
-  const buildAgentInput = (agent: RunAgent, opts: { isSubagent?: boolean } = {}): AgentInputs => {
+  const buildAgentInput = async (
+    agent: RunAgent,
+    opts: { isSubagent?: boolean } = {},
+  ): Promise<AgentInputs> => {
     const isSubagent = opts.isSubagent === true;
 
     /**
@@ -851,8 +871,7 @@ export async function createRun({
      * flip-flop between providers, but a fresh request from a different
      * request will land on a different entry.
      */
-    const pool = (agent as { models?: Array<{ provider: string; model: string }> })
-      .models;
+    const pool = (agent as { models?: Array<{ provider: string; model: string }> }).models;
     const effective =
       pool && pool.length > 0
         ? selectNextEntry(agent.id, pool, {
@@ -861,10 +880,66 @@ export async function createRun({
           })
         : { provider: agent.provider as string, model: agent.model as string };
 
-    let resolvedProvider = effective.provider;
-    let resolvedModelParameters = agent.model_parameters;
+    const poolDiffersFromLegacy =
+      effective.provider !== agent.provider || effective.model !== agent.model;
 
-    if (effective.provider !== agent.provider || effective.model !== agent.model) {
+    let resolvedProvider = effective.provider;
+    let resolvedModelParameters: AgentModelParameters | undefined = poolDiffersFromLegacy
+      ? undefined
+      : agent.model_parameters;
+
+    if (poolDiffersFromLegacy && req && db) {
+      /**
+       * Re-run the canonical provider initializer for the pool entry's
+       * provider. This is the SAME `getOptions` call that
+       * `initializeAgent` runs for the legacy single-model flow, so the
+       * pool entry gets env-var expansion, user-provided credential
+       * lookup via `db.getUserKeyValues`, URL validation, token config
+       * fetching, header templating, customParams/dropParams/addParams
+       * wiring — all the pieces the inline `getOpenAIConfig` shim below
+       * leaves out. Without this, a pool entry targeting a different
+       * provider (e.g. legacy `openAI`, pool `anthropic`) would silently
+       * send the openAI apiKey/baseURL to the anthropic endpoint.
+       */
+      try {
+        const { overrideProvider, getOptions } = getProviderConfig({
+          provider: effective.provider,
+          appConfig,
+        });
+        resolvedProvider = overrideProvider;
+        const options = await getOptions({
+          req,
+          endpoint: effective.provider,
+          model_parameters: {
+            ...(agent.model_parameters ?? {}),
+            model: effective.model,
+          },
+          db,
+        });
+        const poolLlmConfig = options.llmConfig as Record<string, unknown>;
+        resolvedModelParameters = {
+          ...(agent.model_parameters ?? {}),
+          ...poolLlmConfig,
+          ...(options.configOptions ? { configuration: options.configOptions } : {}),
+        } as AgentModelParameters;
+      } catch (err) {
+        logger.warn(
+          `[createRun] failed to resolve pool provider "${effective.provider}" via getOptions; falling back to inline resolution`,
+          err,
+        );
+      }
+    }
+
+    if (poolDiffersFromLegacy && !resolvedModelParameters) {
+      /**
+       * Fallback path: `req`/`db` were not passed to `createRun` (older
+       * callers or tests), or `getOptions` threw. Recreate the previous
+       * inline behavior so the pool at least tries to apply the entry's
+       * credentials for env-based custom endpoints — built-in providers
+       * keep the legacy apiKey/baseURL (only the model gets overridden
+       * below). When this path is reached, user-provided credentials are
+       * not supported; the warn above already surfaces that to operators.
+       */
       try {
         const { overrideProvider, customEndpointConfig } = getProviderConfig({
           provider: effective.provider,
@@ -906,6 +981,14 @@ export async function createRun({
                 dropParams: customEndpointConfig.dropParams,
                 customParams: customEndpointConfig.customParams,
                 directEndpoint: customEndpointConfig.directEndpoint,
+                /**
+                 * `modelOptions` carries the pool entry's model through to
+                 * `getOpenAIConfig`, so the spread below doesn't blank it
+                 * out with `''` (the previous bug — `modelOptions` was
+                 * omitted entirely, so `llmConfig.model` came back as `''`
+                 * and overrode the legacy model with an empty string).
+                 */
+                modelOptions: { model: effective.model },
               },
               effective.provider,
             );
@@ -919,17 +1002,30 @@ export async function createRun({
         }
       } catch (err) {
         logger.warn(
-          `[createRun] failed to resolve pool provider "${effective.provider}"; falling back to raw values`,
+          `[createRun] inline fallback failed for pool provider "${effective.provider}"; legacy apiKey/baseURL will be used`,
           err,
         );
       }
     }
 
+    /**
+     * Always overlay the pool entry's `model` onto the resolved parameters,
+     * regardless of which resolution path produced them. This closes the
+     * "model not found" / empty-model gap when the pool entry is the only
+     * thing that changed (built-in providers with no custom endpoint, or
+     * paths where `getOptions`/`getOpenAIConfig` did not contribute a
+     * model).
+     */
+    const finalModelParameters: AgentModelParameters = {
+      ...(resolvedModelParameters ?? agent.model_parameters ?? {}),
+      ...(effective.model ? { model: effective.model } : {}),
+    };
+
     const scopedAgent: RunAgent = {
       ...agent,
       provider: resolvedProvider,
       model: effective.model,
-      model_parameters: resolvedModelParameters,
+      model_parameters: finalModelParameters,
     };
 
     const provider =
@@ -1089,8 +1185,8 @@ export async function createRun({
     rootAgentIds: agents.map((agent) => agent.id),
   };
   for (const agent of agents) {
-    const agentInput = buildAgentInput(agent);
-    const subagentConfigs = buildSubagentConfigs(
+    const agentInput = await buildAgentInput(agent);
+    const subagentConfigs = await buildSubagentConfigs(
       agent,
       agentInput,
       buildAgentInput,

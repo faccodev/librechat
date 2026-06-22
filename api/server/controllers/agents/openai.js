@@ -753,6 +753,8 @@ const OpenAIChatCompletionController = async (req, res) => {
             conversationId,
           },
           user: { id: userId },
+          req,
+          db: dbMethods,
         });
 
         if (!run) {
