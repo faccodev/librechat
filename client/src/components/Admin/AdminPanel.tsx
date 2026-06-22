@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import MCPIntegrationsPanel from './MCPIntegrationsPanel';
 import { OGDialog, OGDialogContent, OGDialogTitle, useToastContext } from '@librechat/client';
-import { SystemRoles } from 'librechat-data-provider';
+import { SystemRoles, request } from 'librechat-data-provider';
 import { useAuthContext, useLocalize } from '~/hooks';
 import { useGetStartupConfig } from '~/data-provider';
 import {
@@ -702,13 +702,8 @@ function InterfacePanel() {
       // admins fall back to the base config which stays at `true`. When
       // re-enabled, the override is removed so admins and users see
       // providers again.
-      await fetch('/api/admin/config/ROLE/USER/fields', {
-        method: 'PATCH',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          entries: [{ fieldPath: 'interface.showProvidersList', value: enabled }],
-        }),
+      await request.patch('/api/admin/config/ROLE/USER/fields', {
+        entries: [{ fieldPath: 'interface.showProvidersList', value: enabled }],
       });
       await refetch();
       showToast({
