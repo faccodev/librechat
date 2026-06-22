@@ -65,14 +65,14 @@ const saveLocalImage = async (req, file, filename) => {
  */
 async function saveLocalBuffer({ userId, buffer, fileName, basePath = 'images' }) {
   try {
-    const { publicPath, uploads } = paths;
+    const { imageOutput, uploads } = paths;
 
     /**
-     * For 'images': save to publicPath/images/userId (images are served statically)
+     * For 'images': save to imageOutput/userId (images are served statically at /images/)
      * For 'uploads': save to uploads/userId (files downloaded via API)
      * */
     const directoryPath =
-      basePath === 'images' ? path.join(publicPath, basePath, userId) : path.join(uploads, userId);
+      basePath === 'images' ? path.join(imageOutput, userId) : path.join(uploads, userId);
 
     if (!fs.existsSync(directoryPath)) {
       fs.mkdirSync(directoryPath, { recursive: true });
