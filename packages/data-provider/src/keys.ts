@@ -95,6 +95,9 @@ export enum QueryKeys {
   userWorkspace = 'userWorkspace',
   /* Admin users list */
   adminUsers = 'adminUsers',
+  /* CronJobs (admin-managed scheduled tasks) */
+  cronJobs = 'cronJobs',
+  cronJob = 'cronJob',
 }
 
 // Dynamic query keys that require parameters
@@ -146,4 +149,10 @@ export enum MutationKeys {
   renameWorkspaceNode = 'renameWorkspaceNode',
   moveWorkspaceNode = 'moveWorkspaceNode',
   deleteWorkspaceNodes = 'deleteWorkspaceNodes',
+  /* CronJob mutations */
+  createCronJob = 'createCronJob',
+  updateCronJob = 'updateCronJob',
+  toggleCronJob = 'toggleCronJob',
+  deleteCronJob = 'deleteCronJob',
+  runCronJobNow = 'runCronJobNow',
 }

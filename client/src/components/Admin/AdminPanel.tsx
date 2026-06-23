@@ -16,8 +16,10 @@ import {
   UserPlus,
   Trash2,
   KeyRound,
+  Clock,
 } from 'lucide-react';
 import MCPIntegrationsPanel from './MCPIntegrationsPanel';
+import CronJobsPanel from './CronJobsPanel';
 import { OGDialog, OGDialogContent, OGDialogTitle, useToastContext } from '@librechat/client';
 import { SystemRoles, request } from 'librechat-data-provider';
 import { useAuthContext, useLocalize } from '~/hooks';
@@ -37,7 +39,7 @@ import BrandingPanel from './BrandingPanel';
 const PAGE_SIZE = 20;
 
 /* ─── Nav items ─────────────────────────────────────────────────────────── */
-type NavSection = 'users' | 'whitelabel' | 'interface' | 'mcp-integrations';
+type NavSection = 'users' | 'whitelabel' | 'mcp-integrations' | 'cronjobs' | 'interface';
 
 interface NavItem {
   id: NavSection;
@@ -789,6 +791,7 @@ export default function AdminPanel({ open, onOpenChange }: AdminPanelProps) {
     { id: 'users', label: 'Usuários', icon: Users },
     { id: 'whitelabel', label: 'Whitelabel', icon: Palette },
     { id: 'mcp-integrations', label: 'MCP Keys', icon: KeyRound },
+    { id: 'cronjobs', label: 'CronJobs', icon: Clock },
     { id: 'interface', label: 'Interface', icon: Settings },
   ];
 
@@ -799,9 +802,14 @@ export default function AdminPanel({ open, onOpenChange }: AdminPanelProps) {
 
   if (currentUser?.role !== SystemRoles.ADMIN) return null;
 
+  const isCronJobs = activeSection === 'cronjobs';
+  const dialogMaxWidth = isCronJobs ? 'max-w-5xl' : 'max-w-3xl';
+
   return (
     <OGDialog open={open} onOpenChange={handleOpenChange}>
-      <OGDialogContent className="flex h-[90vh] max-h-[720px] w-[95vw] max-w-3xl flex-col gap-0 overflow-hidden border-border-light bg-surface-primary p-0 text-text-primary">
+      <OGDialogContent
+        className={`flex h-[90vh] max-h-[760px] w-[95vw] ${dialogMaxWidth} flex-col gap-0 overflow-hidden border-border-light bg-surface-primary p-0 text-text-primary`}
+      >
         {/* ── Dialog header ── */}
         <div className="flex flex-shrink-0 items-center gap-3 border-b border-border-light px-5 py-4">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-border-light bg-surface-tertiary">
@@ -845,6 +853,11 @@ export default function AdminPanel({ open, onOpenChange }: AdminPanelProps) {
               </div>
             )}
             {activeSection === 'mcp-integrations' && <MCPIntegrationsPanel />}
+            {activeSection === 'cronjobs' && (
+              <div className="flex-1 overflow-hidden p-6">
+                <CronJobsPanel />
+              </div>
+            )}
             {activeSection === 'interface' && (
               <div className="flex-1 overflow-y-auto p-6">
                 <InterfacePanel />

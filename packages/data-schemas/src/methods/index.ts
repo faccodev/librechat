@@ -124,7 +124,8 @@ export type AllMethods = UserMethods &
   PromptMethods &
   SkillMethods &
   AgentMethods &
-  ConfigMethods;
+  ConfigMethods &
+  CronJobMethods;
 
 /** Dependencies injected from the api layer into createMethods */
 export interface CreateMethodsDeps {
@@ -256,6 +257,8 @@ export function createMethods(
     ...agentMethods,
     /* Config */
     ...createConfigMethods(mongoose),
+    /* CronJobs */
+    ...createCronJobMethods(mongoose),
   };
 }
 
@@ -303,4 +306,5 @@ export type {
   ValidationIssue,
   AgentMethods,
   ConfigMethods,
+  CronJobMethods,
 };

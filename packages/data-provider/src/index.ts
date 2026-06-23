@@ -25,6 +25,7 @@ export * from './types/assistants';
 export * from './types/files';
 export * from './types/mcpServers';
 export * from './types/mcpIntegrations';
+export * from './types/cronjobs';
 export * from './types/mutations';
 export * from './types/queries';
 export * from './types/skills';

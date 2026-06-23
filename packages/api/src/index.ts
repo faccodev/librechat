@@ -73,4 +73,6 @@ export type * from './types';
 
 /* Workspaces */
 export * from './workspaces';
+/* CronJobs */
+export * from './cronjobs';
 

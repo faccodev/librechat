@@ -1526,4 +1526,48 @@ export function removeMCPIntegration(name: string): Promise<{ removed: boolean; 
   return request.delete(endpoints.mcpIntegration(name));
 }
 
+/* CronJobs (admin-managed scheduled tasks) */
+import type {
+  CronJob,
+  CronJobListResponse,
+  CronJobSingleResponse,
+  CreateCronJobPayload,
+  UpdateCronJobPayload,
+  CronJobTogglePayload,
+} from './types/cronjobs';
+
+export function listCronJobs(): Promise<CronJobListResponse> {
+  return request.get(endpoints.cronJobs());
+}
+
+export function getCronJob(id: string): Promise<CronJobSingleResponse> {
+  return request.get(endpoints.cronJob(id));
+}
+
+export function createCronJob(payload: CreateCronJobPayload): Promise<CronJobSingleResponse> {
+  return request.post(endpoints.cronJobs(), payload);
+}
+
+export function updateCronJob(
+  variables: { id: string; payload: UpdateCronJobPayload },
+): Promise<CronJobSingleResponse> {
+  return request.patch(endpoints.cronJob(variables.id), variables.payload);
+}
+
+export function toggleCronJob(
+  variables: { id: string; payload: CronJobTogglePayload },
+): Promise<CronJobSingleResponse> {
+  return request.post(endpoints.cronJobToggle(variables.id), variables.payload);
+}
+
+export function deleteCronJob(id: string): Promise<{ ok: true }> {
+  return request.delete(endpoints.cronJob(id));
+}
+
+export function runCronJobNow(id: string): Promise<{ ok: true }> {
+  return request.post(endpoints.cronJobRun(id));
+}
+
+export type { CronJob };
+
 

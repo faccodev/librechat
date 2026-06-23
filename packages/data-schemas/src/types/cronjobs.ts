@@ -58,7 +58,21 @@ export interface ICronJob {
   updatedAt?: Date;
 }
 
-export interface ICronJobDocument extends ICronJob, Document {}
+/**
+ * `ICronJobDocument` extends Mongoose's `Document`, which carries a
+ * `model()` accessor that conflicts with our `model: string` schema
+ * field. We omit the `model` from the ICronJob side and re-add it
+ * as a plain string via intersection so TypeScript's structural
+ * assignability doesn't trip on the Document method.
+ *
+ * Runtime: the schema path is `model`; the Mongoose `.model()`
+ * method is still callable for the discriminator use case (cast
+ * `doc as any` if you need to call it).
+ */
+export type ICronJobDocument = Omit<ICronJob, 'model'> &
+  Omit<Document, 'model'> & {
+    model?: string | null;
+  };
 
 /**
  * Input shape accepted by `createCronJob`. `runs`, `lastRunAt`, etc. are

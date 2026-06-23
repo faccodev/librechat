@@ -32,6 +32,7 @@ import { createAclEntryModel } from './aclEntry';
 import { createSystemGrantModel } from './systemGrant';
 import { createGroupModel } from './group';
 import { createConfigModel } from './config';
+import { createCronJobModel } from './cronJob';
 
 /**
  * Creates all database models for all collections
@@ -72,5 +73,6 @@ export function createModels(mongoose: typeof import('mongoose')) {
     SystemGrant: createSystemGrantModel(mongoose),
     Group: createGroupModel(mongoose),
     Config: createConfigModel(mongoose),
+    CronJob: createCronJobModel(mongoose),
   };
 }

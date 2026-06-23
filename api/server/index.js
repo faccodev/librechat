@@ -22,6 +22,7 @@ const {
   createStreamServices,
   initializeFileStorage,
   preAuthTenantMiddleware,
+  registerShutdownTask,
   setupGracefulShutdown,
   updateInterfacePermissions,
 } = require('@librechat/api');
@@ -45,6 +46,8 @@ const { getAppConfig } = require('./services/Config');
 const staticCache = require('./utils/staticCache');
 const noIndex = require('./middleware/noIndex');
 const routes = require('./routes');
+const { bootCronJobs } = require('@librechat/api');
+const { loadSystemUser } = require('./services/cronjobs');
 
 const { PORT, HOST, ALLOW_SOCIAL_LOGIN, DISABLE_COMPRESSION, TRUST_PROXY } = process.env ?? {};
 
@@ -117,6 +120,10 @@ const startServer = async () => {
   const appConfig = await getAppConfig({ baseOnly: true });
   initializeFileStorage(appConfig);
   startExpiredFileSweep({ appConfig, loadAppConfig: getAppConfig });
+  await runAsSystem(async () => {
+    const db = require('~/models');
+    await bootCronJobs({ db, appConfig, loadSystemUser });
+  });
   await runAsSystem(async () => {
     await performStartupChecks(appConfig);
     await updateInterfacePermissions({ appConfig, getRoleByName, updateAccessPermissions });
@@ -245,6 +252,7 @@ const startServer = async () => {
   app.use('/api/agents', routes.agents);
   app.use('/api/banner', routes.banner);
   app.use('/api/memories', routes.memories);
+  app.use('/api/cronjobs', routes.cronjobs);
   app.use('/api/permissions', routes.accessPermissions);
 
   app.use('/api/tags', routes.tags);

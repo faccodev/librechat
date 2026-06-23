@@ -1,24 +1,28 @@
-import type { Agent } from './assistants';
-
 /**
- * CronJob — global scheduled AI task.
+ * CronJob wire types.
  *
- * Mirrors `ICronJob` from `@librechat/data-schemas` but normalized for
- * the frontend payload shape (ObjectIds become plain strings). The
- * data-provider layer is the source of truth for what the React Query
- * hooks consume.
+ * Mirrors the `ICronJob` schema in `@librechat/data-schemas` but uses
+ * string ids / ISO date strings everywhere — Mongo `_id` and Date
+ * instances don't survive the JSON boundary cleanly. The data-service
+ * layer normalizes both sides so the panel never sees a `Types.ObjectId`
+ * or a Date where a string is expected.
  *
- * Phase 1 keeps the surface intentionally small — just what the
- * panel needs to list / create / edit / delete and inspect runs.
+ * The `runs` array is bounded to the last 50 entries by the server
+ * (see `CRONJOB_RUNS_HISTORY_LIMIT`). The full history lives in logs /
+ * Discord webhooks; the panel only renders the recent tail.
  */
 
-export type TCronJobRunStatus = 'running' | 'success' | 'error';
-export type TCronJobLastStatus = 'success' | 'error';
+export type CronJobRunStatus = 'running' | 'success' | 'error';
+export type CronJobLastStatus = 'success' | 'error';
 
-export interface TCronJobRun {
+export interface CronJobFeedback {
+  discordWebhookUrl?: string | null;
+}
+
+export interface CronJobRun {
   startedAt: string;
   finishedAt?: string | null;
-  status: TCronJobRunStatus;
+  status: CronJobRunStatus;
   output: string;
   error?: string | null;
   provider?: string | null;
@@ -26,35 +30,39 @@ export interface TCronJobRun {
   durationMs?: number | null;
 }
 
-export interface TCronJobFeedback {
-  discordWebhookUrl?: string | null;
-}
-
-export interface TCronJob {
+export interface CronJob {
   _id: string;
   name: string;
   description?: string;
+  /** 5-field standard cron expression. */
   schedule: string;
   timezone: string;
   enabled: boolean;
-  agent?: string | Agent | null;
+  /** Optional saved Agent id. When set, the executor uses the full agent. */
+  agent?: string | null;
+  /** Fallback provider when no agent is set. */
   provider?: string | null;
   model?: string | null;
   prompt: string;
   tools: string[];
-  feedback: TCronJobFeedback;
+  feedback: CronJobFeedback;
   lastRunAt?: string | null;
-  lastRunStatus?: TCronJobLastStatus | null;
+  lastRunStatus?: CronJobLastStatus | null;
+  /** Hydrated by the server from the in-memory scheduler registry. */
   nextRunAt?: string | null;
-  runs: TCronJobRun[];
+  runs: CronJobRun[];
   author: string;
   authorName: string;
-  tenantId?: string;
   createdAt?: string;
   updatedAt?: string;
 }
 
-export interface TCreateCronJobPayload {
+/**
+ * Payload accepted by `POST /api/cronjobs`. `agent` and `provider`/`model`
+ * are mutually exclusive on the server (server returns 400 if both are
+ * set or neither is set).
+ */
+export interface CreateCronJobPayload {
   name: string;
   description?: string;
   schedule: string;
@@ -65,29 +73,31 @@ export interface TCreateCronJobPayload {
   model?: string | null;
   prompt: string;
   tools?: string[];
-  feedback?: TCronJobFeedback;
+  feedback?: CronJobFeedback;
 }
 
-export type TUpdateCronJobPayload = Partial<TCreateCronJobPayload>;
+export interface UpdateCronJobPayload {
+  name?: string;
+  description?: string;
+  schedule?: string;
+  timezone?: string;
+  enabled?: boolean;
+  agent?: string | null;
+  provider?: string | null;
+  model?: string | null;
+  prompt?: string;
+  tools?: string[];
+  feedback?: CronJobFeedback;
+}
 
-export interface TToggleCronJobPayload {
+export interface CronJobListResponse {
+  jobs: CronJob[];
+}
+
+export interface CronJobSingleResponse {
+  job: CronJob;
+}
+
+export interface CronJobTogglePayload {
   enabled: boolean;
-}
-
-export interface TListCronJobsResponse {
-  jobs: TCronJob[];
-}
-
-export interface TGetCronJobResponse {
-  job: TCronJob;
-}
-
-export interface TCronJobValidationIssue {
-  field: string;
-  message: string;
-}
-
-export interface TCronJobValidationError {
-  error: string;
-  issues: TCronJobValidationIssue[];
 }

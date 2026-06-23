@@ -1,4 +1,14 @@
-import PQueue from 'p-queue';
+import PQueueModule from 'p-queue';
+
+type PQueueClass = new (options?: unknown) => {
+  add: <T>(task: () => Promise<T>) => Promise<T>;
+  size: number;
+  pending: number;
+  isPaused: boolean;
+};
+
+const PQueue = ((PQueueModule as unknown as { default: PQueueClass }).default ??
+  PQueueModule) as unknown as PQueueClass;
 
 /**
  * In-process queue for cronjob executions. Caps concurrency so a burst

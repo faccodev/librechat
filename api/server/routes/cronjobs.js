@@ -16,9 +16,9 @@ const express = require('express');
 const { createCronJobHandlers } = require('@librechat/api');
 const { SystemCapabilities } = require('@librechat/data-schemas');
 const { requireCapability } = require('~/server/middleware/roles/capabilities');
-const { logger } = require('@librechat/data-schemas');
 const { requireJwtAuth } = require('~/server/middleware');
 const configMiddleware = require('~/server/middleware/config/app');
+const { loadSystemUser } = require('~/server/services/cronjobs');
 
 const router = express.Router();
 const requireAdminAccess = requireCapability(SystemCapabilities.ACCESS_ADMIN);
@@ -35,42 +35,6 @@ function asyncHandler(fn) {
   return (req, res, next) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
-}
-
-/**
- * Builds the system user once and caches it. The "system" user is the
- * attributed actor for cronjob runs — its id is what gets passed as
- * `user_id` to the agent runtime so tool loaders and balance trackers
- * see a stable identity.
- *
- * Created lazily on the first `run-now` so a fresh install can boot
- * without a system user existing yet. The user is upserted by email
- * sentinel `__system__@cronjobs.local` and re-used across restarts.
- */
-let systemUserPromise = null;
-function loadSystemUser() {
-  if (!systemUserPromise) {
-    systemUserPromise = (async () => {
-      const mongoose = require('mongoose');
-      const User = mongoose.models.User;
-      const SYSTEM_EMAIL = '__system__@cronjobs.local';
-      let user = await User.findOne({ email: SYSTEM_EMAIL }).lean();
-      if (user) {
-        return user;
-      }
-      const created = await User.create({
-        email: SYSTEM_EMAIL,
-        username: 'cronjob-system',
-        name: 'CronJob System',
-        role: 'ADMIN',
-        provider: 'local',
-        emailVerified: true,
-      });
-      logger.info('[cronjobs] Created system user for cronjob attribution');
-      return created.toObject();
-    })();
-  }
-  return systemUserPromise;
 }
 
 /**

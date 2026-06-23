@@ -515,6 +515,11 @@ export const verifyTwoFactorTemp = () => `${BASE_URL}/api/auth/2fa/verify-temp`;
 export const memories = () => `${BASE_URL}/api/memories`;
 export const memory = (key: string) => `${memories()}/${encodeURIComponent(key)}`;
 export const memoryPreferences = () => `${memories()}/preferences`;
+/* CronJobs (admin-managed scheduled tasks) */
+export const cronJobs = () => `${BASE_URL}/api/cronjobs`;
+export const cronJob = (id: string) => `${cronJobs()}/${encodeURIComponent(id)}`;
+export const cronJobToggle = (id: string) => `${cronJob(id)}/toggle`;
+export const cronJobRun = (id: string) => `${cronJob(id)}/run`;
 
 export const searchPrincipals = (params: q.PrincipalSearchParams) => {
   const { q: query, limit, types } = params;
