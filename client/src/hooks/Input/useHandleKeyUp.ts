@@ -34,16 +34,25 @@ const shouldTriggerCommand = (
   commandChar: string,
 ) => {
   const text = textAreaRef.current?.value;
-  if (typeof text !== 'string' || text.length === 0 || text[0] !== commandChar) {
-    return false;
-  }
-
   const startPos = textAreaRef.current?.selectionStart;
-  if (typeof startPos !== 'number') {
+  if (typeof text !== 'string' || text.length === 0 || typeof startPos !== 'number' || startPos === 0) {
     return false;
   }
 
-  return startPos === 1 || (startPos === text.length && text.length <= MAX_COMMAND_TRIGGER_LENGTH);
+  // Check if character before cursor is the trigger character, and either it's the first char or preceded by a space
+  const charBefore = text[startPos - 1];
+  if (charBefore !== commandChar) {
+    return false;
+  }
+
+  if (startPos > 1) {
+    const charBeforeTrigger = text[startPos - 2];
+    if (charBeforeTrigger !== ' ' && charBeforeTrigger !== '\n') {
+      return false;
+    }
+  }
+
+  return true;
 };
 
 /**
@@ -182,8 +191,13 @@ const useHandleKeyUp = ({
         return;
       }
 
-      const firstChar = text[0];
-      const handler = commandHandlers[firstChar as keyof typeof commandHandlers];
+      const startPos = textAreaRef.current?.selectionStart;
+      if (typeof startPos !== 'number' || startPos === 0) {
+        return;
+      }
+
+      const charBefore = text[startPos - 1];
+      const handler = commandHandlers[charBefore as keyof typeof commandHandlers];
 
       if (typeof handler === 'function') {
         handler();

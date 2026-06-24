@@ -538,7 +538,7 @@ function UsersSection() {
   return (
     <div className="flex flex-1 overflow-hidden">
       {/* User list column */}
-      <div className="flex w-60 flex-shrink-0 flex-col border-r border-border-light">
+      <div className={`flex w-full flex-shrink-0 flex-col border-r border-border-light md:w-60 ${selectedUser || isCreating ? 'hidden md:flex' : 'flex'}`}>
         {/* Toolbar */}
         <div className="flex flex-shrink-0 items-center gap-2 p-3">
           <div className="relative flex-1">
@@ -643,7 +643,7 @@ function UsersSection() {
       </div>
 
       {/* Detail / create column */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className={`flex-1 overflow-y-auto p-4 ${!selectedUser && !isCreating ? 'hidden md:block' : 'block'}`}>
         {isCreating ? (
           <CreateUserPanel
             onClose={() => setIsCreating(false)}
@@ -824,15 +824,15 @@ export default function AdminPanel({ open, onOpenChange }: AdminPanelProps) {
         </div>
 
         {/* ── Body ── */}
-        <div className="flex flex-1 overflow-hidden">
-          {/* ── Left nav sidebar ── */}
-          <nav className="flex w-40 flex-shrink-0 flex-col gap-0.5 border-r border-border-light bg-surface-secondary px-2 py-3">
+        <div className="flex flex-1 flex-col overflow-hidden md:flex-row">
+          {/* ── Left nav sidebar / top nav on mobile ── */}
+          <nav className="flex w-full flex-row overflow-x-auto gap-0.5 border-b border-border-light bg-surface-secondary px-2 py-2 flex-shrink-0 md:w-40 md:flex-col md:border-b-0 md:border-r md:py-3 scrollbar-none">
             {navItems.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
                 type="button"
                 onClick={() => setActiveSection(id)}
-                className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm transition-colors flex-shrink-0 md:w-full ${
                   activeSection === id
                     ? 'border border-border-light bg-surface-primary font-semibold text-text-primary shadow-sm'
                     : 'text-text-secondary hover:bg-surface-primary hover:text-text-primary'
@@ -848,18 +848,18 @@ export default function AdminPanel({ open, onOpenChange }: AdminPanelProps) {
           <div className="flex flex-1 overflow-hidden">
             {activeSection === 'users' && <UsersSection />}
             {activeSection === 'whitelabel' && (
-              <div className="flex-1 overflow-y-auto p-6">
+              <div className="flex-1 overflow-y-auto p-4 md:p-6">
                 <BrandingPanel />
               </div>
             )}
             {activeSection === 'mcp-integrations' && <MCPIntegrationsPanel />}
             {activeSection === 'cronjobs' && (
-              <div className="flex-1 overflow-hidden p-6">
+              <div className="flex-1 overflow-hidden p-4 md:p-6">
                 <CronJobsPanel />
               </div>
             )}
             {activeSection === 'interface' && (
-              <div className="flex-1 overflow-y-auto p-6">
+              <div className="flex-1 overflow-y-auto p-4 md:p-6">
                 <InterfacePanel />
               </div>
             )}

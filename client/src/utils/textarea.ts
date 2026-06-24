@@ -65,8 +65,14 @@ export const trimUndoneRange = (textAreaRef: React.RefObject<HTMLTextAreaElement
  * @param {string} charToRemove - The character to remove if it's the last character in the textarea's value.
  */
 export function removeCharIfLast(textarea: HTMLTextAreaElement, charToRemove: string) {
-  if (textarea.value.endsWith(charToRemove)) {
-    textarea.value = textarea.value.slice(0, -1);
+  const cursor = textarea.selectionStart;
+  const val = textarea.value;
+  if (cursor > 0 && val[cursor - 1] === charToRemove) {
+    textarea.value = val.slice(0, cursor - 1) + val.slice(cursor);
+    textarea.setSelectionRange(cursor - 1, cursor - 1);
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+  } else if (val.endsWith(charToRemove)) {
+    textarea.value = val.slice(0, -1);
     textarea.setSelectionRange(textarea.value.length, textarea.value.length);
     textarea.dispatchEvent(new Event('input', { bubbles: true }));
   }

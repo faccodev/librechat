@@ -279,6 +279,9 @@ export function createCronJobMethods(
       };
     }
 
+    if (typeof id === 'string' && !mongoose.isValidObjectId(id)) {
+      return null;
+    }
     const objectId =
       typeof id === 'string' ? new mongoose.Types.ObjectId(id) : id;
     const CronJobModel = getModel();
@@ -290,6 +293,9 @@ export function createCronJobMethods(
     id: string | Types.ObjectId,
     enabled: boolean,
   ): Promise<(ICronJob & { _id: Types.ObjectId }) | null> {
+    if (typeof id === 'string' && !mongoose.isValidObjectId(id)) {
+      return null;
+    }
     const objectId =
       typeof id === 'string' ? new mongoose.Types.ObjectId(id) : id;
     const CronJobModel = getModel();
@@ -302,6 +308,9 @@ export function createCronJobMethods(
   }
 
   async function deleteCronJob(id: string | Types.ObjectId): Promise<boolean> {
+    if (typeof id === 'string' && !mongoose.isValidObjectId(id)) {
+      return false;
+    }
     const objectId =
       typeof id === 'string' ? new mongoose.Types.ObjectId(id) : id;
     const CronJobModel = getModel();
@@ -351,6 +360,9 @@ export function createCronJobMethods(
     id: string | Types.ObjectId,
     nextRunAt: Date | null,
   ): Promise<(ICronJob & { _id: Types.ObjectId }) | null> {
+    if (typeof id === 'string' && !mongoose.isValidObjectId(id)) {
+      return null;
+    }
     const objectId =
       typeof id === 'string' ? new mongoose.Types.ObjectId(id) : id;
     const CronJobModel = getModel();

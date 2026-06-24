@@ -27,13 +27,21 @@ const useInitPopoverInput = ({
         return;
       }
       const text = textarea.value;
-      if (text.length > 0 && text[0] === commandChar) {
-        if (text.length > 1) {
-          setSearchValue(text.slice(1));
+      const cursor = textarea.selectionStart;
+      if (cursor > 0) {
+        // Find the trigger position going backwards
+        const beforeCursor = text.slice(0, cursor);
+        const lastTriggerIndex = beforeCursor.lastIndexOf(commandChar);
+        if (lastTriggerIndex !== -1) {
+          const searchPart = beforeCursor.slice(lastTriggerIndex + 1);
+          setSearchValue(searchPart);
+          
+          // Remove the trigger character and everything after it up to the cursor
+          const afterCursor = text.slice(cursor);
+          textarea.value = text.slice(0, lastTriggerIndex) + afterCursor;
+          textarea.setSelectionRange(lastTriggerIndex, lastTriggerIndex);
+          textarea.dispatchEvent(new Event('input', { bubbles: true }));
         }
-        textarea.value = '';
-        textarea.setSelectionRange(0, 0);
-        textarea.dispatchEvent(new Event('input', { bubbles: true }));
       }
     },
     [inputRef, textAreaRef, commandChar, setSearchValue, setOpen],
