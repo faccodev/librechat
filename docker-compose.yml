@@ -67,7 +67,15 @@ services:
     environment:
       - CONFIG_PATH=${CONFIG_PATH:-/app/librechat_coolify.yaml}
       - NODE_PATH=/app/packages/data-provider/node_modules
-    command: ["sh", "-c", "npm install --no-save --no-audit --no-fund --silent js-yaml@4 && node scripts/validate-config.mjs"]
+    command:
+      - sh
+      - -c
+      - |
+        npm install --no-save --no-audit --no-fund --silent js-yaml@4 zod &&
+        cd packages/data-provider &&
+        (test -d dist || (echo '[validator] Building data-provider (one-time)...' && npm run build)) &&
+        cd /app &&
+        node scripts/validate-config.mjs
     # No healthcheck — this is a one-shot job, not a server.
 
   api:
