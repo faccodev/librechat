@@ -58,15 +58,12 @@ interface:
 registration:
   socialLogins: ['github', 'google', 'discord', 'openid', 'facebook', 'apple', 'saml']
 
-# SSRF protection: default-deny for localhost/private IPs. Allowlist here
-# for any external services that fetch tools need to reach. On a VPS you
-# typically want fewer entries than local dev (where you might poke
-# localhost services). Add domains only when an agent tool needs them.
+# SSRF protection: default-deny for localhost/private IPs. Empty list =
+# allow ALL domains. Acceptable for a single-tenant deployment (just you
+# and your wife using it). If you ever want to lock it back down, replace
+# `[]` with a list of explicit domains (one per line, e.g. `- 'google.com'`).
 actions:
-  allowedDomains:
-    - 'swapi.dev'
-    - 'librechat.ai'
-    - 'google.com'
+  allowedDomains: []
 
 # MCP server domain restrictions. The defaults are NOT exposed to the
 # browser / agent — only entries listed below are reachable from MCP tool
