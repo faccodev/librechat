@@ -53,6 +53,12 @@ services:
     restart: always
     ports:
       - "3080:3080"
+    # `host.docker.internal:host-gateway` is needed ONLY on Windows + Docker
+    # Desktop (where the host's loopback is not reachable from inside the
+    # container by default). On Linux VPS / Coolify, the host network is
+    # already accessible — keep this commented out there or Docker logs
+    # noise about a non-resolvable host. Toggle by uncommenting if you
+    # run on Windows.
     extra_hosts:
       - "host.docker.internal:host-gateway"
     # Pass the host .env into the api container. The LibreChat api
@@ -87,8 +93,17 @@ services:
       - UPLOADS_DIR=/app/uploads
       - SESSION_COOKIE_SECURE=${SESSION_COOKIE_SECURE:-false}
       - WORKSPACE_ROOTS=${WORKSPACE_ROOTS:-/workspaces}
+      # CONFIG_PATH tells the api which librechat*.yaml to load.
+      # Default: /app/librechat.yaml (the local-dev one).
+      # On Coolify, set in .env: CONFIG_PATH=/app/librechat_coolify.yaml
+      # — the coolify-specific config is mounted alongside at the same path.
+      - CONFIG_PATH=${CONFIG_PATH:-/app/librechat.yaml}
     volumes:
+      # Both yaml files are mounted; CONFIG_PATH picks which one the api reads.
+      # Local dev → CONFIG_PATH defaults to /app/librechat.yaml.
+      # Coolify   → set CONFIG_PATH=/app/librechat_coolify.yaml in .env.
       - ./librechat.yaml:/app/librechat.yaml
+      - ./librechat_coolify.yaml:/app/librechat_coolify.yaml
       - librechat_uploads:/app/uploads
       # Image uploads (user avatars, agent avatars, assistant avatars,
       # message attachments) land in `client/public/images/<userId>/`
@@ -416,6 +431,122 @@ services:
       # client generate on first run can take 30-60s.
       start_period: 60s
 
+# ---------------------------------------------------------------------------
+  # OmniRoute — optional AI gateway (diegosouzapw/omniroute).
+  #
+  # Sits in front of 231 providers (50+ free) and exposes an OpenAI-compatible
+  # /v1 endpoint on port 20128. When ENABLE_OMNIROUTE=false, this whole block
+  # is skipped by `docker compose up`. The container's `api` does NOT depend
+  # on this service — disabling OmniRoute must NOT break LibreChat's startup.
+  #
+  # Custom endpoint wiring lives in librechat.yaml (endpoints.custom.omniroute).
+  # When ENABLE_OMNIROUTE=false, the provider is still declared in librechat.yaml
+  # but model fetch fails silently (the endpoint's API key check is what hides it).
+  #
+  # Uses the `base` image (smallest). Switch to `web` profile upstream if you
+  # need web-cookie providers (gemini-web, claude-web) — that requires the
+  # upstream `web` target which we don't build here.
+  # ---------------------------------------------------------------------------
+  omniroute-redis:
+    image: redis:7-alpine
+    profiles: ["omniroute"]
+    restart: always
+    init: true
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    volumes:
+      - omniroute_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  omniroute:
+    image: diegosouzapw/omniroute:latest
+    profiles: ["omniroute"]
+    restart: always
+    init: true
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "${OMNIROUTE_DASHBOARD_PORT:-20128}:20128"
+      - "${OMNIROUTE_API_PORT:-20129}:20129"
+    env_file:
+      - .env
+    environment:
+      - DATA_DIR=/app/data
+      - PORT=20128
+      - DASHBOARD_PORT=20128
+      - API_PORT=20129
+      - API_HOST=0.0.0.0
+      - REDIS_URL=redis://omniroute-redis:6379
+    volumes:
+      - omniroute_data:/app/data
+    depends_on:
+      omniroute-redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:20128/healthz || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # Rclone — optional bidirectional sync between the host's /home/workspaces
+  # and a configured Google Drive folder. Disable with ENABLE_RCLONE=false.
+  # When enabled, the `rclone bisync` loop runs every RCLONE_SYNC_INTERVAL
+  # seconds. On first start it auto-initializes the bisync metadata
+  # (--resync) so you don't get the "Bisync initial analysis failed" wall
+  # on a fresh pair of paths.
+  #
+  # Authentication is via a single RCLONE_CONFIG_B64 var: the base64 of a
+  # full rclone.conf file (same format rclone uses on a local install).
+  # This accepts whatever you already have — old token-based configs,
+  # multi-account, non-Drive remotes, anything rclone understands.
+  #
+  # Confined to /home/workspaces only — does NOT touch /app/uploads or any
+  # other Docker volume. Workspace dir is mounted read-write so writes from
+  # inside the container land on the host.
+  # ---------------------------------------------------------------------------
+  rclone:
+    image: rclone/rclone:latest
+    profiles: ["rclone"]
+    restart: always
+    init: true
+    env_file:
+      - .env
+    environment:
+      - RCLONE_CONFIG_B64=${RCLONE_CONFIG_B64:-}
+      - RCLONE_REMOTE=${RCLONE_REMOTE:-gdrive}
+      # Optional: scope sync to a specific Drive folder ID. Empty = use the
+      # root_folder_id from the decoded conf (typically Drive root). Set
+      # this to force a subfolder without regenerating OAuth tokens.
+      - RCLONE_DRIVE_FOLDER_ID=${RCLONE_DRIVE_FOLDER_ID:-}
+      - RCLONE_SYNC_INTERVAL=${RCLONE_SYNC_INTERVAL:-300}
+      - RCLONE_CONFLICT_POLICY=${RCLONE_CONFLICT_POLICY:-newest}
+      - WORKSPACES_HOST_PATH=${WORKSPACES_HOST_PATH:-/home/workspaces}
+    volumes:
+      # Source: the same path the api + mcp-code-runner see. Mounting it
+      # read-write here so rclone can mirror local edits back up.
+      - ${WORKSPACES_HOST_PATH:-/home/workspaces}:/data/source:rw
+      # Bisync metadata + rclone config cache. Named volume survives restarts.
+      - rclone_cache:/cache
+      # Entrypoint script (decodes RCLONE_CONFIG_B64, then runs bisync).
+      # Bind-mounted (not COPY) so edits to scripts/rclone-entrypoint.sh
+      # take effect on `docker compose restart rclone` with no image rebuild.
+      - ./scripts/rclone-entrypoint.sh:/scripts/rclone-entrypoint.sh:ro
+    entrypoint: ["/bin/sh", "/scripts/rclone-entrypoint.sh"]
+    healthcheck:
+      # Probe the rclone daemon with `config showremotes`. If config decode
+      # failed (missing/invalid base64), this exits non-zero and `docker ps`
+      # marks the container unhealthy — easy to spot.
+      test: ["CMD-SHELL", "rclone listremotes --config /cache/rclone/rclone.conf"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
 volumes:
   mongodb_data:
   meili_data:
@@ -425,3 +556,6 @@ volumes:
   browser_profile:
   search_uv_cache:
   fb_marketing_mcp_pgdata:
+  omniroute_data:
+  omniroute_redis_data:
+  rclone_cache:

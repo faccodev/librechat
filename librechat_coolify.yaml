@@ -1,0 +1,229 @@
+# ==============================================================================
+# LibreChat — Coolify / Linux VPS configuration
+# ==============================================================================
+# Drop-in replacement for librechat.yaml when deploying on Coolify (or any
+# Linux VPS). Point the api container at this file via the env var:
+#
+#   CONFIG_PATH=/app/librechat_coolify.yaml
+#
+# in the Coolify service's env-var panel (Coolify reads .env automatically
+# when you mount it; or you can set the var inline per-service).
+#
+# What's different from librechat.yaml (local dev on Windows):
+#   - built-in providers (openai/google/anthropic) are commented out so
+#     OmniRoute is the only path the model selector exposes — matches the
+#     intent of "centralize everything on OmniRoute" (see recent change).
+#   - Workspaces still mount at /workspaces inside the api container, and
+#     the filesystem MCP uses the same placeholder. The host path
+#     /home/workspaces is bind-mounted by the api service in
+#     docker-compose.yml; adjust if your VPS uses a different path.
+#   - Custom welcome message is the same; DOMAIN_CLIENT/DOMAIN_SERVER are
+#     read from .env at boot, not from this file.
+#
+# To keep this file in sync with librechat.yaml, diff them after any change
+# to the local version (the safe assumption: copy librechat.yaml to
+# librechat_coolify.yaml first, then apply the 3 differences above).
+# ==============================================================================
+
+version: 1.3.12
+
+cache: true
+
+interface:
+  customWelcome: 'Bem vindo ao OlaxChat!'
+  fileSearch: true
+  modelSelect: true
+  parameters: true
+  presets: true
+  prompts:
+    use: true
+    create: true
+    share: false
+    public: false
+  bookmarks: true
+  multiConvo: true
+  agents:
+    use: true
+    create: true
+    share: false
+    public: false
+  peoplePicker:
+    users: true
+    groups: true
+    roles: true
+  marketplace:
+    use: false
+  fileCitations: true
+
+registration:
+  socialLogins: ['github', 'google', 'discord', 'openid', 'facebook', 'apple', 'saml']
+
+# SSRF protection: default-deny for localhost/private IPs. Allowlist here
+# for any external services that fetch tools need to reach. On a VPS you
+# typically want fewer entries than local dev (where you might poke
+# localhost services). Add domains only when an agent tool needs them.
+actions:
+  allowedDomains:
+    - 'swapi.dev'
+    - 'librechat.ai'
+    - 'google.com'
+
+# MCP server domain restrictions. The defaults are NOT exposed to the
+# browser / agent — only entries listed below are reachable from MCP tool
+# calls. On Coolify the same internal Docker DNS resolves `mcp-browser`,
+# `mcp-search`, etc., so these addresses work unchanged.
+mcpSettings:
+  allowedAddresses:
+    - 'mcp-browser:8931'
+    - 'mcp-search:8933'
+    - 'mcp-transcribe:8934'
+    - 'mcp-code-runner:8932'
+    - 'mcp-notion:3001'
+    - 'mcp-fb-marketing:8935'
+
+
+# MCP servers. Same config as local — the URL is internal Docker DNS,
+# which resolves identically on Coolify (same docker network namespace).
+mcpServers:
+  filesystem:
+    title: 'Arquivos'
+    iconPath: '/assets/mcp/filesystem.png'
+    type: stdio
+    command: npx
+    args:
+      - -y
+      - '@modelcontextprotocol/server-filesystem'
+      - "/workspaces/{{LIBRECHAT_USER_WORKSPACESUBDIR}}"
+    timeout: 30000
+    startup: false
+  code-runner:
+    title: 'Código'
+    iconPath: '/assets/mcp/code.png'
+    type: streamable-http
+    url: 'http://mcp-code-runner:8932/sse'
+    timeout: 120000
+    initTimeout: 30000
+    startup: false
+  browser:
+    title: 'Navegador'
+    iconPath: '/assets/mcp/browser.png'
+    type: streamable-http
+    url: 'http://mcp-browser:8931/mcp'
+    timeout: 300000
+    initTimeout: 30000
+    startup: false
+  search:
+    title: 'Pesquisa Google'
+    iconPath: '/assets/mcp/search.png'
+    type: streamable-http
+    url: 'http://mcp-search:8933/mcp'
+    timeout: 60000
+    initTimeout: 30000
+    startup: false
+  transcribe:
+    title: 'Transcrever'
+    iconPath: '/assets/mcp/transcribe.png'
+    type: streamable-http
+    url: 'http://mcp-transcribe:8934/mcp'
+    timeout: 300000
+    initTimeout: 60000
+    startup: false
+  higgsfield:
+    title: 'Higgsfield'
+    iconPath: '/assets/mcp/higgsfield.png'
+    type: streamable-http
+    url: 'https://mcp.higgsfield.ai/mcp'
+    timeout: 30000
+    startup: false
+  fb-marketing:
+    title: 'Meta ADS'
+    iconPath: '/assets/mcp/meta.png'
+    type: streamable-http
+    url: 'http://mcp-fb-marketing:8935/mcp'
+    timeout: 30000
+    initTimeout: 60000
+    startup: false
+  notion:
+    title: 'Notion'
+    iconPath: '/assets/mcp/notion.png'
+    type: streamable-http
+    url: 'http://mcp-notion:3001/mcp'
+    timeout: 30000
+    startup: false
+  github:
+    title: 'GitHub'
+    iconPath: '/assets/mcp/github.png'
+    type: stdio
+    command: npx
+    args:
+      - -y
+      - '@modelcontextprotocol/server-github'
+    env:
+      GITHUB_PERSONAL_ACCESS_TOKEN: '${GITHUB_PERSONAL_ACCESS_TOKEN}'
+    timeout: 60000
+    startup: false
+  fetch:
+    title: 'Busca Leve'
+    iconPath: '/assets/mcp/fetch.png'
+    type: stdio
+    command: uvx
+    args:
+      - mcp-server-fetch
+    timeout: 30000
+    startup: false
+
+# ----------------------------------------------------------------------------
+# Built-in endpoints — INTENTIONALLY EMPTY in the Coolify config.
+#
+# On local dev you might have OPENAI_API_KEY / GOOGLE_KEY / ANTHROPIC_KEY in
+# .env from older testing. On the VPS we want ONLY OmniRoute exposed in the
+# model selector. Built-in sections (openAI / google / anthropic) default to
+# "not configured" when their keys are empty, so the simplest path is to just
+# not include them at all. If you ever want a direct provider fallback, copy
+# the block back from librechat.yaml.
+# ----------------------------------------------------------------------------
+
+endpoints:
+  custom:
+    # OmniRoute — single AI gateway. 231 providers (50+ free) fronted by one
+    # OpenAI-compatible endpoint on the Docker network. Auto-fallback across
+    # providers, auto-quota tracking, token compression.
+    - name: 'omniroute'
+      apiKey: '${OMNIROUTE_API_KEY}'
+      baseURL: 'http://omniroute:20128/v1'
+      customParams:
+        defaultParamsEndpoint: 'openAI'
+      models:
+        default: ['auto']
+        fetch: true
+      modelDisplayLabel: 'OmniRoute'
+      iconURL: 'https://img.icons8.com/fluent/1200/ai-agent.jpg'
+      titleConvo: true
+      titleModel: 'auto'
+      # On Coolify you may want to forward per-user identity to OmniRoute
+      # for per-user rate-limit + audit. Requires OmniRoute >= v3.7 with
+      # header-based identity forwarding enabled in its dashboard.
+      # headers:
+      #   X-User-Id: '{{LIBRECHAT_USER_ID}}'
+      #   X-User-Email: '{{LIBRECHAT_USER_EMAIL}}'
+
+# Per-user workspace via MCP filesystem server. containerBasePath is the
+# INSIDE-container path that the filesystem MCP exposes; the bind mount at
+# /home/workspaces (host) → /workspaces (container) is configured in
+# docker-compose.yml's api service. If your Coolify deployment uses a
+# different host path (e.g. /data/workspaces), update docker-compose.yml's
+# bind mount AND the rclone service's WORKSPACES_HOST_PATH.
+workspaces:
+  enabled: true
+  containerBasePath: '/workspaces'
+  sizeLimitMB: 2048
+
+
+speech:
+  stt:
+    fasterWhisper:
+      url: 'http://mcp-faster-whisper:9000/asr'
+      language: 'pt'
+      task: 'transcribe'
+      vad_filter: true
+      word_timestamps: false
