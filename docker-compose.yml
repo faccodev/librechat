@@ -512,6 +512,7 @@ services:
   # ---------------------------------------------------------------------------
   rclone:
     image: rclone/rclone:latest
+    profiles: ["rclone"]
     restart: always
     init: true
     env_file:
