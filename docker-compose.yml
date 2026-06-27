@@ -486,7 +486,10 @@ services:
       omniroute-redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:20128/healthz || exit 1"]
+      # OmniRoute exposes /healthz on the API port (20129), not the dashboard
+      # (20128). Pointing at the dashboard returns Connection refused every
+      # cycle → Coolify flips to unhealthy → restarts the container.
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:20129/healthz || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -538,14 +541,16 @@ services:
       - ./scripts/rclone-entrypoint.sh:/scripts/rclone-entrypoint.sh:ro
     entrypoint: ["/bin/sh", "/scripts/rclone-entrypoint.sh"]
     healthcheck:
-      # Probe the rclone daemon with `config showremotes`. If config decode
-      # failed (missing/invalid base64), this exits non-zero and `docker ps`
-      # marks the container unhealthy — easy to spot.
+      # rclone is a job-in-loop, NOT a server: PID 1 is the entrypoint sh
+      # running `while true; do bisync; sleep; done`. Probe config decode
+      # via `listremotes` instead of an HTTP endpoint (none exists).
+      # Wide start_period + long interval so a slow first bisync doesn't
+      # trip the probe and trigger a restart loop.
       test: ["CMD-SHELL", "rclone listremotes --config /cache/rclone/rclone.conf"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+      interval: 5m
+      timeout: 30s
+      retries: 5
+      start_period: 2m
 
 volumes:
   mongodb_data:
