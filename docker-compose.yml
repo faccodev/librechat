@@ -50,10 +50,13 @@ services:
   # deployment log instead of an infinite api restart loop. This was added
   # after multiple incidents where a single YAML typo (e.g. `key:[]` instead
   # of `key: []`) took the entire api offline.
+  #
+  # Not gated by `profiles:` because docker compose refuses `depends_on` on
+  # a service that's behind a profile that isn't active at build time —
+  # see commit "fix: don't gate config-validator behind a profile".
   # ---------------------------------------------------------------------------
   config-validator:
     image: node:22-alpine
-    profiles: ["validate"]
     restart: "no"
     working_dir: /app
     volumes:
