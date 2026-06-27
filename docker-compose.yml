@@ -63,7 +63,10 @@ services:
       - ./scripts:/app/scripts:ro
       - ./librechat.yaml:/app/librechat.yaml:ro
       - ./librechat_coolify.yaml:/app/librechat_coolify.yaml:ro
-      - ./packages/data-provider:/app/packages/data-provider:ro
+      # data-provider is mounted RW so npm run build can write to dist/.
+      # The validator only reads source TS files; the build output (dist/)
+      # is generated inside the container, not on the host.
+      - ./packages/data-provider:/app/packages/data-provider
     environment:
       - CONFIG_PATH=${CONFIG_PATH:-/app/librechat_coolify.yaml}
       - NODE_PATH=/app/node_modules:/app/packages/data-provider/node_modules
