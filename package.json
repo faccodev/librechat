@@ -39,6 +39,8 @@
     "delete-banner": "node config/delete-banner.js",
     "providers:sync": "node scripts/sync-providers.mjs",
     "providers:sync:dry": "node scripts/sync-providers.mjs --stdout",
+    "config:validate": "node scripts/validate-config.mjs",
+    "config:validate:strict": "node scripts/validate-config.mjs --no-fix",
     "backend": "cross-env NODE_ENV=production node api/server/index.js",
     "backend:inspect": "cross-env NODE_ENV=production node --inspect --expose-gc api/server/index.js",
     "backend:dev": "cross-env NODE_ENV=development npx nodemon api/server/index.js",

@@ -42,6 +42,31 @@
 # ==============================================================================
 
 services:
+  # ---------------------------------------------------------------------------
+  # config-validator — gate service. Runs validate-config.mjs against the
+  # mounted YAML before the api tries to boot. If validation fails, the
+  # container exits non-zero and `api`'s `depends_on: condition: service_completed_successfully`
+  # blocks the api from starting. The user sees a clear error in Coolify's
+  # deployment log instead of an infinite api restart loop. This was added
+  # after multiple incidents where a single YAML typo (e.g. `key:[]` instead
+  # of `key: []`) took the entire api offline.
+  # ---------------------------------------------------------------------------
+  config-validator:
+    image: node:22-alpine
+    profiles: ["validate"]
+    restart: "no"
+    working_dir: /app
+    volumes:
+      - ./scripts:/app/scripts:ro
+      - ./librechat.yaml:/app/librechat.yaml:ro
+      - ./librechat_coolify.yaml:/app/librechat_coolify.yaml:ro
+      - ./packages/data-provider:/app/packages/data-provider:ro
+    environment:
+      - CONFIG_PATH=${CONFIG_PATH:-/app/librechat_coolify.yaml}
+      - NODE_PATH=/app/packages/data-provider/node_modules
+    command: ["sh", "-c", "npm install --no-save --no-audit --no-fund --silent js-yaml@4 && node scripts/validate-config.mjs"]
+    # No healthcheck — this is a one-shot job, not a server.
+
   api:
     build:
       context: .
@@ -70,6 +95,8 @@ services:
     env_file:
       - .env
     depends_on:
+      config-validator:
+        condition: service_completed_successfully
       mongodb:
         condition: service_healthy
       meilisearch:

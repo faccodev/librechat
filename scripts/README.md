@@ -1,5 +1,87 @@
 # scripts/
 
+## validate-config.mjs
+
+Pre-deploy YAML validator. Runs the same Zod schema the api server uses
+to validate `librechat.yaml` / `librechat_coolify.yaml` **before** `docker
+compose up`. Catches the bug class that took the api offline (e.g.
+`key:[]` parsed as a string instead of a list, tabs instead of spaces,
+missing space after a colon).
+
+### Usage
+
+```bash
+# Validate the default config (uses CONFIG_PATH or ./librechat.yaml)
+npm run config:validate
+
+# Validate the Coolify production config
+npm run config:validate -- librechat_coolify.yaml
+
+# Validate WITHOUT auto-fix — fail immediately on any issue
+npm run config:validate:strict -- librechat_coolify.yaml
+```
+
+### Flow (auto-fix enabled by default)
+
+1. **Pass 1** — validate as-is.
+2. If Pass 1 fails with a known auto-fixable pattern (`invalid_type`,
+   string-instead-of-object, YAML parse error), apply `fix-yaml.mjs`.
+3. **Pass 2** — re-validate the fixed content.
+4. If Pass 2 fails, exit non-zero with the full Zod report. The pre-build
+   fails loudly instead of silently deploying a broken api.
+
+### What it catches
+
+- **YAML parse errors** — bad indentation, unclosed quotes, tabs in indent
+- **Zod schema violations** — same checks the api runs at boot, surfaced
+  with a precise `path` and `message` (e.g. `actions: Expected object,
+  received string`)
+- **Common foot-guns** — `key:[]` without a space, trailing whitespace,
+  CRLF line endings, multiple blank lines
+
+### Auto-fixable issues
+
+The auto-fixer rewrites the file in-place with:
+
+| Before | After |
+|---|---|
+| `key:value` | `key: value` |
+| `key:[]` | `key: []` |
+| `key:{}` | `key: {}` |
+| `\t` (tab) | `  ` (2 spaces) |
+| `\r\n` | `\n` |
+| Trailing whitespace | (removed) |
+| `\n\n\n\n` | `\n\n` |
+| No trailing newline | (added) |
+
+A timestamped backup (`file.yaml.bak.<ms>`) is created before any change.
+Pass `--no-fix` (or use the `config:validate:strict` npm script) to skip
+auto-fix entirely and fail on the first issue.
+
+### CI / Coolify integration
+
+The `config-validator` service in `docker-compose.yml` runs this script as a
+gate before `api` starts:
+
+```yaml
+api:
+  depends_on:
+    config-validator:
+      condition: service_completed_successfully
+```
+
+If the validator exits non-zero, `api` never starts — Coolify shows the
+validator's error log instead of an infinite api restart loop. To enable
+this gate, deploy with the `validate` profile:
+
+```bash
+docker compose --profile validate up -d
+```
+
+By default the validator runs only when explicitly requested (it has
+`profiles: ["validate"]`), so it doesn't slow down normal dev. To make it
+always-on, remove the profile line.
+
 ## sync-providers.mjs
 
 Regenerates the `endpoints.custom:` block in `librechat.yaml` from the
