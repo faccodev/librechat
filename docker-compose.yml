@@ -66,15 +66,14 @@ services:
       - ./packages/data-provider:/app/packages/data-provider:ro
     environment:
       - CONFIG_PATH=${CONFIG_PATH:-/app/librechat_coolify.yaml}
-      - NODE_PATH=/app/packages/data-provider/node_modules
+      - NODE_PATH=/app/node_modules:/app/packages/data-provider/node_modules
     command:
       - sh
       - -c
       - |
-        npm install --no-save --no-audit --no-fund --silent js-yaml@4 &&
+        npm install --no-save --no-audit --no-fund --silent js-yaml@4 zod &&
         cd packages/data-provider &&
         (test -d dist || (echo '[validator] Building data-provider (one-time)...' && npm run build)) &&
-        npm install --no-save --no-audit --no-fund --silent js-yaml@4 zod &&
         cd /app &&
         node scripts/validate-config.mjs
     # No healthcheck — this is a one-shot job, not a server.
