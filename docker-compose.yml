@@ -449,7 +449,6 @@ services:
   # ---------------------------------------------------------------------------
   omniroute-redis:
     image: redis:7-alpine
-    profiles: ["omniroute"]
     restart: always
     init: true
     command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
@@ -463,7 +462,6 @@ services:
 
   omniroute:
     image: diegosouzapw/omniroute:latest
-    profiles: ["omniroute"]
     restart: always
     init: true
     extra_hosts:
@@ -514,7 +512,6 @@ services:
   # ---------------------------------------------------------------------------
   rclone:
     image: rclone/rclone:latest
-    profiles: ["rclone"]
     restart: always
     init: true
     env_file:
