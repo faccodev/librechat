@@ -484,10 +484,10 @@ services:
       omniroute-redis:
         condition: service_healthy
     healthcheck:
-      # OmniRoute exposes /healthz on the API port (20129), not the dashboard
-      # (20128). Pointing at the dashboard returns Connection refused every
-      # cycle → Coolify flips to unhealthy → restarts the container.
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:20129/healthz || exit 1"]
+      # OmniRoute ships its own Node healthcheck script — there's no public
+      # /healthz route (the dashboard returns the SPA shell, not 200). Using
+      # the bundled script is what the official docker-compose.yml does.
+      test: ["CMD", "node", "healthcheck.mjs"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -537,17 +537,10 @@ services:
       # take effect on `docker compose restart rclone` with no image rebuild.
       - ./scripts/rclone-entrypoint.sh:/scripts/rclone-entrypoint.sh:ro
     entrypoint: ["/bin/sh", "/scripts/rclone-entrypoint.sh"]
-    healthcheck:
-      # rclone is a job-in-loop, NOT a server: PID 1 is the entrypoint sh
-      # running `while true; do bisync; sleep; done`. Probe config decode
-      # via `listremotes` instead of an HTTP endpoint (none exists).
-      # Wide start_period + long interval so a slow first bisync doesn't
-      # trip the probe and trigger a restart loop.
-      test: ["CMD-SHELL", "rclone listremotes --config /cache/rclone/rclone.conf"]
-      interval: 5m
-      timeout: 30s
-      retries: 5
-      start_period: 2m
+    # No healthcheck: rclone is a job-in-loop (PID 1 = sh running
+    # `while true; do bisync; sleep; done`), not a server. The official
+    # rclone/rclone image has no healthcheck.mjs and no daemon to probe.
+    # Status is read from `Up` + the entrypoint's logs only.
 
 volumes:
   mongodb_data:

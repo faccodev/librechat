@@ -39,8 +39,17 @@ mkdir -p "${CONFIG_DIR}"
 log() { printf '[rclone-entrypoint] %s\n' "$*"; }
 die() { printf '[rclone-entrypoint] FATAL: %s\n' "$*" >&2; exit 1; }
 
-# --- Decode and write the rclone.conf ----------------------------
-[ -n "${RCLONE_CONFIG_B64:-}" ] || die "RCLONE_CONFIG_B64 is empty (set it to base64 of your rclone.conf)"
+# --- Auto-detect opt-in ------------------------------------------
+# Rclone runs ONLY if RCLONE_CONFIG_B64 is set. When it's empty, we
+# log once, then sleep forever — container stays `Up` but does no
+# work and does NOT interfere with other services. No restart loop,
+# no healthcheck flapping. To enable sync, set RCLONE_CONFIG_B64
+# in .env and `docker compose restart rclone`.
+if [ -z "${RCLONE_CONFIG_B64:-}" ]; then
+    log "RCLONE_CONFIG_B64 not set — rclone sync is OFF (auto-skip)."
+    log "Container will stay Up idle. To enable: set RCLONE_CONFIG_B64 in .env and restart this service."
+    exec sleep infinity
+fi
 
 # `base64 -d` is POSIX; on busybox/alpine it's `base64 -d` too. Decode
 # directly into the config file. The base64 string MUST be the whole
