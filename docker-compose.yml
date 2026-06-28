@@ -55,32 +55,32 @@ services:
   # a service that's behind a profile that isn't active at build time —
   # see commit "fix: don't gate config-validator behind a profile".
   # ---------------------------------------------------------------------------
-  config-validator:
-    image: node:22-alpine
-    restart: "no"
-    working_dir: /app
-    volumes:
-      - ./scripts:/app/scripts:ro
-      - ./librechat.yaml:/app/librechat.yaml:ro
-      - ./librechat_coolify.yaml:/app/librechat_coolify.yaml:ro
-      # data-provider is mounted RW so npm run build can write to dist/.
-      # The validator only reads source TS files; the build output (dist/)
-      # is generated inside the container, not on the host.
-      - ./packages/data-provider:/app/packages/data-provider
-      - data_provider_dist:/app/packages/data-provider/dist
-    environment:
-      - CONFIG_PATH=${CONFIG_PATH:-/app/librechat_coolify.yaml}
-      - NODE_PATH=/app/node_modules:/app/packages/data-provider/node_modules
-    command:
-      - sh
-      - -c
-      - |
-        npm install --no-save --no-audit --no-fund --silent js-yaml@4 zod &&
-        cd packages/data-provider &&
-        (test -d dist || (echo '[validator] Installing data-provider deps...' && npm install --no-audit --no-fund --silent && echo '[validator] Building data-provider (one-time)...' && npm run build)) &&
-        cd /app &&
-        node scripts/validate-config.mjs
-    # No healthcheck — this is a one-shot job, not a server.
+#  config-validator:
+#    image: node:22-alpine
+#    restart: "no"
+#    working_dir: /app
+#    volumes:
+#      - ./scripts:/app/scripts:ro
+#      - ./librechat.yaml:/app/librechat.yaml:ro
+#      - ./librechat_coolify.yaml:/app/librechat_coolify.yaml:ro
+#      # data-provider is mounted RW so npm run build can write to dist/.
+#      # The validator only reads source TS files; the build output (dist/)
+#      # is generated inside the container, not on the host.
+#      - ./packages/data-provider:/app/packages/data-provider
+#      - data_provider_dist:/app/packages/data-provider/dist
+#    environment:
+#      - CONFIG_PATH=${CONFIG_PATH:-/app/librechat_coolify.yaml}
+#      - NODE_PATH=/app/node_modules:/app/packages/data-provider/node_modules
+#    command:
+#      - sh
+#      - -c
+#      - |
+#        npm install --no-save --no-audit --no-fund --silent js-yaml@4 zod &&
+#        cd packages/data-provider &&
+#        (test -d dist || (echo '[validator] Installing data-provider deps...' && npm install --no-audit --no-fund --silent && echo '[validator] Building data-provider (one-time)...' && npm run build)) &&
+#        cd /app &&
+#        node scripts/validate-config.mjs
+#    # No healthcheck — this is a one-shot job, not a server.
 
   api:
     build:
@@ -116,8 +116,6 @@ services:
     env_file:
       - .env
     depends_on:
-      config-validator:
-        condition: service_completed_successfully
       mongodb:
         condition: service_healthy
       meilisearch:
