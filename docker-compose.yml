@@ -457,8 +457,8 @@ services:
 
   mcp-meta-ads:
     build:
-      context: .
-      dockerfile: ./packages/mcp-meta-ads/Dockerfile
+      context: ./packages/mcp-meta-ads
+      dockerfile: Dockerfile
       # Cache optimization to reuse layers across deploys
       cache_from:
         - type=local,src=/tmp/buildcache/mcp-meta-ads
