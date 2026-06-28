@@ -1,11 +1,11 @@
 {
-  "name": "fb-marketing-mcp",
+  "name": "mcp-meta-ads",
   "version": "1.0.0",
   "description": "MCP Server para Facebook Marketing API - Documentação e Execução",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "fb-marketing-mcp": "./dist/index.js"
+    "mcp-meta-ads": "./dist/index.js"
   },
   "files": [
     "dist",

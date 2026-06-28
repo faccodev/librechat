@@ -2,8 +2,6 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-
-
 COPY package*.json ./
 RUN npm ci
 
@@ -21,8 +19,6 @@ RUN echo "build: ${RAILWAY_GIT_COMMIT_SHA:-local}"
 # ── Production stage ──
 FROM node:20-alpine
 WORKDIR /app
-
-
 
 COPY package*.json ./
 RUN npm ci --omit=dev

@@ -22,7 +22,7 @@ import { registerPromptHandlers } from './prompts.js';
 
 // Informações do pacote
 const packageInfo = {
-  name: 'fb-marketing-mcp',
+  name: 'mcp-meta-ads',
   version: '1.0.0',
 };
 

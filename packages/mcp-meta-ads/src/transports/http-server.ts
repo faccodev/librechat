@@ -88,7 +88,7 @@ export async function startHttpServer(options: HttpServerOptions): Promise<void>
   app.get('/health', (_req: Request, res: Response) => {
     res.json({
       status: 'ok',
-      service: 'fb-marketing-mcp',
+      service: 'mcp-meta-ads',
       timestamp: new Date().toISOString(),
       activeSessions: sessions.size,
     });
@@ -393,7 +393,7 @@ export async function startHttpServer(options: HttpServerOptions): Promise<void>
 
   // ── Start server ──
   const server = app.listen(port, '0.0.0.0', () => {
-    console.log(`fb-marketing-mcp HTTP server listening on http://0.0.0.0:${port}`);
+    console.log(`mcp-meta-ads HTTP server listening on http://0.0.0.0:${port}`);
     console.log(`  MCP endpoint: POST/GET/DELETE http://0.0.0.0:${port}/mcp (also at /)`);
     console.log(`  Health check: GET http://0.0.0.0:${port}/health`);
     console.log(`  OAuth metadata: GET ${BASE_URL}/.well-known/oauth-authorization-server`);

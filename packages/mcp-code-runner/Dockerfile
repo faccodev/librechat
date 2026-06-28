@@ -3,7 +3,7 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 COPY package*.json tsconfig.json ./
-RUN npm install
+RUN npm ci
 
 COPY src ./src
 RUN npm run build
@@ -16,7 +16,7 @@ RUN apk add --no-cache docker-cli
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install --omit=dev
+RUN npm ci --omit=dev
 
 COPY --from=builder /app/dist ./dist
 COPY scripts/pull-images.sh ./scripts/pull-images.sh
