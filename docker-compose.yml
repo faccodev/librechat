@@ -120,12 +120,6 @@ services:
         condition: service_healthy
       meilisearch:
         condition: service_started
-    healthcheck:
-      test: ["CMD-SHELL", "node -e \"const http = require('http'); const req = http.request('http://127.0.0.1:3080/livez', { timeout: 2000 }, (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }); req.on('error', () => process.exit(1)); req.end();\""]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 90s
     environment:
       - HOST=0.0.0.0
       - PORT=3080
