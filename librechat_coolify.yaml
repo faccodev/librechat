@@ -76,7 +76,7 @@ mcpSettings:
     - 'mcp-transcribe:8934'
     - 'mcp-code-runner:8932'
     - 'mcp-notion:3001'
-    - 'mcp-fb-marketing:8935'
+    - 'fb-marketing-mcp:8935'
 
 
 # MCP servers. Same config as local — the URL is internal Docker DNS,
@@ -136,7 +136,7 @@ mcpServers:
     title: 'Meta ADS'
     iconPath: '/assets/mcp/meta.png'
     type: streamable-http
-    url: 'http://mcp-fb-marketing:8935/mcp'
+    url: 'http://fb-marketing-mcp:8935/mcp'
     timeout: 30000
     initTimeout: 60000
     startup: false

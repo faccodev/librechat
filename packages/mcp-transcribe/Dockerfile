@@ -5,7 +5,7 @@ FROM python:3.12-slim
 WORKDIR /app
 
 # Only need the MCP SDK + httpx to call faster-whisper's /asr endpoint.
-RUN pip install --no-cache-dir mcp httpx
+RUN pip install --no-cache-dir "mcp>=1.0,<2" "httpx>=0.27,<1"
 
 COPY server.py /app/server.py
 

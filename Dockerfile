@@ -3,12 +3,8 @@
 # Base node image
 FROM node:24.16.0-alpine AS node
 
-RUN apk upgrade --no-cache
-RUN apk add --no-cache jemalloc
-RUN apk add --no-cache python3 py3-pip uv
-# su-exec is a tiny setuid wrapper used by the api entrypoint to drop
-# privileges from root to the `node` user after the chown step.
-RUN apk add --no-cache su-exec
+RUN apk upgrade --no-cache && \
+    apk add --no-cache jemalloc python3 su-exec
 # Copy the entrypoint script. Runs as root to chown the bind-mount
 # directories, then execs the CMD as the unprivileged node user.
 COPY api/entrypoint.sh /usr/local/bin/entrypoint.sh

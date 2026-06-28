@@ -2,8 +2,7 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-ARG RAILWAY_GIT_COMMIT_SHA
-RUN echo "build: ${RAILWAY_GIT_COMMIT_SHA:-local}"
+
 
 COPY package*.json ./
 RUN npm ci
@@ -16,12 +15,14 @@ COPY tsconfig.json ./
 COPY src/ ./src/
 RUN npm run build
 
+ARG RAILWAY_GIT_COMMIT_SHA
+RUN echo "build: ${RAILWAY_GIT_COMMIT_SHA:-local}"
+
 # ── Production stage ──
 FROM node:20-alpine
 WORKDIR /app
 
-ARG RAILWAY_GIT_COMMIT_SHA
-RUN echo "deploy: ${RAILWAY_GIT_COMMIT_SHA:-local}"
+
 
 COPY package*.json ./
 RUN npm ci --omit=dev
@@ -42,6 +43,9 @@ COPY scripts/docker-entrypoint.sh ./docker-entrypoint.sh
 # Normalize line endings first, then make executable. Both fixes are
 # no-ops on LF/non-Windows hosts.
 RUN sed -i 's/\r$//' ./docker-entrypoint.sh && chmod +x ./docker-entrypoint.sh
+
+ARG RAILWAY_GIT_COMMIT_SHA
+RUN echo "deploy: ${RAILWAY_GIT_COMMIT_SHA:-local}"
 
 EXPOSE 3000
 

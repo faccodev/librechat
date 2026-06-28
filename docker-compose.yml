@@ -67,6 +67,7 @@ services:
       # The validator only reads source TS files; the build output (dist/)
       # is generated inside the container, not on the host.
       - ./packages/data-provider:/app/packages/data-provider
+      - data_provider_dist:/app/packages/data-provider/dist
     environment:
       - CONFIG_PATH=${CONFIG_PATH:-/app/librechat_coolify.yaml}
       - NODE_PATH=/app/node_modules:/app/packages/data-provider/node_modules
@@ -76,7 +77,7 @@ services:
       - |
         npm install --no-save --no-audit --no-fund --silent js-yaml@4 zod &&
         cd packages/data-provider &&
-        (test -d dist || (echo '[validator] Building data-provider (one-time)...' && npm run build)) &&
+        (test -d dist || (echo '[validator] Installing data-provider deps...' && npm ci --no-audit --no-fund --silent && echo '[validator] Building data-provider (one-time)...' && npm run build)) &&
         cd /app &&
         node scripts/validate-config.mjs
     # No healthcheck — this is a one-shot job, not a server.
@@ -595,3 +596,4 @@ volumes:
   omniroute_data:
   omniroute_redis_data:
   rclone_cache:
+  data_provider_dist:
