@@ -1,0 +1,360 @@
+# ==============================================================================
+# LibreChat — Local dev compose (Windows + Linux, all MCPs, no profiles)
+# ==============================================================================
+# Same services as the production compose (docker-compose.yml in this repo),
+# but as a SINGLE file (no profiles) for local dev. Bring everything up with:
+#
+#   docker compose -f docker-compose.local.yml build
+#   docker compose -f docker-compose.local.yml up -d
+#
+# Cross-platform path handling (read this before changing volumes):
+#   * All bind mounts that touch the host's workspaces directory read from
+#     the env var WORKSPACES_HOST_PATH.
+#   * Windows + Docker Desktop: set in .env — example:
+#         WORKSPACES_HOST_PATH=e:/workspaces
+#     (forward slashes, lowercase drive letter, no trailing slash). Docker
+#     Desktop maps e:/workspaces -> E:\workspaces on the host automatically.
+#   * Linux VPS / Coolify: typical value is /home/workspaces.
+#   * The fallback `${WORKSPACES_HOST_PATH:-/home/workspaces}` means a fresh
+#     Linux user with no .env edit still gets a working setup. On Windows,
+#     if WORKSPACES_HOST_PATH is unset, the api container will start with
+#     an empty workspace dir mounted from /home/workspaces (a Linux-style
+#     path) — which Docker Desktop silently translates to a named volume
+#     named "" and your files won't appear. So: set WORKSPACES_HOST_PATH.
+#
+# Excluded vs. docker-compose.yml:
+#   * Rclone + rclone profile — needs an RCLONE_CONFIG_B64 base64 blob, not
+#     part of a local-dev smoke test. Bring it up separately if you want it.
+#   * OmniRoute + omniroute profile — optional AI gateway, usually off
+#     locally. Bring up with a profile flag if you actually need it.
+#
+# MCPs will appear in the UI as "disconnected" until their containers are
+# healthy. librechat.yaml declares all servers with `startup: false`, so
+# the api doesn't probe them at boot — they're discovered lazily when the
+# user clicks "connect" in the agent panel.
+# ==============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # api — main backend + embedded React build. Built from ./Dockerfile.
+  # ---------------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: node
+      args:
+        - NPM_CI_TIMEOUT_SECONDS=1500
+        - NPM_CI_ATTEMPTS=2
+      cache_from:
+        - type=local,src=/tmp/buildcache/api
+      cache_to:
+        - type=local,dest=/tmp/buildcache/api,mode=max
+    restart: unless-stopped
+    stop_grace_period: 30s
+    # json-file with rotation preserves up to 500MB of log per service even
+    # if the container crashes. See the long note in docker-compose.yml for
+    # why this matters on the Coolify VPS (the local dev case is just nice
+    # to have).
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "10"
+    # Healthcheck that Coolify (or any orchestrator) can poll to decide
+    # "api is up". HTTP / returns 200 the moment the Express listener
+    # binds — even before the DB connection finishes initializing, which
+    # is good enough for the orchestrator. start_period gives the api 60s
+    # to do its first-boot setup (mongo connect, MCP registry, etc).
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3080/ >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    ports:
+      - "3080:3080"
+    # Windows + Docker Desktop: host.docker.internal is already injected by
+    # Docker Desktop's networking. Uncomment on Linux if a service needs to
+    # reach something running on the host (Ollama, Stable Diffusion WebUI,
+    # etc.) — see the long note in docker-compose.yml for details.
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"
+    env_file:
+      - .env
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      meilisearch:
+        condition: service_started
+    environment:
+      - HOST=0.0.0.0
+      - PORT=3080
+      # Override the .env values: inside the compose network, the hostnames
+      # `mongodb` and `meilisearch` are what Docker DNS gives the containers.
+      # The .env defaults to 127.0.0.1 (assumes native mongo/meili) — those
+      # are wrong for compose.
+      - MONGO_URI=mongodb://mongodb:27017/LibreChat
+      - MEILI_HOST=http://meilisearch:7700
+      - MEILI_HTTP_ADDR=0.0.0.0:7700
+      - MEILI_NO_ANALYTICS=true
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - UPLOADS_DIR=/app/uploads
+      - SESSION_COOKIE_SECURE=${SESSION_COOKIE_SECURE:-false}
+      - WORKSPACE_ROOTS=/workspaces
+      # CONFIG_PATH picks which librechat*.yaml the api loads. Default = local
+      # dev config. Set CONFIG_PATH=/app/librechat_coolify.yaml in .env to
+      # load the Coolify-tuned config (same effect on this compose as on the
+      # production one — they share the same mcpServers block).
+      - CONFIG_PATH=${CONFIG_PATH:-/app/librechat.yaml}
+    volumes:
+      - ./librechat.yaml:/app/librechat.yaml:ro
+      - ./librechat_coolify.yaml:/app/librechat_coolify.yaml:ro
+      - librechat_local_uploads:/app/uploads
+      - librechat_local_images:/app/client/public/images
+      # The host-side path that mcp-code-runner / mcp-browser / mcp-transcribe
+      # / mcp-search see as /workspaces inside the api container. WORKSPACES_HOST_PATH
+      # must be set in .env (forward slashes on Windows, e.g. e:/workspaces).
+      - ${WORKSPACES_HOST_PATH}:/workspaces
+    labels:
+      - "coolify.managed=true"
+      - "coolify.type=application"
+
+  mongodb:
+    image: mongo:8.0.20
+    restart: unless-stopped
+    volumes:
+      - librechat_local_mongo:/data/db
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --host 127.0.0.1 --port 27017 --eval 'db.adminCommand({ ping: 1 })' --quiet || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.35.1
+    restart: unless-stopped
+    environment:
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}
+      - MEILI_NO_ANALYTICS=true
+    volumes:
+      - librechat_local_meili:/meili_data
+
+  # ---------------------------------------------------------------------------
+  # mcp-browser — @agent-infra/mcp-server-browser (ByteDance UI-TARS).
+  # Chromium needs 2GB /dev/shm (Docker's 64MB default crashes it).
+  # ---------------------------------------------------------------------------
+  mcp-browser:
+    build:
+      context: .
+      dockerfile: .docker/mcp-browser.Dockerfile
+      cache_from:
+        - type=local,src=/tmp/buildcache/mcp-browser
+      cache_to:
+        - type=local,dest=/tmp/buildcache/mcp-browser,mode=max
+    restart: unless-stopped
+    init: true
+    shm_size: '2gb'
+    command:
+      - mcp-server-browser
+      - --host=0.0.0.0
+      - --port=8931
+      - --headless
+      - --user-data-dir=/ms-browser
+      - --output-dir=/ms-browser/output
+    volumes:
+      - librechat_local_browser:/ms-browser
+      # Same workspaces path the api uses. Browser can fetch local files via
+      # file:///workspaces/... when an agent points it there.
+      - ${WORKSPACES_HOST_PATH}:/workspaces
+
+  # ---------------------------------------------------------------------------
+  # mcp-search — DuckDuckGo via nickclyde/duckduckgo-mcp-server. Free, no key.
+  # ---------------------------------------------------------------------------
+  mcp-search:
+    image: python:3.12-slim
+    restart: unless-stopped
+    init: true
+    command:
+      - sh
+      - -c
+      - |
+        pip install --no-cache-dir uv && \
+        cat > /tmp/launcher.py <<'LAUNCHER_EOF'
+        """Launcher: disable FastMCP DNS rebinding protection for Docker-internal traffic.
+
+        Default ``enable_dns_rebinding_protection=True`` rejects ``Host: mcp-search:8933``
+        with 421 Misdirected Request. We set it to False so the middleware short-circuits
+        the host/origin validation. Safe because the listener only sees the internal Docker network.
+        """
+        import sys
+        import duckduckgo_mcp_server.server as srv
+        try:
+            from mcp.server.transport_security import TransportSecuritySettings
+        except ImportError:
+            from mcp.server.fastmcp import TransportSecuritySettings
+        srv.mcp.settings.transport_security = TransportSecuritySettings(
+            allowed_hosts=["*"],
+            allowed_origins=["*"],
+            enable_dns_rebinding_protection=False,
+        )
+        sys.exit(srv.main())
+        LAUNCHER_EOF
+        exec uvx --from "duckduckgo-mcp-server[browser]" \
+            --with "duckduckgo-mcp-server[browser]" \
+            python /tmp/launcher.py \
+            --transport streamable-http \
+            --host 0.0.0.0 \
+            --port 8933
+    environment:
+      - DDG_SAFE_SEARCH=MODERATE
+      - DDG_REGION=wt-wt
+    volumes:
+      - librechat_local_search_uv:/uv-cache
+      - ${WORKSPACES_HOST_PATH}:/workspaces
+
+  # ---------------------------------------------------------------------------
+  # mcp-code-runner — mounts the Docker socket so it can spin up child
+  # executor containers. On Windows + Docker Desktop the socket lives at the
+  # same /var/run/docker.sock path, pointing at the WSL2 VM's daemon.
+  # ---------------------------------------------------------------------------
+  mcp-code-runner:
+    build:
+      context: ./packages/mcp-code-runner
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    init: true
+    volumes:
+      - ${WORKSPACES_HOST_PATH}:/workspaces
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WORKSPACES_BASE=/workspaces
+      # HOST_WORKSPACES_BASE tells the child executor containers which path
+      # to mount. Must match what the host sees for WORKSPACES_HOST_PATH —
+      # child containers run via the host's docker daemon, so the path has
+      # to be host-relative. Default mirrors WORKSPACES_HOST_PATH.
+      - HOST_WORKSPACES_BASE=${WORKSPACES_HOST_PATH:-/home/workspaces}
+      - MAX_TIMEOUT=120
+      - RUNNER_MEMORY=${RUNNER_MEMORY:-512m}
+      - RUNNER_CPUS=${RUNNER_CPUS:-1.0}
+      # Pin PORT — .env may set PORT=3080 (for the api). Don't inherit it.
+      - PORT=8932
+      - WORKSPACE_ROOTS=${WORKSPACE_ROOTS:-/workspaces}
+      - RUNNER_PROJECT_CONTEXT_HEADER=${RUNNER_PROJECT_CONTEXT_HEADER:-X-Project-Context}
+      - RUNNER_IMAGE_DEFAULT=${RUNNER_IMAGE_DEFAULT:-mcp-runner-alpine:latest}
+      - RUNNER_IMAGE_NODE=${RUNNER_IMAGE_NODE:-mcp-runner-node:latest}
+      - RUNNER_IMAGE_PYTHON=${RUNNER_IMAGE_PYTHON:-mcp-runner-python:latest}
+
+  # ---------------------------------------------------------------------------
+  # mcp-notion — needs NOTION_TOKEN in .env; with empty value the server
+  # still starts but every tool call 401s.
+  # ---------------------------------------------------------------------------
+  mcp-notion:
+    image: node:20-alpine
+    restart: unless-stopped
+    command:
+      - npx
+      - -y
+      - "@notionhq/notion-mcp-server"
+      - --transport
+      - http
+      - --port
+      - "3001"
+      - --disable-auth
+    environment:
+      - NOTION_TOKEN=${NOTION_TOKEN:-}
+
+  # ---------------------------------------------------------------------------
+  # mcp-faster-whisper — STT. Pulls a model on first boot (~1.5GB for
+  # ASR_MODEL=small / int8), then caches it in the named volume.
+  # ---------------------------------------------------------------------------
+  mcp-faster-whisper:
+    image: onerahmet/openai-whisper-asr-webservice:latest
+    restart: unless-stopped
+    init: true
+    environment:
+      - ASR_ENGINE=faster_whisper
+      - ASR_MODEL=small
+      - ASR_QUANTIZATION=int8
+    volumes:
+      - librechat_local_faster_whisper:/data/whisper
+
+  # ---------------------------------------------------------------------------
+  # mcp-transcribe — Python MCP wrapper around faster-whisper.
+  # ---------------------------------------------------------------------------
+  mcp-transcribe:
+    build:
+      context: ./packages/mcp-transcribe
+    restart: unless-stopped
+    init: true
+    environment:
+      - FASTER_WHISPER_URL=http://mcp-faster-whisper:9000
+      - FASTER_WHISPER_LANGUAGE=pt
+    depends_on:
+      - mcp-faster-whisper
+    volumes:
+      - ${WORKSPACES_HOST_PATH}:/workspaces
+    ports:
+      - "8934:8934"
+
+  # ---------------------------------------------------------------------------
+  # mcp-meta-ads — local Meta Ads MCP. Replaces the old remote Facebook MCP.
+  # Needs META_ACCESS_TOKEN in .env. Own Postgres keeps token storage + tool
+  # history. On first boot it runs `prisma migrate deploy` against the DB.
+  # ---------------------------------------------------------------------------
+  mcp-meta-ads-postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    init: true
+    environment:
+      - POSTGRES_USER=mcp
+      - POSTGRES_PASSWORD=${FB_MARKETING_MCP_DB_PASSWORD:-mcp_dev_2026}
+      - POSTGRES_DB=fb_marketing_mcp
+    volumes:
+      - librechat_local_meta_ads_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mcp -d fb_marketing_mcp"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  mcp-meta-ads:
+    build:
+      context: ./packages/mcp-meta-ads
+      dockerfile: Dockerfile
+      cache_from:
+        - type=local,src=/tmp/buildcache/mcp-meta-ads
+      cache_to:
+        - type=local,dest=/tmp/buildcache/mcp-meta-ads,mode=max
+    restart: unless-stopped
+    init: true
+    env_file:
+      - .env
+    depends_on:
+      mcp-meta-ads-postgres:
+        condition: service_healthy
+    environment:
+      - PORT=8935
+      - DATABASE_URL=postgresql://mcp:${FB_MARKETING_MCP_DB_PASSWORD:-mcp_dev_2026}@mcp-meta-ads-postgres:5432/fb_marketing_mcp
+      - MCP_ENCRYPTION_KEY=${MCP_ENCRYPTION_KEY}
+    healthcheck:
+      # Use 127.0.0.1, not localhost: on Alpine getent returns ::1 (IPv6) but
+      # the server binds to 0.0.0.0 (IPv4) only — localhost resolves closed.
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8935/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  librechat_local_mongo:
+  librechat_local_meili:
+  librechat_local_uploads:
+  librechat_local_images:
+  librechat_local_browser:
+  librechat_local_search_uv:
+  librechat_local_faster_whisper:
+  librechat_local_meta_ads_pg:

@@ -96,7 +96,45 @@ services:
         - type=local,src=/tmp/buildcache/api
       cache_to:
         - type=local,dest=/tmp/buildcache/api,mode=max
-    restart: always
+    # restart: always is the strictest policy — Docker restarts on ANY exit,
+    # including exit code 0 (after stop). On the Coolify VPS that meant the
+    # container flapped until Coolify's "Max Restarts" cap (default ~10)
+    # killed the deployment before any logs were preserved. `on-failure:5`
+    # limits to 5 quick restarts then gives up, leaving the container in
+    # `Restarting` state where `docker logs --tail 200 <id>` still works.
+    # If the api legitimately needs more than 5 restarts in a 10s window
+    # to stabilize, the underlying bug isn't a transient one and should be
+    # diagnosed instead of hidden behind more retries.
+    restart: on-failure:5
+    # Coolify's default stop_grace_period is 10s — not enough for the api to
+    # flush logs on SIGTERM before SIGKILL hits. 30s matches what
+    # docker-compose up uses by default and is what production Express apps
+    # need to drain in-flight requests cleanly.
+    stop_grace_period: 30s
+    # json-file with rotation preserves up to 500MB of log per service even
+    # if the container crashes — without this, `docker logs` after a crash
+    # returns nothing on the Coolify VPS (its storage driver sometimes
+    # garbage-collects the ring buffer before you read it). Read the last
+    # crash with: docker logs --tail 200 <container_id>.
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "10"
+    # Healthcheck is what Coolify polls to decide "deployment succeeded".
+    # Without it, Coolify's "Wait for healthy" setting waits forever and
+    # eventually kills the deployment with no clear error. We probe HTTP /
+    # because the api serves the React SPA shell on any path. 3080 is the
+    # port bound inside the container, NOT the host's published port.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3080/ >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      # Generous start_period: the api does index sync, mongo connection,
+      # MCP registry init before it can answer HTTP. On a fresh mongo with
+      # an empty DB, that easily takes 30-40s on the first boot.
+      start_period: 60s
     ports:
       - "3080:3080"
     # `host.docker.internal:host-gateway` is needed ONLY on Windows + Docker
