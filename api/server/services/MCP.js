@@ -160,10 +160,14 @@ async function resolveAllMcpConfigs(userId, user) {
 /**
  * @param {string} toolName
  * @param {string} serverName
+ * @param {{ message?: string }} [opts] - Override the default unavailable message with a
+ *   more specific one (e.g. when we know the tool is malformed and want to suggest the
+ *   correct names). When omitted, falls back to the generic "server unavailable" copy.
  */
-function createUnavailableToolStub(toolName, serverName) {
+function createUnavailableToolStub(toolName, serverName, opts = {}) {
   const normalizedToolKey = `${toolName}${Constants.mcp_delimiter}${normalizeServerName(serverName)}`;
-  const _call = async () => [unavailableMsg, null];
+  const message = opts.message || unavailableMsg;
+  const _call = async () => [message, null];
   const toolInstance = tool(_call, {
     schema: {
       type: 'object',
@@ -173,7 +177,7 @@ function createUnavailableToolStub(toolName, serverName) {
       required: [],
     },
     name: normalizedToolKey,
-    description: unavailableMsg,
+    description: message,
     responseFormat: AgentConstants.CONTENT_AND_ARTIFACT,
   });
   toolInstance.mcp = true;
@@ -563,7 +567,57 @@ async function createMCPTool({
   configServers,
   streamId = null,
 }) {
-  const [toolName, serverName] = toolKey.split(Constants.mcp_delimiter);
+  /**
+   * Defensive split + recovery for malformed toolKey. We see models emit names like
+   * `_mcp_search` (server part only, no toolName) or `search_mcp_` (tool only, no server).
+   * A naive `toolKey.split('_mcp_')` returns `['', 'search']` or `['search', '']`, then the
+   * code happily looks up server 'search' / tool '' and returns "Tool not found" with no
+   * recovery path. Catch the malformed shape early, derive the serverName from whatever
+   * non-empty side we can, and surface a hint to the model so it can self-correct on retry.
+   */
+  const splitParts = toolKey.split(Constants.mcp_delimiter);
+  const toolName = splitParts[0];
+  const serverName = splitParts[splitParts.length - 1];
+
+  if (!toolName || !serverName || splitParts.length < 2) {
+    const recoveredServer = serverName || toolName;
+    logger.warn(
+      `[MCP] Malformed toolKey "${toolKey}" (parts=${JSON.stringify(splitParts)}). ` +
+        `Expected format "toolName${Constants.mcp_delimiter}serverName". ` +
+        `Recovered serverName="${recoveredServer}" for diagnostic.`,
+    );
+
+    if (recoveredServer) {
+      try {
+        const registry = getMCPServersRegistry();
+        const serverConfig = await registry.getServerConfig(recoveredServer, user?.id);
+        const toolFunctions = serverConfig?.toolFunctions;
+        if (toolFunctions && Object.keys(toolFunctions).length > 0) {
+          const toolList = Object.keys(toolFunctions)
+            .slice(0, 8)
+            .join(', ');
+          return createUnavailableToolStub(toolKey, recoveredServer, {
+            message:
+              `Tool "${toolKey}" not found — the MCP tool name is malformed. ` +
+              `Expected format "toolName${Constants.mcp_delimiter}serverName". ` +
+              `Did you mean one of: ${toolList}?`,
+          });
+        }
+      } catch (recoveryErr) {
+        logger.debug(
+          `[MCP] Recovery attempt for malformed toolKey "${toolKey}" failed:`,
+          recoveryErr,
+        );
+      }
+    }
+
+    return createUnavailableToolStub(toolKey, recoveredServer || '', {
+      message:
+        `Tool "${toolKey}" not found — the MCP tool name is malformed. ` +
+        `Expected format "toolName${Constants.mcp_delimiter}serverName" ` +
+        `(e.g. "search${Constants.mcp_delimiter}search").`,
+    });
+  }
 
   const serverConfig =
     config ?? (await getMCPServersRegistry().getServerConfig(serverName, user?.id, configServers));
