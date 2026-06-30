@@ -65,7 +65,11 @@ const { primeFiles: primeCodeFiles } = require('~/server/services/Files/Code/pro
 const { manifestToolMap, toolkits } = require('~/app/clients/tools/manifest');
 const { createOnSearchResults } = require('~/server/services/Tools/search');
 const { reinitMCPServer } = require('~/server/services/Tools/mcp');
-const { createMCPPermissionContext, resolveConfigServers, resolveAllMcpConfigs } = require('~/server/services/MCP');
+const {
+  createMCPPermissionContext,
+  resolveConfigServers,
+  resolveAllMcpConfigs,
+} = require('~/server/services/MCP');
 const { recordUsage } = require('~/server/services/Threads');
 const { loadTools } = require('~/app/clients/tools/util');
 const { redactMessage } = require('~/config/parsers');
@@ -565,9 +569,10 @@ async function loadToolDefinitionsWrapper({ req, res, agent, streamId = null, to
     const mcpConfigs = await resolveAllMcpConfigs(req.user.id, req.user);
     const serverNames = Object.keys(mcpConfigs ?? {});
     for (const serverName of serverNames) {
-      const alreadyCovered = tools.some(t =>
-        t === `${Constants.mcp_all}${Constants.mcp_delimiter}${serverName}` ||
-        t.endsWith(`${Constants.mcp_delimiter}${serverName}`)
+      const alreadyCovered = tools.some(
+        (t) =>
+          t === `${Constants.mcp_all}${Constants.mcp_delimiter}${serverName}` ||
+          t.endsWith(`${Constants.mcp_delimiter}${serverName}`),
       );
       if (!alreadyCovered) {
         tools.push(`${Constants.mcp_all}${Constants.mcp_delimiter}${serverName}`);
@@ -819,12 +824,7 @@ async function loadToolDefinitionsWrapper({ req, res, agent, streamId = null, to
    * to `filteredTools` so the LLM sees the actual `read_file`,
    * `write_file`, `list_directory`, etc. tools.
    */
-  if (
-    req.user?.workspaceSubdir &&
-    req.user?.id &&
-    areToolsEnabled &&
-    canUseMCP
-  ) {
+  if (req.user?.workspaceSubdir && req.user?.id && areToolsEnabled && canUseMCP) {
     const wsServerName = `ws_${req.user.id}`;
     const alreadyInjected = filteredTools?.some((t) =>
       t.includes(`${Constants.mcp_delimiter}${wsServerName}`),
@@ -833,9 +833,7 @@ async function loadToolDefinitionsWrapper({ req, res, agent, streamId = null, to
       try {
         const serverTools = await getOrFetchMCPServerTools(req.user.id, wsServerName);
         if (serverTools && typeof serverTools === 'object') {
-          const realToolNames = Object.keys(serverTools).filter(
-            (n) => !filteredTools?.includes(n),
-          );
+          const realToolNames = Object.keys(serverTools).filter((n) => !filteredTools?.includes(n));
           filteredTools = [...(filteredTools ?? []), ...realToolNames];
           logger.debug(
             `[loadToolDefinitionsWrapper] Auto-injected ${realToolNames.length} workspace MCP tools for user ${req.user.id} (agent ${agent.id})`,
@@ -1095,9 +1093,10 @@ async function loadAgentTools({
     const mcpConfigs = await resolveAllMcpConfigs(req.user.id, req.user);
     const serverNames = Object.keys(mcpConfigs ?? {});
     for (const serverName of serverNames) {
-      const alreadyCovered = tools.some(t =>
-        t === `${Constants.mcp_all}${Constants.mcp_delimiter}${serverName}` ||
-        t.endsWith(`${Constants.mcp_delimiter}${serverName}`)
+      const alreadyCovered = tools.some(
+        (t) =>
+          t === `${Constants.mcp_all}${Constants.mcp_delimiter}${serverName}` ||
+          t.endsWith(`${Constants.mcp_delimiter}${serverName}`),
       );
       if (!alreadyCovered) {
         tools.push(`${Constants.mcp_all}${Constants.mcp_delimiter}${serverName}`);

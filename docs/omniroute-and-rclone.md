@@ -74,7 +74,7 @@ docker compose down omniroute omniroute-redis   # stop the running containers (o
 ## 2. Rclone — bidirectional sync of `/home/workspaces` ↔ Google Drive
 
 ### What you get
-- Every file in the host's `workspaces/` folder (the same path the LibreChat `api` and `mcp-code-runner` services mount) is kept in sync with a Google Drive folder.
+- Every file in the host's `workspaces/` folder (the same path the LibreChat `api` and `mcp-workspace` services mount) is kept in sync with a Google Drive folder.
 - Edit locally → it goes up. Edit on Drive → it comes down. Conflicts resolved by `RCLONE_CONFLICT_POLICY` (default: `newest` wins).
 - Runs as a sidecar container, no host-side rclone install needed.
 

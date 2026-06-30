@@ -10,7 +10,7 @@ const { logger } = require('@librechat/data-schemas');
  * you are also committing to documenting the workspaceSubdir semantics
  * in the description augmentation. See `WORKSPACE_HINT` below.
  */
-const WORKSPACE_AWARE_MCP_SERVERS = new Set(['filesystem', 'ws_', 'code-runner', 'transcribe']);
+const WORKSPACE_AWARE_MCP_SERVERS = new Set(['workspace', 'ws_', 'transcribe']);
 
 /**
  * The hint appended to workspace-aware tool descriptions. Three
@@ -31,9 +31,7 @@ function buildWorkspaceHint({ workspaceSubdir, workspacePath, serverName }) {
     `[Workspace context] This tool operates inside the user's sandboxed workspace.`,
     `Sandbox root: ${root}`,
     `workspaceSubdir: ${JSON.stringify(workspaceSubdir ?? null)}`,
-    serverName
-      ? `MCP server: ${serverName}`
-      : null,
+    serverName ? `MCP server: ${serverName}` : null,
     `Paths: pass them VERBATIM. Spaces, accented characters (á, ã, ç), ` +
       `CJK (文档, 日本語), and emoji (📁) are all valid path segments and must NOT ` +
       `be url-encoded, escaped, or substituted. The MCP server accepts them as-is.`,

@@ -9,7 +9,7 @@
 #                         Windows local: ./workspaces (resolved relative to
 #                         this file).
 #
-#   HOST_WORKSPACES_BASE  Path that mcp-code-runner passes to child containers
+#   HOST_WORKSPACES_BASE  Path that mcp-workspace passes to child containers
 #                         when they need to write back. Must match the host's
 #                         view of WORKSPACES_HOST_PATH. Linux: /home/workspaces.
 #                         Windows: e:/Github/librechat/workspaces (or wherever
@@ -36,7 +36,7 @@
 #   * The api container is built locally from ./Dockerfile (not pulled from
 #     registry.librechat.ai) so the in-progress workspace feature ships with
 #     the working tree.
-#   * mcp-code-runner mounts /var/run/docker.sock. On Linux that means the
+#   * mcp-workspace mounts /var/run/docker.sock. On Linux that means the
 #     child containers run as root on the host. Acceptable for single-tenant
 #     deployments; not safe on shared hosts.
 # ==============================================================================
@@ -349,12 +349,14 @@ services:
       - /home/workspaces:/workspaces
 
   # ---------------------------------------------------------------------------
-  # mcp-code-runner — code execution MCP. Mounts the Docker socket so it can
-  # spin up ephemeral containers to run untrusted code with resource limits.
+  # mcp-workspace — unified workspace MCP. Exposes filesystem tools
+  # (read/edit/write) and code execution (run_code/run_file). Mounts the
+  # Docker socket so it can spin up ephemeral containers to run untrusted
+  # code with resource limits.
   # ---------------------------------------------------------------------------
-  mcp-code-runner:
+  mcp-workspace:
     build:
-      context: ./packages/mcp-code-runner
+      context: ./packages/mcp-workspace
       dockerfile: Dockerfile
     restart: always
     init: true
@@ -366,7 +368,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - WORKSPACES_BASE=/workspaces
-      # HOST_WORKSPACES_BASE is the path that the mcp-code-runner tells its
+      # HOST_WORKSPACES_BASE is the path that the mcp-workspace tells its
       # child executor containers to mount. Must be the SAME absolute path
       # the host sees for WORKSPACES_HOST_PATH — the executor container runs
       # via the host's docker daemon, so the path has to be host-relative,
@@ -377,7 +379,7 @@ services:
       - RUNNER_MEMORY=${RUNNER_MEMORY:-512m}
       - RUNNER_CPUS=${RUNNER_CPUS:-1.0}
       # Pin PORT to 8932 — do NOT inherit PORT=3080 from .env (that's the
-      # API's port). mcp-code-runner's default is 8932, but it falls back
+      # API's port). mcp-workspace's default is 8932, but it falls back
       # to process.env.PORT if set, which would conflict with the API.
       - PORT=8932
       - WORKSPACE_ROOTS=${WORKSPACE_ROOTS:-/workspaces}
@@ -449,7 +451,7 @@ services:
       - FASTER_WHISPER_LANGUAGE=pt
     depends_on:
       - mcp-faster-whisper
-    # Mount the same workspaces directory the api + mcp-code-runner see,
+    # Mount the same workspaces directory the api + mcp-workspace see,
     # so transcribe_file(path="/workspaces/...") resolves to the same
     # host-backed files the FileManager panel shows. Without this, the
     # container's /workspaces is empty and any attempt to read a workspace
@@ -618,7 +620,7 @@ services:
       - RCLONE_CONFLICT_POLICY=${RCLONE_CONFLICT_POLICY:-newest}
       - WORKSPACES_HOST_PATH=${WORKSPACES_HOST_PATH:-/home/workspaces}
     volumes:
-      # Source: the same path the api + mcp-code-runner see. Mounting it
+      # Source: the same path the api + mcp-workspace see. Mounting it
       # read-write here so rclone can mirror local edits back up.
       - ${WORKSPACES_HOST_PATH:-/home/workspaces}:/data/source:rw
       # Bisync metadata + rclone config cache. Named volume survives restarts.

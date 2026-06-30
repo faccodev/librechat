@@ -110,7 +110,7 @@ export function parseProjectContextHeader(
  * Default workspace roots when `WORKSPACE_ROOTS` is unset. Mirrors the
  * server-side default in `packages/data-schemas/src/config/workspaceRoots.ts`
  * — kept in sync deliberately, but the runner must be functional
- * standalone (the mcp-code-runner container doesn't depend on
+ * standalone (the mcp-workspace container doesn't depend on
  * @librechat/data-schemas) so the parser lives here, not imported.
  */
 const DEFAULT_WORKSPACE_ROOTS = ["/workspaces"];

@@ -4,7 +4,7 @@ import path from 'node:path';
  * Default workspace root when `WORKSPACE_ROOTS` is unset. Matches the
  * `/home/workspaces:/workspaces` mount in docker-compose.yml — local dev
  * (docker-compose) and the same default that has been the implicit root for
- * mcp-code-runner historically.
+ * mcp-workspace historically.
  */
 export const DEFAULT_WORKSPACE_ROOTS: readonly string[] = ['/workspaces'];
 

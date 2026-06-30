@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Pre-build (or pull) the executor images used by mcp-code-runner.
+# Pre-build (or pull) the executor images used by mcp-workspace.
 #
 # The runner spawns a FRESH container of one of these images on every
 # `run_code` / `run_file` call. Three images, one per language:
@@ -70,5 +70,5 @@ if ! build_local Dockerfile.python mcp-runner-python:latest; then
         || echo "WARNING: python executor image unavailable; python executions may fail."
 fi
 
-echo "Starting MCP Code Runner server..."
+echo "Starting MCP Workspace server..."
 exec node dist/index.js

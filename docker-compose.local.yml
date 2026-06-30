@@ -114,7 +114,7 @@ services:
       - ./librechat_coolify.yaml:/app/librechat_coolify.yaml:ro
       - librechat_local_uploads:/app/uploads
       - librechat_local_images:/app/client/public/images
-      # The host-side path that mcp-code-runner / mcp-browser / mcp-transcribe
+      # The host-side path that mcp-workspace / mcp-browser / mcp-transcribe
       # / mcp-search see as /workspaces inside the api container. WORKSPACES_HOST_PATH
       # must be set in .env (forward slashes on Windows, e.g. e:/workspaces).
       - ${WORKSPACES_HOST_PATH}:/workspaces
@@ -217,13 +217,14 @@ services:
       - ${WORKSPACES_HOST_PATH}:/workspaces
 
   # ---------------------------------------------------------------------------
-  # mcp-code-runner — mounts the Docker socket so it can spin up child
-  # executor containers. On Windows + Docker Desktop the socket lives at the
-  # same /var/run/docker.sock path, pointing at the WSL2 VM's daemon.
+  # mcp-workspace — unified workspace MCP (filesystem + code execution).
+  # Mounts the Docker socket so it can spin up child executor containers
+  # for `run_code`/`run_file`. On Windows + Docker Desktop the socket lives
+  # at the same /var/run/docker.sock path, pointing at the WSL2 VM's daemon.
   # ---------------------------------------------------------------------------
-  mcp-code-runner:
+  mcp-workspace:
     build:
-      context: ./packages/mcp-code-runner
+      context: ./packages/mcp-workspace
       dockerfile: Dockerfile
     restart: unless-stopped
     init: true
@@ -247,6 +248,12 @@ services:
       - RUNNER_IMAGE_DEFAULT=${RUNNER_IMAGE_DEFAULT:-mcp-runner-alpine:latest}
       - RUNNER_IMAGE_NODE=${RUNNER_IMAGE_NODE:-mcp-runner-node:latest}
       - RUNNER_IMAGE_PYTHON=${RUNNER_IMAGE_PYTHON:-mcp-runner-python:latest}
+    # Exposed only in the local compose (not in production) so you can curl
+    # `http://localhost:8932/health` directly to validate the MCP server.
+    # In docker-compose.yml this line is intentionally absent — the api
+    # reaches the service via the internal Docker network only.
+    ports:
+      - "8932:8932"
 
   # ---------------------------------------------------------------------------
   # mcp-notion — needs NOTION_TOKEN in .env; with empty value the server
