@@ -12,6 +12,7 @@ export * from './apiKeys';
 export * from './mcp/registry/MCPServersRegistry';
 export * from './mcp/MCPManager';
 export * from './mcp/connection';
+export * from './mcp/externalCatalog';
 export * from './mcp/oauth';
 export * from './mcp/auth';
 export * from './mcp/zod';
