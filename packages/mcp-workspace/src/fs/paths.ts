@@ -20,7 +20,7 @@
  * Stub for PR 1. Implementation lands in PR 2.
  */
 
-import path from "path";
+import path from 'path';
 
 /**
  * Resolve a user-supplied path against the workspace root, returning a
@@ -32,7 +32,7 @@ export async function resolveWorkspacePath(
   _workspaceContainerPath: string,
   _userPath: string,
 ): Promise<string> {
-  throw new Error("resolveWorkspacePath not implemented yet — landing in PR 2");
+  throw new Error('resolveWorkspacePath not implemented yet — landing in PR 2');
 }
 
 /**

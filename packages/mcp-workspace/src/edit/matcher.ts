@@ -16,11 +16,11 @@
  */
 
 export type MatchStrategy =
-  | "exact"
-  | "whitespace-trim"
-  | "line-trim"
-  | "whitespace-insensitive"
-  | "fuzzy";
+  | 'exact'
+  | 'whitespace-trim'
+  | 'line-trim'
+  | 'whitespace-insensitive'
+  | 'fuzzy';
 
 export interface MatchInfo {
   /** 0-based index into the `edits` array that produced this match. */

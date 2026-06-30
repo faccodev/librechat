@@ -12,10 +12,10 @@
 
 /** Stub: returns `null` until PR 2. */
 export async function getFileInfo(_args: unknown): Promise<unknown> {
-  throw new Error("getFileInfo not implemented yet — landing in PR 2");
+  throw new Error('getFileInfo not implemented yet — landing in PR 2');
 }
 
 /** Stub: returns `null` until PR 2. */
 export async function listAllowedDirectories(): Promise<unknown> {
-  throw new Error("listAllowedDirectories not implemented yet — landing in PR 2");
+  throw new Error('listAllowedDirectories not implemented yet — landing in PR 2');
 }

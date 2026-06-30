@@ -1,15 +1,15 @@
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
-import express from "express";
-import { randomUUID } from "crypto";
-import { TOOLS, handleCallTool } from "./tools.js";
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import express from 'express';
+import { randomUUID } from 'crypto';
+import { TOOLS, handleCallTool } from './tools.js';
 import {
   parseProjectContextHeader,
   getProjectContextHeaderName,
   InvalidProjectContextError,
-} from "./projectContext.js";
-import { requestContextStore, type RequestContext } from "./context.js";
+} from './projectContext.js';
+import { requestContextStore, type RequestContext } from './context.js';
 
 const PORT = process.env.PORT || 8932;
 
@@ -28,15 +28,15 @@ const sessions = new Map<string, Session>();
  */
 function createSession(): Session {
   const server = new Server(
-    { name: "mcp-workspace", version: "1.0.0" },
-    { capabilities: { tools: {} } }
+    { name: 'mcp-workspace', version: '1.0.0' },
+    { capabilities: { tools: {} } },
   );
 
   server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: TOOLS }));
   server.setRequestHandler(CallToolRequestSchema, async (request) => handleCallTool(request));
 
   const transport = new StreamableHTTPServerTransport({
-    sessionIdGenerator: () => randomUUID()
+    sessionIdGenerator: () => randomUUID(),
   });
 
   return { server, transport };
@@ -44,11 +44,11 @@ function createSession(): Session {
 
 const app = express();
 
-app.get("/health", (_req, res) => {
-  res.status(200).json({ status: "OK", service: "mcp-workspace" });
+app.get('/health', (_req, res) => {
+  res.status(200).json({ status: 'OK', service: 'mcp-workspace' });
 });
 
-app.all("*", async (req, res) => {
+app.all('*', async (req, res) => {
   /**
    * Parse `X-Project-Context` (or whatever `RUNNER_PROJECT_CONTEXT_HEADER`
    * is set to) before the transport dispatches so the tool handler
@@ -63,21 +63,19 @@ app.all("*", async (req, res) => {
   const headerName = getProjectContextHeaderName();
   const rawHeader = req.headers[headerName.toLowerCase()];
   const rawHeaderValue = Array.isArray(rawHeader) ? rawHeader[0] : rawHeader;
-  let projectContext: RequestContext["projectContext"] = null;
+  let projectContext: RequestContext['projectContext'] = null;
   try {
     projectContext = parseProjectContextHeader(rawHeaderValue);
   } catch (err) {
     if (err instanceof InvalidProjectContextError) {
-      console.warn(
-        `[mcp-workspace] Dropping malformed ${headerName} header: ${err.message}`,
-      );
+      console.warn(`[mcp-workspace] Dropping malformed ${headerName} header: ${err.message}`);
     } else {
       throw err;
     }
   }
   const requestContext: RequestContext = { projectContext };
 
-  const sid = req.headers["mcp-session-id"] as string | undefined;
+  const sid = req.headers['mcp-session-id'] as string | undefined;
   let session = sid ? sessions.get(sid) : undefined;
 
   if (!session) {
@@ -108,9 +106,9 @@ app.all("*", async (req, res) => {
       sessions.set(newSid, session);
     }
   } catch (error) {
-    console.error("Error handling request in streamable-http handler:", error);
+    console.error('Error handling request in streamable-http handler:', error);
     if (!res.headersSent) {
-      res.status(500).send("Internal Server Error");
+      res.status(500).send('Internal Server Error');
     }
     // Tear the session down so the next request gets a fresh Server+Transport
     // pair. Without this, a single failed call would leave the transport in a

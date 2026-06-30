@@ -51,5 +51,5 @@ export interface ApplyResult {
  * Stub: throws "not implemented" until PR 3.
  */
 export async function applyEdits(_req: ApplyRequest): Promise<ApplyResult> {
-  throw new Error("applyEdits not implemented yet — landing in PR 3");
+  throw new Error('applyEdits not implemented yet — landing in PR 3');
 }

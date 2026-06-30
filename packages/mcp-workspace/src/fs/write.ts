@@ -14,15 +14,15 @@
 
 /** Stub: returns `null` until PR 3. */
 export async function writeFile(_args: unknown): Promise<unknown> {
-  throw new Error("writeFile not implemented yet — landing in PR 3");
+  throw new Error('writeFile not implemented yet — landing in PR 3');
 }
 
 /** Stub: returns `null` until PR 3. */
 export async function createDirectory(_args: unknown): Promise<unknown> {
-  throw new Error("createDirectory not implemented yet — landing in PR 3");
+  throw new Error('createDirectory not implemented yet — landing in PR 3');
 }
 
 /** Stub: returns `null` until PR 3. */
 export async function moveFile(_args: unknown): Promise<unknown> {
-  throw new Error("moveFile not implemented yet — landing in PR 3");
+  throw new Error('moveFile not implemented yet — landing in PR 3');
 }

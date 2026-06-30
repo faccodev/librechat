@@ -21,7 +21,7 @@ export interface IndentStyle {
   /** A single tab or N spaces — whatever the file uses. */
   unit: string;
   /** Detected tab/space style for diagnostics. */
-  style: "tabs" | "spaces";
+  style: 'tabs' | 'spaces';
 }
 
 /**
@@ -41,5 +41,5 @@ export function reindent(_newText: string, _baseIndent: string): string {
  * Stub: returns 2 spaces until PR 3.
  */
 export function detectIndentStyle(_content: string): IndentStyle {
-  return { unit: "  ", style: "spaces" };
+  return { unit: '  ', style: 'spaces' };
 }

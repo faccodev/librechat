@@ -1,5 +1,5 @@
-import path from "path";
-import type { ProjectContext } from "./context.js";
+import path from 'path';
+import type { ProjectContext } from './context.js';
 
 /**
  * Header name carrying the per-conversation project context over HTTP.
@@ -9,7 +9,7 @@ import type { ProjectContext } from "./context.js";
  * env name (stdio) is fixed — see `encodeProjectContext` in
  * `@librechat/api`'s `env.ts` for the unified contract.
  */
-export const PROJECT_CONTEXT_HEADER_DEFAULT = "X-Project-Context";
+export const PROJECT_CONTEXT_HEADER_DEFAULT = 'X-Project-Context';
 
 /** Thrown when the header is present but cannot be parsed into a valid
  *  ProjectContext. Distinct from "header missing" so the caller can choose
@@ -18,7 +18,7 @@ export const PROJECT_CONTEXT_HEADER_DEFAULT = "X-Project-Context";
 export class InvalidProjectContextError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = "InvalidProjectContextError";
+    this.name = 'InvalidProjectContextError';
   }
 }
 
@@ -55,22 +55,18 @@ export function getProjectContextHeaderName(): string {
  * `getSafePaths` as a half-built object that could slip through
  * downstream checks.
  */
-export function parseProjectContextHeader(
-  raw: string | null | undefined,
-): ProjectContext | null {
+export function parseProjectContextHeader(raw: string | null | undefined): ProjectContext | null {
   if (raw == null) return null;
   const trimmed = raw.trim();
   if (!trimmed) return null;
 
   let json: string;
   try {
-    json = Buffer.from(trimmed, "base64").toString("utf8");
+    json = Buffer.from(trimmed, 'base64').toString('utf8');
   } catch {
     // Buffer.from never throws for arbitrary input — it would only on
     // a bad options object, which we never pass. Defensive branch.
-    throw new InvalidProjectContextError(
-      "X-Project-Context header is not valid base64",
-    );
+    throw new InvalidProjectContextError('X-Project-Context header is not valid base64');
   }
 
   let parsed: unknown;
@@ -84,22 +80,18 @@ export function parseProjectContextHeader(
     );
   }
 
-  if (!parsed || typeof parsed !== "object") {
-    throw new InvalidProjectContextError(
-      "X-Project-Context payload must be a JSON object",
-    );
+  if (!parsed || typeof parsed !== 'object') {
+    throw new InvalidProjectContextError('X-Project-Context payload must be a JSON object');
   }
 
   const { projectId, workspacePath } = parsed as Record<string, unknown>;
 
-  if (typeof projectId !== "string" || projectId.length === 0) {
-    throw new InvalidProjectContextError(
-      "X-Project-Context.projectId must be a non-empty string",
-    );
+  if (typeof projectId !== 'string' || projectId.length === 0) {
+    throw new InvalidProjectContextError('X-Project-Context.projectId must be a non-empty string');
   }
-  if (typeof workspacePath !== "string" || workspacePath.length === 0) {
+  if (typeof workspacePath !== 'string' || workspacePath.length === 0) {
     throw new InvalidProjectContextError(
-      "X-Project-Context.workspacePath must be a non-empty string",
+      'X-Project-Context.workspacePath must be a non-empty string',
     );
   }
 
@@ -113,7 +105,7 @@ export function parseProjectContextHeader(
  * standalone (the mcp-workspace container doesn't depend on
  * @librechat/data-schemas) so the parser lives here, not imported.
  */
-const DEFAULT_WORKSPACE_ROOTS = ["/workspaces"];
+const DEFAULT_WORKSPACE_ROOTS = ['/workspaces'];
 
 /**
  * Module-level cache so we only parse `WORKSPACE_ROOTS` once per
@@ -125,7 +117,7 @@ let cachedWorkspaceRoots: string[] | null = null;
 export function parseWorkspaceRoots(raw: string | undefined): string[] {
   if (!raw) return [...DEFAULT_WORKSPACE_ROOTS];
   const parts = raw
-    .split(",")
+    .split(',')
     .map((p) => p.trim())
     .filter((p) => p.length > 0);
   if (parts.length === 0) return [...DEFAULT_WORKSPACE_ROOTS];
@@ -165,8 +157,8 @@ export async function validateWorkspacePathAgainstRoots(
   raw: string,
   roots: string[] = getWorkspaceRoots(),
 ): Promise<string> {
-  if (typeof raw !== "string" || raw.length === 0) {
-    throw new Error("workspacePath must be a non-empty string");
+  if (typeof raw !== 'string' || raw.length === 0) {
+    throw new Error('workspacePath must be a non-empty string');
   }
 
   const resolved = path.resolve(raw);
@@ -174,7 +166,7 @@ export async function validateWorkspacePathAgainstRoots(
   try {
     real = await fsPromisesRealpath(resolved);
   } catch (err) {
-    if (err && typeof err === "object" && (err as NodeJS.ErrnoException).code === "ENOENT") {
+    if (err && typeof err === 'object' && (err as NodeJS.ErrnoException).code === 'ENOENT') {
       // Allow the path when it doesn't exist yet — projects can pin a
       // future directory that the runner will create on first `run_code`.
       real = resolved;
@@ -201,7 +193,7 @@ export async function validateWorkspacePathAgainstRoots(
   });
   if (!insideSomeRoot) {
     throw new Error(
-      `Path escapes workspace sandbox: ${real} is not inside any of WORKSPACE_ROOTS=[${roots.join(", ")}]`,
+      `Path escapes workspace sandbox: ${real} is not inside any of WORKSPACE_ROOTS=[${roots.join(', ')}]`,
     );
   }
 
@@ -211,5 +203,5 @@ export async function validateWorkspacePathAgainstRoots(
 // Re-exported for tests + callers that need a stable reference to the
 // realpath promise — using `require` lazily to keep the import surface
 // narrow and avoid the file-handle mock fighting the test runner.
-import * as fsp from "fs/promises";
+import * as fsp from 'fs/promises';
 const fsPromisesRealpath = fsp.realpath;

@@ -306,6 +306,21 @@ export default [
     },
   },
   {
+    files: ['./packages/mcp-workspace/**/*.ts'],
+    rules: {
+      'lines-between-class-members': ['error', 'always', { exceptAfterSingleLine: true }],
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+          destructuredArrayIgnorePattern: '^_',
+        },
+      ],
+    },
+  },
+  {
     files: ['./config/translations/**/*.ts'],
     languageOptions: {
       parser: tsParser,

@@ -1,18 +1,15 @@
-import { execFile } from "child_process";
-import fs from "fs/promises";
-import path from "path";
-import crypto from "crypto";
-import {
-  getWorkspaceRoots,
-  validateWorkspacePathAgainstRoots,
-} from "./projectContext.js";
-import { getCurrentProjectContext, type ProjectContext } from "./context.js";
+import { execFile } from 'child_process';
+import fs from 'fs/promises';
+import path from 'path';
+import crypto from 'crypto';
+import { getWorkspaceRoots, validateWorkspacePathAgainstRoots } from './projectContext.js';
+import { getCurrentProjectContext, type ProjectContext } from './context.js';
 
-const CONTAINER_WORKSPACES_BASE = process.env.WORKSPACES_BASE || "/workspaces";
-const HOST_WORKSPACES_BASE = process.env.HOST_WORKSPACES_BASE || "/workspaces";
-const MAX_TIMEOUT = parseInt(process.env.MAX_TIMEOUT || "120", 10);
-const RUNNER_MEMORY = process.env.RUNNER_MEMORY || "256m";
-const RUNNER_CPUS = process.env.RUNNER_CPUS || "0.5";
+const CONTAINER_WORKSPACES_BASE = process.env.WORKSPACES_BASE || '/workspaces';
+const HOST_WORKSPACES_BASE = process.env.HOST_WORKSPACES_BASE || '/workspaces';
+const MAX_TIMEOUT = parseInt(process.env.MAX_TIMEOUT || '120', 10);
+const RUNNER_MEMORY = process.env.RUNNER_MEMORY || '256m';
+const RUNNER_CPUS = process.env.RUNNER_CPUS || '0.5';
 
 // Per-language executor images. Defaults are local images built from
 // `packages/mcp-workspace/executors/Dockerfile.*`, which extend the upstream
@@ -25,9 +22,9 @@ const RUNNER_CPUS = process.env.RUNNER_CPUS || "0.5";
 //     and dozens of MB of repeated network traffic.
 //   - The executor containers are ephemeral (`--rm`), so runtime `apk add`
 //     does not persist between calls.
-const RUNNER_IMAGE_DEFAULT = process.env.RUNNER_IMAGE_DEFAULT || "mcp-runner-alpine:latest";
-const RUNNER_IMAGE_NODE = process.env.RUNNER_IMAGE_NODE || "mcp-runner-node:latest";
-const RUNNER_IMAGE_PYTHON = process.env.RUNNER_IMAGE_PYTHON || "mcp-runner-python:latest";
+const RUNNER_IMAGE_DEFAULT = process.env.RUNNER_IMAGE_DEFAULT || 'mcp-runner-alpine:latest';
+const RUNNER_IMAGE_NODE = process.env.RUNNER_IMAGE_NODE || 'mcp-runner-node:latest';
+const RUNNER_IMAGE_PYTHON = process.env.RUNNER_IMAGE_PYTHON || 'mcp-runner-python:latest';
 
 /**
  * Allow only safe characters in workspace subdirectories.
@@ -49,12 +46,13 @@ const RUNNER_IMAGE_PYTHON = process.env.RUNNER_IMAGE_PYTHON || "mcp-runner-pytho
  * The cross-platform check below also enforces that the resolved path
  * stays inside `CONTAINER_WORKSPACES_BASE`.
  */
+// eslint-disable-next-line no-control-regex -- intentional: NUL/C0/C1 + DEL are rejected as path chars
 const FORBIDDEN_CHARS = /[\x00-\x1f\x7f|;&><$`\\"']/;
 
 export function validateWorkspaceSubdir(subdir: string): boolean {
   if (!subdir) return true;
   const parts = subdir.split(/[\\/]/);
-  if (subdir.includes("..") || parts.includes(".") || parts.includes("..")) {
+  if (subdir.includes('..') || parts.includes('.') || parts.includes('..')) {
     return false;
   }
   if (FORBIDDEN_CHARS.test(subdir)) {
@@ -97,7 +95,7 @@ export async function getSafePaths(
     // CONTAINER side — the docker container is always Linux, so use
     // POSIX-style composition regardless of the host OS. Convert
     // backslashes from a Windows host so the comparison stays clean.
-    const containerWorkspacePath = canonical.replace(/\\/g, "/");
+    const containerWorkspacePath = canonical.replace(/\\/g, '/');
 
     // HOST side — also convert to forward slashes for docker-mount
     // compatibility. Without this, a Windows host would emit a
@@ -107,13 +105,13 @@ export async function getSafePaths(
     // matching, log formatting) simpler — callers can compare
     // `containerPath === hostPath` to detect a "no override"
     // situation.
-    const hostWorkspacePath = canonical.replace(/\\/g, "/");
+    const hostWorkspacePath = canonical.replace(/\\/g, '/');
 
     return { containerPath: containerWorkspacePath, hostPath: hostWorkspacePath };
   }
 
   if (!validateWorkspaceSubdir(subdir)) {
-    throw new Error("Invalid or unsafe workspace subdirectory name");
+    throw new Error('Invalid or unsafe workspace subdirectory name');
   }
 
   // CONTAINER path for writing temp files. Container path is always
@@ -127,7 +125,7 @@ export async function getSafePaths(
   const normBase = posixNormalizeTrailingSlash(CONTAINER_WORKSPACES_BASE);
   const normResolved = posixNormalizeTrailingSlash(containerWorkspacePath);
   if (!normResolved.startsWith(normBase)) {
-    throw new Error("Directory traversal detected in container path");
+    throw new Error('Directory traversal detected in container path');
   }
 
   // HOST path for Docker volume mounting. Use the host's path module
@@ -135,18 +133,18 @@ export async function getSafePaths(
   // convert backslashes to forward slashes for docker-mount
   // compatibility.
   let hostWorkspacePath = path.join(HOST_WORKSPACES_BASE, subdir);
-  hostWorkspacePath = hostWorkspacePath.replace(/\\/g, "/");
+  hostWorkspacePath = hostWorkspacePath.replace(/\\/g, '/');
 
   return {
     containerPath: containerWorkspacePath,
-    hostPath: hostWorkspacePath
+    hostPath: hostWorkspacePath,
   };
 }
 
 /** POSIX-style path resolution, ignoring the host OS. */
 function posixResolve(base: string, subdir: string): string {
-  const trimmedBase = base.replace(/\/+$/, "") || "/";
-  const trimmedSub = subdir.replace(/^\/+/, "").replace(/\/+$/, "");
+  const trimmedBase = base.replace(/\/+$/, '') || '/';
+  const trimmedSub = subdir.replace(/^\/+/, '').replace(/\/+$/, '');
   if (!trimmedSub) {
     return trimmedBase;
   }
@@ -154,7 +152,7 @@ function posixResolve(base: string, subdir: string): string {
 }
 
 function posixNormalizeTrailingSlash(p: string): string {
-  return p.endsWith("/") ? p : p + "/";
+  return p.endsWith('/') ? p : p + '/';
 }
 
 /**
@@ -178,27 +176,27 @@ function posixNormalizeTrailingSlash(p: string): string {
  * project-bound workspace.
  */
 function resolveSafeFilePath(workspaceContainerPath: string, fileName: string): string {
-  if (typeof fileName !== "string" || fileName.length === 0) {
-    throw new Error("Filename is required");
+  if (typeof fileName !== 'string' || fileName.length === 0) {
+    throw new Error('Filename is required');
   }
-  if (fileName.includes("\0")) {
-    throw new Error("Filename contains a NUL byte");
+  if (fileName.includes('\0')) {
+    throw new Error('Filename contains a NUL byte');
   }
   // Reject absolute paths. The runner is meant to operate on files
   // inside the user's workspace; absolute paths would let the agent
   // escape into the runner container's filesystem.
   if (path.isAbsolute(fileName)) {
-    throw new Error("Absolute paths are not allowed; use a path relative to the workspace");
+    throw new Error('Absolute paths are not allowed; use a path relative to the workspace');
   }
   const resolved = path.resolve(workspaceContainerPath, fileName);
-  const baseForCompare = workspaceContainerPath.replace(/[\\/]+/g, "/");
-  const resolvedForCompare = resolved.replace(/[\\/]+/g, "/");
-  const normBase = baseForCompare.endsWith("/") ? baseForCompare : baseForCompare + "/";
-  const normResolved = resolvedForCompare.endsWith("/")
+  const baseForCompare = workspaceContainerPath.replace(/[\\/]+/g, '/');
+  const resolvedForCompare = resolved.replace(/[\\/]+/g, '/');
+  const normBase = baseForCompare.endsWith('/') ? baseForCompare : baseForCompare + '/';
+  const normResolved = resolvedForCompare.endsWith('/')
     ? resolvedForCompare
-    : resolvedForCompare + "/";
+    : resolvedForCompare + '/';
   if (!normResolved.startsWith(normBase)) {
-    throw new Error("Path traversal detected: file escapes the workspace directory");
+    throw new Error('Path traversal detected: file escapes the workspace directory');
   }
   return resolved;
 }
@@ -220,23 +218,23 @@ type ExecutorSpec = {
  * the ephemeral executor container. Single source of truth — both `runCode` and
  * `runFile` go through this so the image/command wiring can never drift.
  */
-export function selectExecutor(language: "node" | "python" | "sh"): ExecutorSpec {
+export function selectExecutor(language: 'node' | 'python' | 'sh'): ExecutorSpec {
   switch (language) {
-    case "node":
+    case 'node':
       return {
         image: RUNNER_IMAGE_NODE,
-        command: (f) => ["node", f],
+        command: (f) => ['node', f],
       };
-    case "python":
+    case 'python':
       return {
         image: RUNNER_IMAGE_PYTHON,
-        command: (f) => ["python", f],
+        command: (f) => ['python', f],
       };
-    case "sh":
+    case 'sh':
     default:
       return {
         image: RUNNER_IMAGE_DEFAULT,
-        command: (f) => ["sh", f],
+        command: (f) => ['sh', f],
       };
   }
 }
@@ -263,15 +261,15 @@ function buildDockerArgs(opts: {
   projectId?: string;
 }): string[] {
   const args: string[] = [
-    "run",
-    "--rm",
-    "--network=none",
+    'run',
+    '--rm',
+    '--network=none',
     `--memory=${RUNNER_MEMORY}`,
     `--cpus=${RUNNER_CPUS}`,
-    "-v",
+    '-v',
     `${opts.hostPath}:/workspace`,
-    "-w",
-    "/workspace",
+    '-w',
+    '/workspace',
   ];
   if (opts.projectId) {
     // Defense-in-depth: the id has already been through
@@ -280,9 +278,9 @@ function buildDockerArgs(opts: {
     // because the docker CLI parses the value as a label. A label
     // value can contain anything except whitespace; an id is a
     // Mongo ObjectId by convention, so the safe subset is enough.
-    const safeId = opts.projectId.replace(/[^\w.-]/g, "");
+    const safeId = opts.projectId.replace(/[^\w.-]/g, '');
     if (safeId) {
-      args.push("--label", `project=${safeId}`);
+      args.push('--label', `project=${safeId}`);
     }
   }
   args.push(opts.image, ...opts.commandArgs);
@@ -290,11 +288,11 @@ function buildDockerArgs(opts: {
 }
 
 export async function runCode(
-  language: "node" | "python" | "sh",
+  language: 'node' | 'python' | 'sh',
   code: string,
   workspaceSubdir: string,
   timeoutSeconds: number = 30,
-  projectContext?: ProjectContext | null
+  projectContext?: ProjectContext | null,
 ): Promise<RunResult> {
   const finalTimeout = Math.min(timeoutSeconds, MAX_TIMEOUT);
   /** Fall back to the per-request ALS-bound context when the caller
@@ -302,21 +300,23 @@ export async function runCode(
    *  (e.g. direct CLI invocations and unit tests) working without
    *  threading the context through every helper. */
   const ctx = projectContext ?? getCurrentProjectContext();
-  const { containerPath, hostPath } = await getSafePaths(
-    workspaceSubdir,
-    ctx?.workspacePath,
-  );
+  const { containerPath, hostPath } = await getSafePaths(workspaceSubdir, ctx?.workspacePath);
 
   // Ensure directory exists
   await fs.mkdir(containerPath, { recursive: true });
 
-  const rand = crypto.randomBytes(8).toString("hex");
-  const ext = language === "node" ? "js" : language === "python" ? "py" : "sh";
+  const rand = crypto.randomBytes(8).toString('hex');
+  const languageExtensions: Record<string, string> = {
+    node: 'js',
+    python: 'py',
+    sh: 'sh',
+  };
+  const ext = languageExtensions[language] ?? 'sh';
   const tempFileName = `.mcp_temp_${rand}.${ext}`;
   const tempFilePath = path.join(containerPath, tempFileName);
 
   // Write code to temp file
-  await fs.writeFile(tempFilePath, code, "utf-8");
+  await fs.writeFile(tempFilePath, code, 'utf-8');
 
   const { image, command } = selectExecutor(language);
   const dockerArgs = buildDockerArgs({
@@ -328,16 +328,16 @@ export async function runCode(
   const startTime = Date.now();
 
   return new Promise<RunResult>((resolve) => {
-    const process = execFile(
-      "docker",
+    const _process = execFile(
+      'docker',
       dockerArgs,
-      { timeout: finalTimeout * 1000, killSignal: "SIGKILL" },
+      { timeout: finalTimeout * 1000, killSignal: 'SIGKILL' },
       async (error, stdout, stderr) => {
         const executionTimeMs = Date.now() - startTime;
         let exitCode = 0;
 
         if (error) {
-          exitCode = typeof error.code === "number" ? error.code : 1;
+          exitCode = typeof error.code === 'number' ? error.code : 1;
           if (error.killed) {
             stderr += `\n[MCP Code Runner] Execution killed due to timeout (${finalTimeout}s)`;
           }
@@ -346,7 +346,7 @@ export async function runCode(
         // Clean up temp file
         try {
           await fs.unlink(tempFilePath);
-        } catch (cleanupErr) {
+        } catch (_cleanupErr) {
           // ignore clean up errors
         }
 
@@ -354,9 +354,9 @@ export async function runCode(
           stdout,
           stderr,
           exitCode,
-          executionTimeMs
+          executionTimeMs,
         });
-      }
+      },
     );
   });
 }
@@ -364,16 +364,13 @@ export async function runCode(
 export async function runFile(
   fileName: string,
   workspaceSubdir: string,
-  language?: "node" | "python" | "sh",
+  language?: 'node' | 'python' | 'sh',
   timeoutSeconds: number = 30,
-  projectContext?: ProjectContext | null
+  projectContext?: ProjectContext | null,
 ): Promise<RunResult> {
   const finalTimeout = Math.min(timeoutSeconds, MAX_TIMEOUT);
   const ctx = projectContext ?? getCurrentProjectContext();
-  const { containerPath, hostPath } = await getSafePaths(
-    workspaceSubdir,
-    ctx?.workspacePath,
-  );
+  const { containerPath, hostPath } = await getSafePaths(workspaceSubdir, ctx?.workspacePath);
 
   // Validate filename to prevent escaping the workspace directory.
   // `resolveSafeFilePath` is the single source of truth — it normalizes
@@ -383,10 +380,10 @@ export async function runFile(
   // Detect language if not provided
   let lang = language;
   if (!lang) {
-    if (fileName.endsWith(".js") || fileName.endsWith(".ts")) lang = "node";
-    else if (fileName.endsWith(".py")) lang = "python";
-    else if (fileName.endsWith(".sh")) lang = "sh";
-    else lang = "sh"; // fallback
+    if (fileName.endsWith('.js') || fileName.endsWith('.ts')) lang = 'node';
+    else if (fileName.endsWith('.py')) lang = 'python';
+    else if (fileName.endsWith('.sh')) lang = 'sh';
+    else lang = 'sh'; // fallback
   }
 
   const { image, command } = selectExecutor(lang);
@@ -399,16 +396,16 @@ export async function runFile(
   const startTime = Date.now();
 
   return new Promise<RunResult>((resolve) => {
-    const process = execFile(
-      "docker",
+    const _process = execFile(
+      'docker',
       dockerArgs,
-      { timeout: finalTimeout * 1000, killSignal: "SIGKILL" },
+      { timeout: finalTimeout * 1000, killSignal: 'SIGKILL' },
       async (error, stdout, stderr) => {
         const executionTimeMs = Date.now() - startTime;
         let exitCode = 0;
 
         if (error) {
-          exitCode = typeof error.code === "number" ? error.code : 1;
+          exitCode = typeof error.code === 'number' ? error.code : 1;
           if (error.killed) {
             stderr += `\n[MCP Code Runner] Execution killed due to timeout (${finalTimeout}s)`;
           }
@@ -418,9 +415,9 @@ export async function runFile(
           stdout,
           stderr,
           exitCode,
-          executionTimeMs
+          executionTimeMs,
         });
-      }
+      },
     );
   });
 }

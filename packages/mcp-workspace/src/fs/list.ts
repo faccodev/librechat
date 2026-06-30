@@ -14,20 +14,20 @@
 
 /** Stub: returns `null` until PR 2. */
 export async function listDirectory(_args: unknown): Promise<unknown> {
-  throw new Error("listDirectory not implemented yet — landing in PR 2");
+  throw new Error('listDirectory not implemented yet — landing in PR 2');
 }
 
 /** Stub: returns `null` until PR 2. */
 export async function listDirectoryWithSizes(_args: unknown): Promise<unknown> {
-  throw new Error("listDirectoryWithSizes not implemented yet — landing in PR 2");
+  throw new Error('listDirectoryWithSizes not implemented yet — landing in PR 2');
 }
 
 /** Stub: returns `null` until PR 2. */
 export async function directoryTree(_args: unknown): Promise<unknown> {
-  throw new Error("directoryTree not implemented yet — landing in PR 2");
+  throw new Error('directoryTree not implemented yet — landing in PR 2');
 }
 
 /** Stub: returns `null` until PR 2. */
 export async function searchFiles(_args: unknown): Promise<unknown> {
-  throw new Error("searchFiles not implemented yet — landing in PR 2");
+  throw new Error('searchFiles not implemented yet — landing in PR 2');
 }

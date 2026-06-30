@@ -24,5 +24,5 @@ export interface DiffInput {
  * Stub: returns an empty string until PR 3.
  */
 export function unifiedDiff(_input: DiffInput): string {
-  return "";
+  return '';
 }
