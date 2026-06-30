@@ -137,12 +137,20 @@ mcpServers:
   fetch:
     title: 'Busca Leve'
     iconPath: '/assets/mcp/fetch.png'
+    # Native capability. Auto-injected into every agent run; hidden from
+    # the chat dropdown so users don't toggle it manually. Note: this is
+    # a stdio server (spawns `uvx mcp-server-fetch` per request) so the
+    # api needs uv/uvx in the container image for the spawn to succeed.
+    # If you're deploying without uvx, drop the autoInject / chatMenu /
+    # startup lines below and the server will fall back to lazy spawn.
+    autoInject: true
+    chatMenu: false
+    startup: true
     type: stdio
     command: uvx
     args:
       - mcp-server-fetch
     timeout: 30000
-    startup: false
 
 # ----------------------------------------------------------------------------
 # Built-in endpoints — INTENTIONALLY EMPTY in the Coolify config.
