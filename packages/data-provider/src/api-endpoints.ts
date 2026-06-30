@@ -240,6 +240,15 @@ export const mcpIntegrations = () => `${BASE_URL}/api/admin/mcp-integrations`;
 export const mcpIntegration = (name: string) =>
   `${BASE_URL}/api/admin/mcp-integrations/${encodeURIComponent(name)}`;
 
+/* External MCP Registry (proxy to registry.modelcontextprotocol.io) */
+export const mcpExternalCatalog = () => `${BASE_URL}/api/admin/mcp-external-catalog`;
+export const mcpExternalCatalogServers = () => `${mcpExternalCatalog()}/servers`;
+export const mcpExternalCatalogServer = (name: string) =>
+  `${mcpExternalCatalog()}/servers/${encodeURIComponent(name)}`;
+export const mcpExternalCatalogServerPreview = (name: string) =>
+  `${mcpExternalCatalog()}/servers/${encodeURIComponent(name)}/preview`;
+export const mcpExternalCatalogHealth = () => `${mcpExternalCatalog()}/health`;
+
 export const actionOAuthBind = (actionId: string) =>
   `${BASE_URL}/api/actions/${actionId}/oauth/bind`;
 

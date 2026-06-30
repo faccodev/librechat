@@ -1526,6 +1526,37 @@ export function removeMCPIntegration(name: string): Promise<{ removed: boolean; 
   return request.delete(endpoints.mcpIntegration(name));
 }
 
+/* External MCP Registry (browse the Official MCP Registry through the admin proxy) */
+import type {
+  RegistryListResponse,
+  RegistryPreviewRequest,
+  RegistryPreviewResponse,
+  RegistryHealthResponse,
+} from './types/mcpExternalCatalog';
+
+export function listExternalCatalog(params?: {
+  search?: string;
+  cursor?: string;
+  limit?: number;
+}): Promise<RegistryListResponse> {
+  return request.get(endpoints.mcpExternalCatalogServers(), { params });
+}
+
+export function getExternalCatalogServer(name: string): Promise<unknown> {
+  return request.get(endpoints.mcpExternalCatalogServer(name));
+}
+
+export function previewExternalCatalogInstall(
+  name: string,
+  payload: RegistryPreviewRequest,
+): Promise<RegistryPreviewResponse> {
+  return request.post(endpoints.mcpExternalCatalogServerPreview(name), payload);
+}
+
+export function getExternalCatalogHealth(): Promise<RegistryHealthResponse> {
+  return request.get(endpoints.mcpExternalCatalogHealth());
+}
+
 /* CronJobs (admin-managed scheduled tasks) */
 import type {
   CronJob,
