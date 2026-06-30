@@ -1123,60 +1123,69 @@ async function loadAgentTools({
   });
 
   /**
-   * Auto-inject workspace MCP tools for the authenticated user.
+   * Auto-inject the shared `workspace` MCP server for the authenticated user.
    *
-   * Local change: disabled. The filesystem MCP is now a single, shared
-   * `mcpServers` entry in librechat.yaml (`filesystem`), and its `args`
-   * contain the `{{LIBRECHAT_USER_WORKSPACESUBDIR}}` placeholder which
-   * `processMCPEnv` resolves per user. The per-user `ws_<userId>` spawn
-   * was spawning one MCP instance per user which was unreliable in our
-   * environment; a single shared instance with a per-user spawn-arg is
-   * simpler and behaves correctly. To revert: uncomment the block below
-   * and remove the `filesystem` entry from librechat.yaml.
+   * The workspace server (`mcp-workspace`) is a single shared container that
+   * every user accesses. It exposes filesystem tools (read/edit/write/list)
+   * and code execution (run_code/run_file) scoped to the user's
+   * `workspaceSubdir` via the `X-Project-Context` HTTP header.
+   *
+   * We want this server active on EVERY agent run without the user having
+   * to manually select it in the agent builder, so we expand the
+   * `${mcp_all}::workspace` placeholder here — the LibreChat tool loader
+   * then resolves it into every tool the server exposes (`workspace__read_file`,
+   * `workspace__edit_file`, etc.) and registers them on the agent.
+   *
+   * The server is also configured with `chatMenu: false` in `librechat.yaml`
+   * so it stays out of the chat dropdown — users should not have to "turn
+   * on" their filesystem.
+   *
+   * Skip conditions (any one disables the auto-inject):
+   *   - user has no workspaceSubdir configured (workspace feature disabled
+   *     or admin hasn't granted them one)
+   *   - agent tools are disabled
+   *   - user lacks MCP_SERVERS.USE permission
+   *   - workspace MCP server is not in librechat.yaml
+   *
+   * The previous incarnation of this block spawned one MCP per user
+   * (`ws_<userId>`); that was abandoned because per-user spawns were
+   * unreliable. The shared-instance design here avoids that entirely.
    */
-  /*
-  if (req.user?.workspaceSubdir && req.user?.id && areToolsEnabled && canUseMCP) {
-    const { getWorkspaceServerName, getWorkspaceConfig, resolveWorkspacePath } =
-      require('@librechat/api');
-    const loadCustomConfig = require('~/server/services/Config/loadCustomConfig');
-    const wsAppConfig = loadCustomConfig() ?? {};
-    const wsConfig = getWorkspaceConfig(wsAppConfig);
-    const wsPath = resolveWorkspacePath(req.user.workspaceSubdir, wsConfig);
-    if (wsPath) {
-      const wsServerName = getWorkspaceServerName(req.user.id);
-      const wsPlaceholder = `${Constants.mcp_all}${Constants.mcp_delimiter}${wsServerName}`;
-      if (!_agentTools) {
-        _agentTools = [];
-      }
-      const alreadyHasRealTools = _agentTools.some((t) =>
-        t.includes(`${Constants.mcp_delimiter}${wsServerName}`),
-      );
-      const hasPlaceholder = _agentTools.includes(wsPlaceholder);
-      if (alreadyHasRealTools) {
-        // no-op
-      } else {
-        const serverTools = await getMCPServerTools(req.user.id, wsServerName);
-        if (serverTools && typeof serverTools === 'object') {
-          const realToolNames = Object.keys(serverTools).filter(
-            (n) => !_agentTools.includes(n),
-          );
-          const next = hasPlaceholder
-            ? _agentTools.filter((t) => t !== wsPlaceholder)
-            : _agentTools.slice();
-          _agentTools = [...next, ...realToolNames];
-          logger.debug(
-            `[loadAgentTools] Auto-injected ${realToolNames.length} workspace MCP tools for user ${req.user.id} (agent ${agent.id})`,
-          );
-        } else if (!hasPlaceholder) {
-          _agentTools = [..._agentTools, wsPlaceholder];
-          logger.debug(
-            `[loadAgentTools] Workspace MCP tools not yet cached for user ${req.user.id} (agent ${agent.id}); falling back to placeholder ${wsPlaceholder}`,
-          );
-        }
+  const WORKSPACE_AUTO_INJECT_SERVER = 'workspace';
+  if (
+    req.user?.workspaceSubdir &&
+    req.user?.id &&
+    areToolsEnabled &&
+    canUseMCP &&
+    Object.prototype.hasOwnProperty.call(appConfig?.mcpServers ?? {}, WORKSPACE_AUTO_INJECT_SERVER)
+  ) {
+    const wsPlaceholder = `${Constants.mcp_all}${Constants.mcp_delimiter}${WORKSPACE_AUTO_INJECT_SERVER}`;
+    if (!_agentTools) {
+      _agentTools = [];
+    }
+    const alreadyHasRealTools = _agentTools.some((t) =>
+      t.includes(`${Constants.mcp_delimiter}${WORKSPACE_AUTO_INJECT_SERVER}`),
+    );
+    const hasPlaceholder = _agentTools.includes(wsPlaceholder);
+    if (!alreadyHasRealTools) {
+      const serverTools = await getMCPServerTools(req.user.id, WORKSPACE_AUTO_INJECT_SERVER);
+      if (serverTools && typeof serverTools === 'object') {
+        const realToolNames = Object.keys(serverTools).filter((n) => !_agentTools.includes(n));
+        const next = hasPlaceholder
+          ? _agentTools.filter((t) => t !== wsPlaceholder)
+          : _agentTools.slice();
+        _agentTools = [...next, ...realToolNames];
+        logger.debug(
+          `[loadAgentTools] Auto-injected ${realToolNames.length} workspace MCP tools for user ${req.user.id} (agent ${agent.id})`,
+        );
+      } else if (!hasPlaceholder) {
+        _agentTools = [..._agentTools, wsPlaceholder];
+        logger.debug(
+          `[loadAgentTools] Workspace MCP tools not yet cached for user ${req.user.id} (agent ${agent.id}); falling back to placeholder ${wsPlaceholder}`,
+        );
       }
     }
   }
-  */
 
   if (!_agentTools || _agentTools.length === 0) {
     return {};
