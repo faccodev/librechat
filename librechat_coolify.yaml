@@ -1,31 +1,3 @@
-# ==============================================================================
-# LibreChat — Coolify / Linux VPS configuration
-# ==============================================================================
-# Drop-in replacement for librechat.yaml when deploying on Coolify (or any
-# Linux VPS). Point the api container at this file via the env var:
-#
-#   CONFIG_PATH=/app/librechat_coolify.yaml
-#
-# in the Coolify service's env-var panel (Coolify reads .env automatically
-# when you mount it; or you can set the var inline per-service).
-#
-# What's different from librechat.yaml (local dev on Windows):
-#   - built-in providers (openai/google/anthropic) are commented out so
-#     OmniRoute is the only path the model selector exposes — matches the
-#     intent of "centralize everything on OmniRoute" (see recent change).
-#   - Workspaces still mount at /workspaces inside the api container, and
-#     the workspace MCP exposes them via the shared `mcp-workspace`
-#     container. The host path
-#     /home/workspaces is bind-mounted by the api service in
-#     docker-compose.yml; adjust if your VPS uses a different path.
-#   - Custom welcome message is the same; DOMAIN_CLIENT/DOMAIN_SERVER are
-#     read from .env at boot, not from this file.
-#
-# To keep this file in sync with librechat.yaml, diff them after any change
-# to the local version (the safe assumption: copy librechat.yaml to
-# librechat_coolify.yaml first, then apply the 3 differences above).
-# ==============================================================================
-
 version: 1.3.12
 
 cache: true
