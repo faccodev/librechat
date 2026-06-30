@@ -1063,6 +1063,27 @@ export function importSkill(formData: FormData): Promise<sk.TSkill> {
   return request.postMultiPart(endpoints.importSkill(), formData);
 }
 
+/**
+ * Preview a skill import from a git URL without writing anything. The
+ * backend fetches SKILL.md + auxiliary file metadata so the UI can
+ * surface the result before the user commits the import.
+ */
+export function previewImportSkillFromGit(
+  payload: sk.TGitImportSkillRequest,
+): Promise<sk.TGitImportSkillPreviewResponse> {
+  return request.post(endpoints.previewImportSkillFromGit(), payload);
+}
+
+/**
+ * Import a skill from a git URL. The backend re-runs the preview
+ * (cheap) and persists the skill + source metadata.
+ */
+export function importSkillFromGit(
+  payload: sk.TGitImportSkillRequest,
+): Promise<sk.TGitImportSkillResponse> {
+  return request.post(endpoints.importSkillFromGit(), payload);
+}
+
 export function getSkillFileContent(
   skillId: string,
   relativePath: string,

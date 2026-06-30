@@ -14,11 +14,16 @@ import type {
   TDeleteSkillFileVariables,
   TDeleteSkillFileResponse,
   TListSkillFilesResponse,
+  TGitImportSkillRequest,
+  TGitImportSkillPreviewResponse,
+  TGitImportSkillResponse,
   CreateSkillOptions,
   UpdateSkillOptions,
   DeleteSkillOptions,
   UploadSkillFileOptions,
   ImportSkillOptions,
+  ImportSkillFromGitPreviewOptions,
+  ImportSkillFromGitOptions,
   DeleteSkillFileOptions,
 } from 'librechat-data-provider';
 
@@ -143,6 +148,41 @@ export const useImportSkillMutation = (
       queryClient.setQueryData<TSkill>([QueryKeys.skill, skill._id], skill);
       addSkillToCachedLists(queryClient, skill);
       if (onSuccess) onSuccess(skill, variables, context);
+    },
+  });
+};
+
+/**
+ * Preview a skill import from a git URL without persisting anything.
+ * Returns the upstream SKILL.md content + auxiliary file metadata so
+ * the UI can show a confirmation step before the save mutation runs.
+ */
+export const useImportSkillFromGitPreviewMutation = (
+  options?: ImportSkillFromGitPreviewOptions,
+): UseMutationResult<TGitImportSkillPreviewResponse, unknown, TGitImportSkillRequest> => {
+  return useMutation({
+    mutationFn: (payload: TGitImportSkillRequest) => dataService.previewImportSkillFromGit(payload),
+    ...(options ?? {}),
+  });
+};
+
+/**
+ * Persist a skill imported from a git URL. On success, writes the new
+ * skill into both the detail and list caches so any open listing UI
+ * updates immediately. Mirrors `useImportSkillMutation` cache invalidation.
+ */
+export const useImportSkillFromGitMutation = (
+  options?: ImportSkillFromGitOptions,
+): UseMutationResult<TGitImportSkillResponse, unknown, TGitImportSkillRequest> => {
+  const queryClient = useQueryClient();
+  const { onSuccess, ...rest } = options ?? {};
+  return useMutation({
+    mutationFn: (payload: TGitImportSkillRequest) => dataService.importSkillFromGit(payload),
+    ...rest,
+    onSuccess: (response, variables, context) => {
+      queryClient.setQueryData<TSkill>([QueryKeys.skill, response.skill._id], response.skill);
+      addSkillToCachedLists(queryClient, response.skill);
+      if (onSuccess) onSuccess(response, variables, context);
     },
   });
 };
