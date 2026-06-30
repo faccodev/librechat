@@ -14,7 +14,8 @@
 #     OmniRoute is the only path the model selector exposes — matches the
 #     intent of "centralize everything on OmniRoute" (see recent change).
 #   - Workspaces still mount at /workspaces inside the api container, and
-#     the filesystem MCP uses the same placeholder. The host path
+#     the workspace MCP exposes them via the shared `mcp-workspace`
+#     container. The host path
 #     /home/workspaces is bind-mounted by the api service in
 #     docker-compose.yml; adjust if your VPS uses a different path.
 #   - Custom welcome message is the same; DOMAIN_CLIENT/DOMAIN_SERVER are
@@ -82,18 +83,7 @@ mcpSettings:
 # MCP servers. Same config as local — the URL is internal Docker DNS,
 # which resolves identically on Coolify (same docker network namespace).
 mcpServers:
-  filesystem:
-    title: 'Arquivos'
-    iconPath: '/assets/mcp/filesystem.png'
-    type: stdio
-    command: npx
-    args:
-      - -y
-      - '@modelcontextprotocol/server-filesystem'
-      - "/workspaces/{{LIBRECHAT_USER_WORKSPACESUBDIR}}"
-    timeout: 30000
-    startup: false
-  code-runner:
+  workspace:
     title: 'Workspace'
     # `chatMenu: false` removes this MCP from the chat dropdown — the
     # workspace server is auto-injected into every agent run (see
