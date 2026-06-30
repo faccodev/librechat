@@ -167,6 +167,18 @@ export type ParsedServerConfig = MCPOptions & {
   source?: MCPServerSource;
   /** True if access is only via agent (not directly shared with user) */
   consumeOnly?: boolean;
+  /**
+   * If true, the server's tools are auto-injected into every agent run by
+   * ToolService.loadAgentTools, regardless of whether the user added the server
+   * to the agent's tool list. Combined with `chatMenu: false` (so it doesn't
+   * appear in the chat dropdown) and `startup: true` (so the tool cache is
+   * warm before the first prompt), this gives a "just works" native MCP
+   * experience — workspace, browser, search, etc.
+   *
+   * Auto-inject is opt-in per server, controlled by the YAML/admin config.
+   * End users cannot toggle it from the UI.
+   */
+  autoInject?: boolean;
   /** True when inspection failed at startup; the server is known but not fully initialized */
   inspectionFailed?: boolean;
   /**

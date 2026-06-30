@@ -1123,65 +1123,73 @@ async function loadAgentTools({
   });
 
   /**
-   * Auto-inject the shared `workspace` MCP server for the authenticated user.
+   * Auto-inject MCP servers marked with `autoInject: true` in librechat.yaml.
    *
-   * The workspace server (`mcp-workspace`) is a single shared container that
-   * every user accesses. It exposes filesystem tools (read/edit/write/list)
-   * and code execution (run_code/run_file) scoped to the user's
-   * `workspaceSubdir` via the `X-Project-Context` HTTP header.
+   * Lets an operator expose a server as a "native capability" — always
+   * available in every agent run, never selectable in the chat dropdown,
+   * never toggleable from the UI. Combined with `chatMenu: false` (hides
+   * the dropdown entry) and `startup: true` (warms the tool cache at
+   * boot), the server feels built-in: zero user configuration required.
    *
-   * We want this server active on EVERY agent run without the user having
-   * to manually select it in the agent builder, so we expand the
-   * `${mcp_all}::workspace` placeholder here — the LibreChat tool loader
-   * then resolves it into every tool the server exposes (`workspace__read_file`,
-   * `workspace__edit_file`, etc.) and registers them on the agent.
+   * Currently used by `workspace` (filesystem + code execution),
+   * `browser` (puppeteer), and `search` (Google). Each runs in its own
+   * container; the inject here is a server-name lookup, not a spawn.
    *
-   * The server is also configured with `chatMenu: false` in `librechat.yaml`
-   * so it stays out of the chat dropdown — users should not have to "turn
-   * on" their filesystem.
-   *
-   * Skip conditions (any one disables the auto-inject):
-   *   - user has no workspaceSubdir configured (workspace feature disabled
-   *     or admin hasn't granted them one)
+   * Skip conditions (apply to every auto-inject server):
    *   - agent tools are disabled
    *   - user lacks MCP_SERVERS.USE permission
-   *   - workspace MCP server is not in librechat.yaml
+   *   - server is not declared in librechat.yaml
    *
-   * The previous incarnation of this block spawned one MCP per user
-   * (`ws_<userId>`); that was abandoned because per-user spawns were
-   * unreliable. The shared-instance design here avoids that entirely.
+   * Per-server skip conditions are honored too:
+   *   - `workspace` requires `req.user.workspaceSubdir` (workspace feature
+   *     must be enabled and admin must have granted the user a subdir).
+   *     Other auto-inject servers (browser, search) have no per-server
+   *     condition and inject for every user.
+   *
+   * Tool resolution order:
+   *   1. `getMCPServerTools(userId, serverName)` returns cached tools if
+   *      the server has been inspected (typical with `startup: true`).
+   *   2. If cache miss, we expand the `${mcp_all}::serverName`
+   *      placeholder so the loader can resolve tools on demand — same
+   *      fallback the previous hard-coded workspace path used.
+   *
+   * History: the original block hard-coded the `workspace` server name.
+   * PR 3 generalized it to read `appConfig.mcpServers[*].autoInject` so
+   * adding a new native MCP only requires a YAML edit.
    */
-  const WORKSPACE_AUTO_INJECT_SERVER = 'workspace';
-  if (
-    req.user?.workspaceSubdir &&
-    req.user?.id &&
-    areToolsEnabled &&
-    canUseMCP &&
-    Object.prototype.hasOwnProperty.call(appConfig?.mcpServers ?? {}, WORKSPACE_AUTO_INJECT_SERVER)
-  ) {
-    const wsPlaceholder = `${Constants.mcp_all}${Constants.mcp_delimiter}${WORKSPACE_AUTO_INJECT_SERVER}`;
+  if (req.user?.id && areToolsEnabled && canUseMCP && appConfig?.mcpServers) {
     if (!_agentTools) {
       _agentTools = [];
     }
-    const alreadyHasRealTools = _agentTools.some((t) =>
-      t.includes(`${Constants.mcp_delimiter}${WORKSPACE_AUTO_INJECT_SERVER}`),
-    );
-    const hasPlaceholder = _agentTools.includes(wsPlaceholder);
-    if (!alreadyHasRealTools) {
-      const serverTools = await getMCPServerTools(req.user.id, WORKSPACE_AUTO_INJECT_SERVER);
+    for (const [serverName, serverConfig] of Object.entries(appConfig.mcpServers)) {
+      if (!serverConfig || serverConfig.autoInject !== true) {
+        continue;
+      }
+      // Per-server skip: workspace requires the user to have a subdir.
+      if (serverName === 'workspace' && !req.user?.workspaceSubdir) {
+        continue;
+      }
+      const delimiter = Constants.mcp_delimiter;
+      const placeholder = `${Constants.mcp_all}${delimiter}${serverName}`;
+      const alreadyHasRealTools = _agentTools.some((t) => t.includes(`${delimiter}${serverName}`));
+      if (alreadyHasRealTools) {
+        continue;
+      }
+      const hasPlaceholder = _agentTools.includes(placeholder);
+      const serverTools = await getMCPServerTools(req.user.id, serverName);
       if (serverTools && typeof serverTools === 'object') {
         const realToolNames = Object.keys(serverTools).filter((n) => !_agentTools.includes(n));
         const next = hasPlaceholder
-          ? _agentTools.filter((t) => t !== wsPlaceholder)
+          ? _agentTools.filter((t) => t !== placeholder)
           : _agentTools.slice();
         _agentTools = [...next, ...realToolNames];
         logger.debug(
-          `[loadAgentTools] Auto-injected ${realToolNames.length} workspace MCP tools for user ${req.user.id} (agent ${agent.id})`,
+          `[loadAgentTools] Auto-injected ${realToolNames.length} ${serverName} MCP tools for user ${req.user.id} (agent ${agent.id})`,
         );
       } else if (!hasPlaceholder) {
-        _agentTools = [..._agentTools, wsPlaceholder];
+        _agentTools = [..._agentTools, placeholder];
         logger.debug(
-          `[loadAgentTools] Workspace MCP tools not yet cached for user ${req.user.id} (agent ${agent.id}); falling back to placeholder ${wsPlaceholder}`,
+          `[loadAgentTools] ${serverName} MCP tools not yet cached for user ${req.user.id} (agent ${agent.id}); falling back to placeholder ${placeholder}`,
         );
       }
     }

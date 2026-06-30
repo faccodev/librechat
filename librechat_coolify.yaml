@@ -85,33 +85,41 @@ mcpSettings:
 mcpServers:
   workspace:
     title: 'Workspace'
-    # `chatMenu: false` removes this MCP from the chat dropdown — the
-    # workspace server is auto-injected into every agent run (see
-    # api/server/services/ToolService.js) so users shouldn't have to
-    # turn it on. Tools still appear in the agent's tool list as
-    # `workspace__<tool>` (e.g. `workspace__read_file`).
+    # Native capability. Auto-injected into every agent run by
+    # ToolService.loadAgentTools; hidden from the chat dropdown so users
+    # don't toggle it manually; inspected at boot so tools are cached
+    # before the first prompt.
+    autoInject: true
     chatMenu: false
+    startup: true
     type: streamable-http
     url: 'http://mcp-workspace:8932/sse'
     timeout: 120000
     initTimeout: 30000
-    startup: false
   browser:
     title: 'Navegador'
     iconPath: '/assets/mcp/browser.png'
+    # Native capability. Same auto-inject story as workspace — see the
+    # header comment above.
+    autoInject: true
+    chatMenu: false
+    startup: true
     type: streamable-http
     url: 'http://mcp-browser:8931/mcp'
     timeout: 300000
     initTimeout: 30000
-    startup: false
   search:
     title: 'Pesquisa Google'
     iconPath: '/assets/mcp/search.png'
+    # Native capability. Same auto-inject story as workspace — see the
+    # header comment above.
+    autoInject: true
+    chatMenu: false
+    startup: true
     type: streamable-http
     url: 'http://mcp-search:8933/mcp'
     timeout: 60000
     initTimeout: 30000
-    startup: false
   transcribe:
     title: 'Transcrever'
     iconPath: '/assets/mcp/transcribe.png'

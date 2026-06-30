@@ -41,6 +41,7 @@ const ADMIN_CONFIGURABLE_FIELDS = [
   'iconPath',
   'startup',
   'chatMenu',
+  'autoInject',
   'serverInstructions',
   'customUserVars',
   'timeout',

@@ -103,6 +103,7 @@ export function redactServerSecrets(config: ParsedServerConfig): Partial<ParsedS
     /** Trust tier (yaml/config/user) — safe to expose; used by the UI for display purposes. */
     source: config.source,
     consumeOnly: config.consumeOnly,
+    autoInject: config.autoInject,
     inspectionFailed: config.inspectionFailed,
     customUserVars: config.customUserVars,
     serverInstructions: config.serverInstructions,

@@ -166,6 +166,16 @@ const BaseOptionsSchema = z.object({
   /** Controls visibility in chat dropdown menu (MCPSelect) */
   chatMenu: z.boolean().optional(),
   /**
+   * Auto-inject this server's tools into every agent run by ToolService.
+   * Combine with `chatMenu: false` (hides from the chat dropdown) and
+   * `startup: true` (warms the tool cache at boot) to make the server
+   * act as a native capability: always available, never selectable.
+   *
+   * Operator-controlled only — end users cannot toggle from the UI.
+   * Defaults to false.
+   */
+  autoInject: z.boolean().optional(),
+  /**
    * Controls server instruction behavior:
    * - undefined/not set: No instructions included (default)
    * - true: Use server-provided instructions
@@ -374,6 +384,7 @@ const omitServerManagedFields = <T extends z.ZodObject<z.ZodRawShape>>(schema: T
     sseReadTimeout: true,
     initTimeout: true,
     chatMenu: true,
+    autoInject: true,
     serverInstructions: true,
     requiresOAuth: true,
     customUserVars: true,
