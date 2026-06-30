@@ -1,7 +1,7 @@
 {
-  "name": "mcp-code-runner",
+  "name": "mcp-workspace",
   "version": "1.0.0",
-  "description": "Docker-based code execution MCP server",
+  "description": "Workspace MCP — unified filesystem + code execution with surgical edit_file",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {

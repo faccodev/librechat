@@ -15,7 +15,7 @@ const RUNNER_MEMORY = process.env.RUNNER_MEMORY || "256m";
 const RUNNER_CPUS = process.env.RUNNER_CPUS || "0.5";
 
 // Per-language executor images. Defaults are local images built from
-// `packages/mcp-code-runner/executors/Dockerfile.*`, which extend the upstream
+// `packages/mcp-workspace/executors/Dockerfile.*`, which extend the upstream
 // base images with `git` pre-installed. Override any of these to plug in your
 // own image (e.g. one with extra tools baked in).
 //

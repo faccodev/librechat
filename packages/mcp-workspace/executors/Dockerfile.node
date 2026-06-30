@@ -4,7 +4,7 @@
 # Node-based run_code calls can clone repositories, run git-aware tooling, etc.,
 # without paying the install cost on every invocation.
 #
-# Override at runtime by setting `RUNNER_IMAGE_NODE` in the mcp-code-runner
+# Override at runtime by setting `RUNNER_IMAGE_NODE` in the mcp-workspace
 # service environment.
 
 FROM node:20-alpine

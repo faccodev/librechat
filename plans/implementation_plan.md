@@ -35,11 +35,11 @@ AgentClient options → system prompt injection
 
 **Por quê:** respeita a realidade do deploy. Em local (docker-compose) funciona como Antigravity/Claude Code. Em SaaS, admin dá o catálogo e o user não inventa path que não vai resolver server-side.
 
-### AD-2: Sandbox do mcp-code-runner — três camadas de defesa
+### AD-2: Sandbox do mcp-workspace — três camadas de defesa
 
 1. **Server-side no save** (`sanitizeProjectInput`): canonicaliza via `path.resolve` + `fs.realpath` (mata symlink escape), exige que caia dentro de algum `WORKSPACE_ROOTS`. Reject com 400.
 2. **Server-side no lookup** (`initialize.js`): mesma checagem ao montar `endpointOption.projectContext`. Não confia no DB — pode ter sido populado por import/migration antiga.
-3. **No executor container** (`mcp-code-runner` `getSafePaths`): mesma checagem ao montar o bind mount. Não confia no caller. Throw `Path escapes workspace sandbox`.
+3. **No executor container** (`mcp-workspace` `getSafePaths`): mesma checagem ao montar o bind mount. Não confia no caller. Throw `Path escapes workspace sandbox`.
 
 **Por quê:** cada camada protege contra classe diferente de bug — user malicioso/descuidado, DB corrompido, bypass via outro MCP.
 
@@ -47,7 +47,7 @@ AgentClient options → system prompt injection
 
 | Conceito | Nome | Onde | Quem lê |
 |---|---|---|---|
-| Host-global root | `WORKSPACES_BASE` (existente) | env mcp-code-runner | mcp-code-runner |
+| Host-global root | `WORKSPACES_BASE` (existente) | env mcp-workspace | mcp-workspace |
 | Allowlist | `WORKSPACE_ROOTS` (novo) | env API + runner | validação |
 | Per-conversation | `MCP_PROJECT_CONTEXT` | env stdio / header HTTP | cada MCP server |
 
@@ -57,8 +57,8 @@ Contrato JSON:
 ```
 
 - **stdio MCPs**: agent runtime spawna com `MCP_PROJECT_CONTEXT=<json>` no env.
-- **HTTP MCPs** (mcp-code-runner et al.): header `X-Project-Context: <base64-json>` por request. Env `RUNNER_PROJECT_CONTEXT_HEADER` (default `X-Project-Context`) controla o nome.
-- **mcp-code-runner** lê o header, parseia, usa `workspacePath` como override do `workspaceSubdir`. Adiciona `--label project=<id>` no spawn pra audit trail (`docker ps --filter label=project=<id>`).
+- **HTTP MCPs** (mcp-workspace et al.): header `X-Project-Context: <base64-json>` por request. Env `RUNNER_PROJECT_CONTEXT_HEADER` (default `X-Project-Context`) controla o nome.
+- **mcp-workspace** lê o header, parseia, usa `workspacePath` como override do `workspaceSubdir`. Adiciona `--label project=<id>` no spawn pra audit trail (`docker ps --filter label=project=<id>`).
 
 **Por quê:** HTTP MCPs são containers persistentes (`restart: always`) — env não muda entre requests. Header é o canal natural. JSON unificado = mesma info pra todos os MCPs independente do transport.
 
@@ -156,9 +156,9 @@ Componente reutilizável com:
 - Ícone de pasta + path truncado (tooltip com path completo)
 - Se não houver path, **omitir o chip** (não mostrar placeholder vazio)
 
-### MCP Runtime — mcp-code-runner
+### MCP Runtime — mcp-workspace
 
-#### [MODIFY] [runner.ts](file:///e:/Github/librechat/packages/mcp-code-runner/src/runner.ts)
+#### [MODIFY] [runner.ts](file:///e:/Github/librechat/packages/mcp-workspace/src/runner.ts)
 - **NOVO env** `RUNNER_PROJECT_CONTEXT_HEADER` (default `X-Project-Context`).
 - **NOVO** `parseProjectContextHeader(raw: string | undefined): ProjectContext | null`:
   - base64-decode, JSON.parse, valida shape (`{ projectId: string, workspacePath: string }`)
@@ -168,7 +168,7 @@ Componente reutilizável com:
 - **MODIFICAR** `buildDockerArgs`: aceitar `projectId?: string`; quando presente, adiciona `--label project=<id>` no `docker run` (audit trail).
 - **MODIFICAR** `runCode` / `runFile`: aceitar `projectContext?: ProjectContext` opcional; se presente, override do `workspaceSubdir` E passa `projectId` pro buildDockerArgs.
 
-#### [MODIFY] [runner.spec.ts](file:///e:/Github/librechat/packages/mcp-code-runner/src/runner.spec.ts)
+#### [MODIFY] [runner.spec.ts](file:///e:/Github/librechat/packages/mcp-workspace/src/runner.spec.ts)
 - Novos testes:
   - `parseProjectContextHeader` — válido (base64 + JSON correto), inválido (base64 quebrado), ausente, shape errado
   - `getSafePaths` com `explicitWorkspacePath` — dentro do root (ok), fora (throw), com `..` (throw), WORKSPACE_ROOTS múltiplo (path no segundo root ok)
@@ -178,11 +178,11 @@ Componente reutilizável com:
 
 #### [MODIFY] [.env.example](file:///e:/Github/librechat/.env.example)
 - Adicionar `WORKSPACE_ROOTS=/workspaces` (comentado: lista de roots permitidos no servidor. Em SaaS, configure com paths reais.)
-- Adicionar `RUNNER_PROJECT_CONTEXT_HEADER=X-Project-Context` (comentado: nome do header HTTP que carrega o project context até mcp-code-runner.)
+- Adicionar `RUNNER_PROJECT_CONTEXT_HEADER=X-Project-Context` (comentado: nome do header HTTP que carrega o project context até mcp-workspace.)
 
 #### [MODIFY] [docker-compose.yml](file:///e:/Github/librechat/docker-compose.yml)
 - `api` service: adicionar `WORKSPACE_ROOTS=${WORKSPACE_ROOTS:-/workspaces}` ao env
-- `mcp-code-runner` service: adicionar `WORKSPACE_ROOTS=${WORKSPACE_ROOTS:-/workspaces}` e `RUNNER_PROJECT_CONTEXT_HEADER=${RUNNER_PROJECT_CONTEXT_HEADER:-X-Project-Context}` ao env
+- `mcp-workspace` service: adicionar `WORKSPACE_ROOTS=${WORKSPACE_ROOTS:-/workspaces}` e `RUNNER_PROJECT_CONTEXT_HEADER=${RUNNER_PROJECT_CONTEXT_HEADER:-X-Project-Context}` ao env
 
 ---
 
@@ -190,7 +190,7 @@ Componente reutilizável com:
 
 ### Unit Tests
 - `data-schemas`: `sanitizeWorkspacePath` — path válido, path com `..`, path com symlink, path fora do root, WORKSPACE_ROOTS vazio (default), WORKSPACE_ROOTS múltiplo
-- `mcp-code-runner`: `parseProjectContextHeader` (válido/inválido/ausente/shape errado), `getSafePaths` com `explicitWorkspacePath` (dentro/fora/..), `WORKSPACE_ROOTS` env parsing
+- `mcp-workspace`: `parseProjectContextHeader` (válido/inválido/ausente/shape errado), `getSafePaths` com `explicitWorkspacePath` (dentro/fora/..), `WORKSPACE_ROOTS` env parsing
 - `api/projects/handlers`: criação/update com workspacePath válido (200) e inválido (400 com mensagem)
 
 ### Integration Tests
@@ -200,15 +200,15 @@ Componente reutilizável com:
 - Projeto existente sem workspacePath → `endpointOption.projectContext` undefined → comportamento atual preservado
 
 ### Manual Verification
-1. **Local (docker-compose)**: criar projeto com `workspacePath=/workspaces/my-app` → abrir conversa → ver no system prompt "Working directory: /workspaces/my-app" → `run_code` cria arquivo em `/workspaces/my-app` via mcp-code-runner
-2. **Workspace context propagation**: chamar mcp-code-runner HTTP direto (curl/Postman) sem header → roda no `WORKSPACES_BASE` default; com header `X-Project-Context` válido → roda no path do header
+1. **Local (docker-compose)**: criar projeto com `workspacePath=/workspaces/my-app` → abrir conversa → ver no system prompt "Working directory: /workspaces/my-app" → `run_code` cria arquivo em `/workspaces/my-app` via mcp-workspace
+2. **Workspace context propagation**: chamar mcp-workspace HTTP direto (curl/Postman) sem header → roda no `WORKSPACES_BASE` default; com header `X-Project-Context` válido → roda no path do header
 3. **Audit trail**: `docker ps --filter label=project=<id>` retorna os executors daquele projeto após rodar código
 4. **UI Browse equivalent**: clicar "Ver disponíveis" no picker → lista `/workspaces/{subdir1, subdir2}` do servidor (vindos de `GET /api/workspaces/available`)
 5. **Remoto (se configurado)**: `WORKSPACE_ROOTS=/srv/projects` no admin → picker só mostra subdirs de lá → user não consegue submeter path arbitrário (UI nem dá opção)
 
 ### Defense-in-Depth Verification
 - Tentar bypassar camada 1 salvando direto no DB (`db.chatProjects.updateOne`) → camada 2 (no initialize) rejeita
-- Tentar bypassar camada 2 mandando header malicioso direto pro mcp-code-runner → camada 3 (no getSafePaths) rejeita
+- Tentar bypassar camada 2 mandando header malicioso direto pro mcp-workspace → camada 3 (no getSafePaths) rejeita
 - Tentar symlink attack: criar `ln -s /etc /workspaces/escape` → `realpath` resolve pra `/etc` → rejeitado pela camada 1 (save) ou 2 (lookup)
 
 ---
@@ -231,9 +231,9 @@ Componente reutilizável com:
 | `client/src/components/Projects/ProjectCreateDialog.tsx` | +`WorkspacePathPicker` |
 | `client/src/components/Projects/ProjectWorkspace.tsx` | mostrar + editar path |
 | `client/src/components/Chat/ProjectLandingChip.tsx` | exibir path no chip |
-| `packages/mcp-code-runner/src/runner.ts` | `X-Project-Context` parsing + override + re-validate + label audit |
-| `packages/mcp-code-runner/src/runner.spec.ts` | +testes do novo helper |
-| `docker-compose.yml` (api + mcp-code-runner) | +env `WORKSPACE_ROOTS` e `RUNNER_PROJECT_CONTEXT_HEADER` |
+| `packages/mcp-workspace/src/runner.ts` | `X-Project-Context` parsing + override + re-validate + label audit |
+| `packages/mcp-workspace/src/runner.spec.ts` | +testes do novo helper |
+| `docker-compose.yml` (api + mcp-workspace) | +env `WORKSPACE_ROOTS` e `RUNNER_PROJECT_CONTEXT_HEADER` |
 | `.env.example` | +novas env vars documentadas |
 
 ---
@@ -243,7 +243,7 @@ Componente reutilizável com:
 - **Fase 0** ← *este documento*: fechar ADs, validar escopo com o time
 - **Fase 1** (data layer isolado): schema + types + methods + `sanitizeWorkspacePath` + `getWorkspaceRoots` + testes
 - **Fase 2** (backend): handlers + initialize re-validation + projectContext injection + client.js prompt + MCP stdio env / HTTP header propagation
-- **Fase 3** (mcp-code-runner): header parsing + `getSafePaths` override + re-validation + label audit + testes
+- **Fase 3** (mcp-workspace): header parsing + `getSafePaths` override + re-validation + label audit + testes
 - **Fase 4** (API endpoint + hook): `GET /api/workspaces/available` + `useAvailableWorkspaces`
 - **Fase 5** (UI): WorkspacePathPicker + integração nos 3 componentes existentes
 - **Fase 6** (verify): e2e manual + defense-in-depth (symlink attack, bypass attempt)

@@ -48,7 +48,7 @@ In Coolify's UI:
 3. **Compose File Location**: `docker-compose.yml` (default — Coolify reads it as-is).
 4. **Port Mapping**: expose `3080`. Coolify will assign a Traefik route automatically based on `coolify.managed=true` label.
 5. **Environment Variables**: point Coolify at your `.env` (Coolify supports "dotenv" via the **Environment Variables** tab → "Load from .env file"). Or paste the vars inline.
-6. **Persistent Storage**: by default Coolify creates **named volumes** for every service. That breaks the bind-mount on `/home/workspaces` (used by `api`, `mcp-browser`, `mcp-search`, `mcp-code-runner`, `mcp-transcribe`, `rclone`). Two options:
+6. **Persistent Storage**: by default Coolify creates **named volumes** for every service. That breaks the bind-mount on `/home/workspaces` (used by `api`, `mcp-browser`, `mcp-search`, `mcp-workspace`, `mcp-transcribe`, `rclone`). Two options:
    - **(a) Recommended — host bind mount**: in Coolify's "Persistent Storage" section for the `api` service, map `/home/workspaces` (host) → `/workspaces` (container). Same for the other services that bind `/workspaces`. Then on the host:
      ```bash
      sudo mkdir -p /home/workspaces && sudo chown 1000:1000 /home/workspaces
@@ -140,9 +140,9 @@ For automatic rebuilds on push, set up a [Coolify webhook](https://coolify.io/do
 
 **`api` keeps restarting with "Cannot find module /app/librechat_coolify.yaml"**
 → You didn't set `CONFIG_PATH=/app/librechat_coolify.yaml` in `.env`. Without it the api defaults to `/app/librechat.yaml` (the local-dev file), which the docker-compose doesn't actually mount on Coolify — wait, yes it does (both files are mounted). Check the `api` service's volume mount is `read-only` (`:ro` suffix would break the api at runtime — leave it read-write).
+**Workspaces show empty in the UI but `mcp-workspace` can write to `/workspaces`**
 
-**Workspaces show empty in the UI but `mcp-code-runner` can write to `/workspaces`**
-→ The bind mount `/home/workspaces:/workspaces` only exists on the `api`, `mcp-browser`, `mcp-search`, `mcp-code-runner`, `mcp-transcribe`, `rclone` services. If you added a new service that needs workspace access, copy the bind mount line.
+→ The bind mount `/home/workspaces:/workspaces` only exists on the `api`, `mcp-browser`, `mcp-search`, `mcp-workspace`, `mcp-transcribe`, `rclone` services. If you added a new service that needs workspace access, copy the bind mount line.
 
 **Traefik 502 Bad Gateway**
 → Coolify's Traefik routes to the `api` service via the `coolify.managed=true` label. If you removed that label accidentally, re-add it. Also check `docker compose logs api` — if the api is still booting (start_period: 90s), Traefik will return 502 until the healthcheck passes.

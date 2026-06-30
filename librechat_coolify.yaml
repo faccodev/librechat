@@ -74,7 +74,7 @@ mcpSettings:
     - 'mcp-browser:8931'
     - 'mcp-search:8933'
     - 'mcp-transcribe:8934'
-    - 'mcp-code-runner:8932'
+    - 'mcp-workspace:8932'
     - 'mcp-notion:3001'
     - 'mcp-meta-ads:8935'
 
@@ -94,10 +94,15 @@ mcpServers:
     timeout: 30000
     startup: false
   code-runner:
-    title: 'Código'
-    iconPath: '/assets/mcp/code.png'
+    title: 'Workspace'
+    # `chatMenu: false` removes this MCP from the chat dropdown — the
+    # workspace server is auto-injected into every agent run (see
+    # api/server/services/ToolService.js) so users shouldn't have to
+    # turn it on. Tools still appear in the agent's tool list as
+    # `workspace__<tool>` (e.g. `workspace__read_file`).
+    chatMenu: false
     type: streamable-http
-    url: 'http://mcp-code-runner:8932/sse'
+    url: 'http://mcp-workspace:8932/sse'
     timeout: 120000
     initTimeout: 30000
     startup: false

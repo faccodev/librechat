@@ -28,7 +28,7 @@ const sessions = new Map<string, Session>();
  */
 function createSession(): Session {
   const server = new Server(
-    { name: "mcp-code-runner", version: "1.0.0" },
+    { name: "mcp-workspace", version: "1.0.0" },
     { capabilities: { tools: {} } }
   );
 
@@ -45,7 +45,7 @@ function createSession(): Session {
 const app = express();
 
 app.get("/health", (_req, res) => {
-  res.status(200).json({ status: "OK", service: "mcp-code-runner" });
+  res.status(200).json({ status: "OK", service: "mcp-workspace" });
 });
 
 app.all("*", async (req, res) => {
@@ -69,7 +69,7 @@ app.all("*", async (req, res) => {
   } catch (err) {
     if (err instanceof InvalidProjectContextError) {
       console.warn(
-        `[mcp-code-runner] Dropping malformed ${headerName} header: ${err.message}`,
+        `[mcp-workspace] Dropping malformed ${headerName} header: ${err.message}`,
       );
     } else {
       throw err;
@@ -127,6 +127,6 @@ app.all("*", async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`MCP Code Runner Server is listening on port ${PORT}`);
+  console.log(`MCP Workspace Server is listening on port ${PORT}`);
   console.log(`Streamable-HTTP endpoint available at http://localhost:${PORT}/sse`);
 });

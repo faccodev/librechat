@@ -5,7 +5,7 @@
 # `--no-install-recommends` keeps the layer small; `rm -rf /var/lib/apt/lists/*`
 # drops the apt cache so the final image stays slim.
 #
-# Override at runtime by setting `RUNNER_IMAGE_PYTHON` in the mcp-code-runner
+# Override at runtime by setting `RUNNER_IMAGE_PYTHON` in the mcp-workspace
 # service environment.
 
 FROM python:3.12-slim
