@@ -3,6 +3,7 @@ import * as Ariakit from '@ariakit/react';
 import { ChevronRight } from 'lucide-react';
 import { MCPIcon, PinIcon } from '@librechat/client';
 import MCPServerMenuItem from '~/components/MCP/MCPServerMenuItem';
+import MCPServerNativeItem from '~/components/MCP/MCPServerNativeItem';
 import MCPConfigDialog from '~/components/MCP/MCPConfigDialog';
 import { useBadgeRowContext } from '~/Providers';
 import { useLocalize } from '~/hooks';
@@ -36,12 +37,15 @@ const MCPSubMenu = React.forwardRef<HTMLDivElement, MCPSubMenuProps>(
       placeholderText,
       connectionStatus,
       selectableServers,
+      nativeServers,
       getConfigDialogProps,
       toggleServerSelection,
       getServerStatusIconProps,
     } = mcpServerManager;
 
-    if (!selectableServers || selectableServers.length === 0) {
+    const hasSelectable = selectableServers && selectableServers.length > 0;
+    const hasNative = nativeServers && nativeServers.length > 0;
+    if (!hasSelectable && !hasNative) {
       return null;
     }
 
@@ -97,17 +101,44 @@ const MCPSubMenu = React.forwardRef<HTMLDivElement, MCPSubMenuProps>(
             )}
           >
             <div className="flex max-h-[320px] flex-col gap-1 overflow-y-auto">
-              {selectableServers.map((server) => (
-                <MCPServerMenuItem
-                  key={server.serverName}
-                  server={server}
-                  isSelected={mcpValues?.includes(server.serverName) ?? false}
-                  connectionStatus={connectionStatus}
-                  isInitializing={isInitializing}
-                  statusIconProps={getServerStatusIconProps(server.serverName)}
-                  onToggle={toggleServerSelection}
-                />
-              ))}
+              {hasNative && (
+                <>
+                  <div className="px-2.5 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-text-secondary">
+                    {localize('com_ui_mcp_native_group') || 'Nativos'}
+                  </div>
+                  {nativeServers.map((server) => (
+                    <MCPServerNativeItem
+                      key={server.serverName}
+                      server={server}
+                      connectionStatus={connectionStatus}
+                      isInitializing={isInitializing}
+                    />
+                  ))}
+                  {hasSelectable && (
+                    <div className="my-1 h-px bg-border-light" aria-hidden="true" />
+                  )}
+                </>
+              )}
+              {hasSelectable && (
+                <>
+                  {hasNative && (
+                    <div className="px-2.5 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-wider text-text-secondary">
+                      {localize('com_ui_mcp_servers_group') || 'Servidores'}
+                    </div>
+                  )}
+                  {selectableServers.map((server) => (
+                    <MCPServerMenuItem
+                      key={server.serverName}
+                      server={server}
+                      isSelected={mcpValues?.includes(server.serverName) ?? false}
+                      connectionStatus={connectionStatus}
+                      isInitializing={isInitializing}
+                      statusIconProps={getServerStatusIconProps(server.serverName)}
+                      onToggle={toggleServerSelection}
+                    />
+                  ))}
+                </>
+              )}
             </div>
           </Ariakit.Menu>
         </Ariakit.MenuProvider>

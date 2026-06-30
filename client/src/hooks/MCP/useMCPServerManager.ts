@@ -29,6 +29,13 @@ export interface MCPServerDefinition {
   dbId?: string; // MongoDB ObjectId for database servers (used for permissions)
   effectivePermissions: number; // Permission bits (VIEW=1, EDIT=2, DELETE=4, SHARE=8)
   consumeOnly?: boolean;
+  /**
+   * True when the server is configured with `autoInject: true` in librechat.yaml.
+   * The server's tools are auto-injected into every agent run; users see it in
+   * the picker for transparency but cannot toggle selection. UI shows a
+   * "Nativo" badge next to the name.
+   */
+  isAutoInject?: boolean;
 }
 
 // Poll intervals are kept local since they're timer references that can't be serialized
@@ -64,7 +71,7 @@ export function useMCPServerManager({
     const definitions: MCPServerDefinition[] = [];
     if (loadedServers) {
       for (const [serverName, metadata] of Object.entries(loadedServers)) {
-        const { dbId, consumeOnly, ...config } = metadata;
+        const { dbId, consumeOnly, autoInject, ...config } = metadata;
 
         // Get effective permissions from the permissions map using _id
         // Fall back to 1 (VIEW) for YAML-based servers without _id
@@ -75,6 +82,7 @@ export function useMCPServerManager({
           dbId,
           effectivePermissions,
           consumeOnly,
+          isAutoInject: autoInject === true,
           config,
         });
       }
@@ -82,9 +90,20 @@ export function useMCPServerManager({
     return definitions;
   }, [loadedServers, permissionsMap]);
 
+  // Auto-injected ("native") servers — always visible so the user can see
+  // which capabilities are baked in, but never toggleable. The UI groups
+  // these above manual servers and shows a "Nativo" badge.
+  const nativeServers = useMemo(
+    () => availableMCPServers.filter((s) => s.isAutoInject === true),
+    [availableMCPServers],
+  );
+
   // Memoize filtered servers for useMCPSelect to prevent infinite loops
   const selectableServers = useMemo(
-    () => availableMCPServers.filter((s) => s.config.chatMenu !== false && !s.consumeOnly),
+    () =>
+      availableMCPServers.filter(
+        (s) => s.config.chatMenu !== false && !s.consumeOnly && !s.isAutoInject,
+      ),
     [availableMCPServers],
   );
 
@@ -645,8 +664,17 @@ export function useMCPServerManager({
 
   return {
     availableMCPServers,
-    /** MCP servers filtered for chat menu selection (chatMenu !== false && !consumeOnly) */
+    /**
+     * MCP servers the user can toggle on/off in the chat dropdown.
+     * Filtered: chatMenu !== false && !consumeOnly && !isAutoInject.
+     */
     selectableServers,
+    /**
+     * Auto-injected ("native") MCP servers — always visible, never toggleable.
+     * Surface here so the UI can render them as a separate "Nativos" group
+     * with a badge. Their tools are injected into every agent run by the api.
+     */
+    nativeServers,
     availableMCPServersMap: loadedServers,
     isLoading,
     connectionStatus,
