@@ -1,9 +1,10 @@
 import { useState, useRef, useMemo } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, PlugZap } from 'lucide-react';
 import { PermissionTypes, Permissions } from 'librechat-data-provider';
 import { Button, Spinner, FilterInput, OGDialogTrigger, TooltipAnchor } from '@librechat/client';
 import { useLocalize, useMCPServerManager, useHasAccess } from '~/hooks';
 import MCPConfigDialog from '~/components/MCP/MCPConfigDialog';
+import { AddMCPWizard } from '~/components/SidePanel/MCP/AddMCP';
 import MCPAdminSettings from './MCPAdminSettings';
 import MCPServerDialog from './MCPServerDialog';
 import MCPServerList from './MCPServerList';
@@ -18,6 +19,7 @@ export default function MCPBuilderPanel() {
     permission: Permissions.CREATE,
   });
   const [showDialog, setShowDialog] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const addButtonRef = useRef<HTMLButtonElement | null>(null);
   const configDialogProps = getConfigDialogProps();
@@ -48,30 +50,54 @@ export default function MCPBuilderPanel() {
             containerClassName="flex-1"
           />
           {hasCreateAccess && (
-            <MCPServerDialog
-              open={showDialog}
-              onOpenChange={setShowDialog}
-              triggerRef={addButtonRef}
-            >
-              <OGDialogTrigger asChild>
-                <TooltipAnchor
-                  description={localize('com_ui_add_mcp')}
-                  side="bottom"
-                  render={
-                    <Button
-                      ref={addButtonRef}
-                      variant="outline"
-                      size="icon"
-                      className="size-9 shrink-0 bg-transparent"
-                      onClick={() => setShowDialog(true)}
-                      aria-label={localize('com_ui_add_mcp')}
-                    >
-                      <Plus className="size-4" aria-hidden="true" />
-                    </Button>
-                  }
-                />
-              </OGDialogTrigger>
-            </MCPServerDialog>
+            <>
+              <MCPServerDialog
+                open={showDialog}
+                onOpenChange={setShowDialog}
+                triggerRef={addButtonRef}
+              >
+                <OGDialogTrigger asChild>
+                  <TooltipAnchor
+                    description={localize('com_ui_add_mcp')}
+                    side="bottom"
+                    render={
+                      <Button
+                        ref={addButtonRef}
+                        variant="outline"
+                        size="icon"
+                        className="size-9 shrink-0 bg-transparent"
+                        onClick={() => setShowDialog(true)}
+                        aria-label={localize('com_ui_add_mcp')}
+                      >
+                        <Plus className="size-4" aria-hidden="true" />
+                      </Button>
+                    }
+                  />
+                </OGDialogTrigger>
+              </MCPServerDialog>
+              <TooltipAnchor
+                description={
+                  localize('com_user_mcp_add_from_registry') ||
+                  'Add from registry'
+                }
+                side="bottom"
+                render={
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="size-9 shrink-0 bg-transparent"
+                    onClick={() => setShowWizard(true)}
+                    aria-label={
+                      localize('com_user_mcp_add_from_registry') ||
+                      'Add from registry'
+                    }
+                  >
+                    <PlugZap className="size-4" aria-hidden="true" />
+                  </Button>
+                }
+              />
+              <AddMCPWizard open={showWizard} onOpenChange={setShowWizard} />
+            </>
           )}
         </div>
 

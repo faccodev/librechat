@@ -1,17 +1,19 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Plus, PenLine, Upload } from 'lucide-react';
+import { Plus, PenLine, Upload, GitBranch } from 'lucide-react';
 import { Dropdown } from '@librechat/client';
 import type { Option } from '~/common';
-import { CreateSkillDialog, UploadSkillDialog } from '../dialogs';
+import { CreateSkillDialog, GitImportDialog, UploadSkillDialog } from '../dialogs';
 import { useLocalize } from '~/hooks';
 
 const WRITE = 'write';
 const UPLOAD_SKILL = 'upload';
+const IMPORT_GIT = 'import-git';
 
 export default function CreateSkillMenu() {
   const localize = useLocalize();
   const [writeOpen, setWriteOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [gitImportOpen, setGitImportOpen] = useState(false);
 
   const options = useMemo<Option[]>(
     () => [
@@ -25,6 +27,11 @@ export default function CreateSkillMenu() {
         label: localize('com_ui_skill_upload'),
         icon: <Upload className="size-4 text-text-primary" />,
       },
+      {
+        value: IMPORT_GIT,
+        label: localize('com_ui_skill_git_import'),
+        icon: <GitBranch className="size-4 text-text-primary" />,
+      },
     ],
     [localize],
   );
@@ -34,6 +41,8 @@ export default function CreateSkillMenu() {
       setWriteOpen(true);
     } else if (value === UPLOAD_SKILL) {
       setUploadOpen(true);
+    } else if (value === IMPORT_GIT) {
+      setGitImportOpen(true);
     }
   }, []);
 
@@ -50,6 +59,7 @@ export default function CreateSkillMenu() {
       />
       <CreateSkillDialog isOpen={writeOpen} setIsOpen={setWriteOpen} />
       <UploadSkillDialog isOpen={uploadOpen} setIsOpen={setUploadOpen} />
+      <GitImportDialog isOpen={gitImportOpen} setIsOpen={setGitImportOpen} />
     </>
   );
 }

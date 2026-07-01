@@ -1063,6 +1063,27 @@ export function importSkill(formData: FormData): Promise<sk.TSkill> {
   return request.postMultiPart(endpoints.importSkill(), formData);
 }
 
+/**
+ * Preview a skill import from a git URL without writing anything. The
+ * backend fetches SKILL.md + auxiliary file metadata so the UI can
+ * surface the result before the user commits the import.
+ */
+export function previewImportSkillFromGit(
+  payload: sk.TGitImportSkillRequest,
+): Promise<sk.TGitImportSkillPreviewResponse> {
+  return request.post(endpoints.previewImportSkillFromGit(), payload);
+}
+
+/**
+ * Import a skill from a git URL. The backend re-runs the preview
+ * (cheap) and persists the skill + source metadata.
+ */
+export function importSkillFromGit(
+  payload: sk.TGitImportSkillRequest,
+): Promise<sk.TGitImportSkillResponse> {
+  return request.post(endpoints.importSkillFromGit(), payload);
+}
+
 export function getSkillFileContent(
   skillId: string,
   relativePath: string,
@@ -1524,6 +1545,37 @@ export function upsertMCPIntegration(
 
 export function removeMCPIntegration(name: string): Promise<{ removed: boolean; name: string }> {
   return request.delete(endpoints.mcpIntegration(name));
+}
+
+/* External MCP Registry (browse the Official MCP Registry through the admin proxy) */
+import type {
+  RegistryListResponse,
+  RegistryPreviewRequest,
+  RegistryPreviewResponse,
+  RegistryHealthResponse,
+} from './types/mcpExternalCatalog';
+
+export function listExternalCatalog(params?: {
+  search?: string;
+  cursor?: string;
+  limit?: number;
+}): Promise<RegistryListResponse> {
+  return request.get(endpoints.mcpExternalCatalogServers(), { params });
+}
+
+export function getExternalCatalogServer(name: string): Promise<unknown> {
+  return request.get(endpoints.mcpExternalCatalogServer(name));
+}
+
+export function previewExternalCatalogInstall(
+  name: string,
+  payload: RegistryPreviewRequest,
+): Promise<RegistryPreviewResponse> {
+  return request.post(endpoints.mcpExternalCatalogServerPreview(name), payload);
+}
+
+export function getExternalCatalogHealth(): Promise<RegistryHealthResponse> {
+  return request.get(endpoints.mcpExternalCatalogHealth());
 }
 
 /* CronJobs (admin-managed scheduled tasks) */

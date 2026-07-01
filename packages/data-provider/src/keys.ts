@@ -73,6 +73,11 @@ export enum QueryKeys {
   /* MCP Integrations (admin-managed; encrypted credentials) */
   mcpIntegrations = 'mcpIntegrations',
   mcpIntegration = 'mcpIntegration',
+  /* External MCP Registry (browse / preview from registry.modelcontextprotocol.io) */
+  mcpExternalCatalog = 'mcpExternalCatalog',
+  mcpExternalCatalogServer = 'mcpExternalCatalogServer',
+  mcpExternalCatalogPreview = 'mcpExternalCatalogPreview',
+  mcpExternalCatalogHealth = 'mcpExternalCatalogHealth',
   /* Active Jobs */
   activeJobs = 'activeJobs',
   /* Agent API Keys */

@@ -299,3 +299,73 @@ export type TDeleteSkillFileVariables = {
  * owned = active, shared = `defaultActiveOnShare` from config.
  */
 export type TSkillStatesResponse = Record<string, boolean>;
+
+/**
+ * Request body for `POST /api/skills/import/git/preview` and
+ * `POST /api/skills/import/git`. The user pastes any https git URL
+ * pointing at a public repo (GitHub, GitLab, Bitbucket, Codeberg,
+ * self-hosted Gitea, etc). The server detects the host, fetches a
+ * preview, and either returns the preview or persists the skill.
+ */
+export type TGitImportSkillRequest = {
+  /** Public https git URL — `https://github.com/owner/repo[/path/to/skill]`. */
+  url: string;
+  /** Git ref (branch/tag/sha). Defaults to the host's default branch. */
+  ref?: string;
+  /**
+   * Path within the repo to treat as the skill root. Defaults to
+   * repo root. Supports the same conventions as `npx skills`:
+   * the root directory or a single `skills/<name>/` subdirectory.
+   */
+  path?: string;
+  /** Optional override for the skill name (defaults to frontmatter name). */
+  name?: string;
+};
+
+/** Host identifier returned by the preview endpoint. */
+export type TGitImportHost = 'github' | 'gitlab' | 'bitbucket' | 'generic';
+
+/**
+ * Response from `POST /api/skills/import/git/preview`. The frontend
+ * shows this to the user so they can confirm the SKILL.md content
+ * + discovered auxiliary files before committing the import.
+ */
+export type TGitImportSkillPreviewResponse = {
+  host: TGitImportHost;
+  /** Repository identifier as the host exposes it (e.g. `owner/repo`). */
+  repository: string;
+  /** Resolved branch/tag/sha used for the preview. */
+  ref: string;
+  /** Effective subdirectory within the repo we scanned. */
+  path: string;
+  /** SKILL.md content (decoded text). Empty if not found. */
+  skillMd: string;
+  /** Files discovered alongside SKILL.md, names relative to the skill root. */
+  files: Array<{
+    path: string;
+    bytes: number;
+  }>;
+  /** Non-fatal warnings (e.g. files skipped due to size cap). */
+  warnings: string[];
+};
+
+/**
+ * Response from `POST /api/skills/import/git`. Same shape as the
+ * existing zip import — the created skill plus a per-file import
+ * summary, with extra `source` metadata capturing the original URL.
+ */
+export type TGitImportSkillResponse = {
+  skill: TSkill;
+  importSummary: {
+    filesProcessed: number;
+    filesSucceeded: number;
+    filesFailed: number;
+    errors: Array<{ path: string; error: string }>;
+  };
+  source: {
+    url: string;
+    ref: string;
+    path: string;
+    importedAt: string;
+  };
+};

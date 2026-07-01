@@ -24,6 +24,7 @@ import {
   AUTH_CODE_TTL,
 } from '../auth/oauth-utils.js';
 import { encryptToken } from '../db/crypto.js';
+import type { Prisma } from '../generated/prisma/client.js';
 
 const router = Router();
 
@@ -318,7 +319,7 @@ router.post('/token', async (req: Request, res: Response) => {
       }
 
       // Rotate tokens atomically
-      const result = await prisma.$transaction(async (tx) => {
+      const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         const oldToken = await tx.oAuthAccessToken.findUnique({ where: { refreshToken: refresh_token } });
         if (!oldToken) return null;
         if (oldToken.clientId !== client_id) return null;

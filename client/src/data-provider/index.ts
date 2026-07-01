@@ -18,6 +18,7 @@ export * from './roles';
 export * from './tags';
 export * from './MCP';
 export * from './MCPIntegrations';
+export * from './MCPRegistry';
 /* CronJobs (admin-managed scheduled tasks) */
 export * from './CronJobs';
 export * from './SSE';
