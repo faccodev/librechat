@@ -5,6 +5,7 @@ const express = require('express');
 const {
   createSkillsHandlers,
   createImportHandler,
+  createGitImportHandler,
   generateCheckAccess,
   getStorageMetadata,
   resolveRequestTenantId,
@@ -171,6 +172,38 @@ const importHandler = createImportHandler({
 });
 
 // ---------------------------------------------------------------------------
+// Git import handler (https git URL → preview + save SKILL.md as a skill).
+// Reuses the same dep injection shape as the zip import; v1 only persists
+// SKILL.md content (auxiliary files are surfaced in the preview but not
+// streamed to storage — bulk upload remains the zip path's job).
+// ---------------------------------------------------------------------------
+const gitImportHandler = createGitImportHandler({
+  createSkill,
+  getSkillById,
+  deleteSkill,
+  upsertSkillFile,
+  saveBuffer: (req, { userId, buffer, fileName, basePath, isImage, tenantId }) => {
+    const requestTenantId = tenantId ?? resolveRequestTenantId(req);
+    const storage = resolveSkillStorage(req, { isImage });
+    return storage
+      .saveBuffer({ userId, buffer, fileName, basePath, tenantId: requestTenantId })
+      .then((filepath) => ({
+        filepath,
+        source: storage.source,
+        ...getStorageMetadata({ filepath, source: storage.source }),
+      }));
+  },
+  deleteFile: (req, file) => {
+    const { deleteFile } = getStrategyFunctions(file.source);
+    if (deleteFile) {
+      return deleteFile(req, file);
+    }
+    return Promise.resolve();
+  },
+  grantPermission,
+});
+
+// ---------------------------------------------------------------------------
 // Per-file upload handler (add a single file to an existing skill)
 // ---------------------------------------------------------------------------
 async function uploadFileHandler(req, res) {
@@ -282,6 +315,27 @@ router.post(
   skillUpload,
   restoreTenantContextFromReq,
   importHandler,
+);
+
+// Git import: preview (no DB writes) then save (creates the skill). Both
+// endpoints share the same handler factory; the route layer simply picks
+// which verb each one maps to. Cap request bodies at 16KB — these are
+// JSON payloads, not file uploads, and the git URL + frontmatter are
+// the only fields that matter.
+router.post(
+  '/import/git/preview',
+  checkSkillCreate,
+  express.json({ limit: '16kb' }),
+  restoreTenantContextFromReq,
+  gitImportHandler.preview,
+);
+
+router.post(
+  '/import/git',
+  checkSkillCreate,
+  express.json({ limit: '16kb' }),
+  restoreTenantContextFromReq,
+  gitImportHandler.save,
 );
 
 router.get('/', handlers.list);

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { KeyRound, Save, Trash2, RefreshCw, Eye, EyeOff } from 'lucide-react';
+import { KeyRound, Save, Trash2, RefreshCw, Eye, EyeOff, PlugZap } from 'lucide-react';
 import { Button, Spinner, useToastContext } from '@librechat/client';
 import {
   useListMCPIntegrations,
@@ -12,7 +12,9 @@ import type {
   MCPIntegrationDetail,
   MCPIntegrationSummary,
   MCPIntegrationUpsertPayload,
+  RegistryPreviewResponse,
 } from 'librechat-data-provider';
+import { RegistryTab } from './MCPRegistry';
 
 const REDACTED = '••••••••';
 
@@ -31,6 +33,23 @@ export default function MCPIntegrationsPanel() {
 
   const [selectedName, setSelectedName] = useState<string | null>(null);
   const [confirmDeleteName, setConfirmDeleteName] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'custom' | 'registry'>('custom');
+
+  /**
+   * Browse Registry → Install flow: switch to the Custom tab and
+   * toast the converted config name so the admin can paste / review
+   * before saving. Wiring the config into the editor's local state
+   * is non-trivial (the JSON editor hydrates from the detail query);
+   * kept minimal for v1 — full editor prefill is a follow-up.
+   */
+  const handlePreview = (preview: RegistryPreviewResponse) => {
+    setActiveTab('custom');
+    setSelectedName(preview.name);
+    showToast({
+      message: `${localize('com_admin_mcp_registry_install_button')}: ${preview.name}`,
+      status: 'success',
+    });
+  };
 
   const handleDelete = (name: string) => {
     removeMutation.mutate(name, {
@@ -54,6 +73,37 @@ export default function MCPIntegrationsPanel() {
   };
 
   return (
+    <div className="flex h-full flex-1 flex-col overflow-hidden">
+      {/* ── Tab bar ── */}
+      <div className="flex flex-shrink-0 items-center gap-1 border-b border-border-light bg-surface-primary px-3 py-2">
+        <button
+          type="button"
+          onClick={() => setActiveTab('custom')}
+          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+            activeTab === 'custom'
+              ? 'bg-surface-tertiary text-text-primary'
+              : 'text-text-secondary hover:bg-surface-secondary'
+          }`}
+        >
+          <KeyRound className="size-3.5" />
+          {localize('com_admin_mcp_registry_tab_custom') || 'Custom'}
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('registry')}
+          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+            activeTab === 'registry'
+              ? 'bg-surface-tertiary text-text-primary'
+              : 'text-text-secondary hover:bg-surface-secondary'
+          }`}
+        >
+          <PlugZap className="size-3.5" />
+          {localize('com_admin_mcp_registry_tab_label')}
+        </button>
+      </div>
+      {activeTab === 'registry' ? (
+        <RegistryTab onPreview={handlePreview} />
+      ) : (
     <div className="flex h-full flex-1 overflow-hidden">
       {/* ── List pane ── */}
       <div className="flex w-72 flex-shrink-0 flex-col border-r border-border-light">
@@ -142,6 +192,8 @@ export default function MCPIntegrationsPanel() {
           />
         )}
       </div>
+      </div>
+      )}
     </div>
   );
 }

@@ -25,6 +25,9 @@ import type {
   TDeleteSkillFileVariables,
   TDeleteSkillFileResponse,
   TSkillListResponse,
+  TGitImportSkillRequest,
+  TGitImportSkillPreviewResponse,
+  TGitImportSkillResponse,
 } from './skills';
 
 export type MutationOptions<
@@ -310,6 +313,25 @@ export type TUpdateSkillContext =
   | undefined;
 
 export type ImportSkillOptions = MutationOptions<TSkill, FormData>;
+
+/**
+ * Mutation options for `useImportSkillFromGitPreviewMutation`. Receives the
+ * preview response so the UI can show SKILL.md + auxiliary files before
+ * committing the import.
+ */
+export type ImportSkillFromGitPreviewOptions = MutationOptions<
+  TGitImportSkillPreviewResponse,
+  TGitImportSkillRequest
+>;
+
+/**
+ * Mutation options for `useImportSkillFromGitMutation`. Receives the saved
+ * skill + import summary + source metadata.
+ */
+export type ImportSkillFromGitOptions = MutationOptions<
+  TGitImportSkillResponse,
+  TGitImportSkillRequest
+>;
 
 export type CreateSkillOptions = MutationOptions<TSkill, TCreateSkill>;
 

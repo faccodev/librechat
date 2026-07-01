@@ -7,6 +7,7 @@ const adminBranding = require('./admin/branding');
 const adminGrants = require('./admin/grants');
 const adminGroups = require('./admin/groups');
 const adminMCPIntegrations = require('./admin/mcpIntegrations');
+const adminMCPExternalCatalog = require('./admin/mcpExternalCatalog');
 const adminRoles = require('./admin/roles');
 const adminUsers = require('./admin/users');
 const adminWorkspaces = require('./admin/workspaces');
@@ -49,6 +50,7 @@ module.exports = {
   adminGrants,
   adminGroups,
   adminMCPIntegrations,
+  adminMCPExternalCatalog,
   adminRoles,
   adminUsers,
   adminWorkspaces,
